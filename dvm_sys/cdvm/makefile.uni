@@ -1,0 +1,28 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+# dvm/cdvm/makefile.uni
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR= src
+
+all: 
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(LINKER)" all
+	mkdir -p ../include; cp include/* ../include
+	@echo "****** DONE MAKING SUBDIRECTORIES $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)" clean
+	@echo "****** DONE CLEAN SUBDIRECTORIES $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)" cleanall
+	@echo "****** DONE CLEANALL SUBDIRECTORIES $(SUBDIR) ******"
+

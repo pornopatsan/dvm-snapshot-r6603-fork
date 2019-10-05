@@ -1,0 +1,893 @@
+#ifndef _SYSTEM_MAC_
+#define _SYSTEM_MAC_
+/******************/    /*E0000*/
+
+/***********************************\
+* Macros for call external function *
+\***********************************/    /*E0001*/
+
+#define SYS_CALL(name) CallFlag=1; CallNamePtr=(unsigned long)#name;\
+                       CallFilePtr=(unsigned long)__FILE__;\
+                       CallLine=__LINE__
+#define SYS_RET        CallFlag=0
+
+/*
+#define SYSTEM(fun,arg) {SYS_CALL(fun); fun##arg; SYS_RET;}
+#define SYSTEM_RET(ret,fun,arg) {SYS_CALL(fun); ret=fun##arg; SYS_RET;}
+*/    /*E0002*/
+
+#define SYSTEM(fun,arg) {SYS_CALL(fun); fun arg; SYS_RET;}
+#define SYSTEM_RET(ret,fun,arg) {SYS_CALL(fun); ret=fun arg; SYS_RET;}
+
+
+/*************************************************************\
+* Macros for time measuring runtime system function execution *
+\*************************************************************/    /*E0003*/
+
+#define stat_grp(name) GrpName[name]=#name;
+
+
+#ifdef _F_TIME_
+
+#define DVMFTimeStart(EventNumber)\
+   if(UserSumFlag)\
+      EventCount[EventNumber]++;\
+   else\
+      EventCount0[EventNumber]++;\
+   if((IsExpend || (IsVariation && IsStat[EventNumber]) ||\
+       (TimeExpendPrint > 0 && DVMCallLevel == 0)) && UserSumFlag &&\
+       StatOff == 0)\
+   {  Curr_dvm_time = dvm_time();\
+      Is_Curr_dvm_time = 1;\
+      if(DVMCallLevel == 0)\
+      {  if(CurrOperFix == 0)\
+            CurrOper = StatGrp[EventNumber];\
+         if(TimeExpendPrint > 0)\
+            MeasureLocalTime = Curr_dvm_time;\
+      }\
+      if(IsExpend)\
+      {  ToGrpPtr = &StatGrpStack[DVMCallLevel+1];\
+         ToGrpPtr->GrpNumber = StatGrp[EventNumber];\
+         ToGrpPtr->dvm_time = Curr_dvm_time;\
+         ToGrpPtr->ProductTime = 0.;\
+         ToGrpPtr->LostTime = 0.;\
+         FromGrpPtr = &StatGrpStack[DVMCallLevel];\
+         Double1 = (Curr_dvm_time - FromGrpPtr->dvm_time) *\
+                   d1_CurrEnvProcCount;\
+         FromGrpPtr->ProductTime += Double1;\
+         FromGrpPtr->LostTime += CurrEnvProcCount_m1 * Double1;\
+         ToGrpNumber = EventNumber;\
+         if(ToGrpNumber == call_binter_ || ToGrpNumber == call_bploop_\
+            || ToGrpNumber == call_bsloop_ ||\
+            ToGrpNumber == call_einter_ || ToGrpNumber == call_enloop_)\
+         {  if(TimeExpendPrint > 1)\
+            {  GrpTimesPtr = &TaskInter[UserGrp][UserGrp];\
+               GrpTimesPtr->ProductTime += FromGrpPtr->ProductTime;\
+               GrpTimesPtr->LostTime += FromGrpPtr->LostTime;\
+            }\
+            if(RTL_STAT)\
+            {  GrpTimesPtr = &CurrInterPtr[UserGrp][UserGrp];\
+               GrpTimesPtr->ProductTime += FromGrpPtr->ProductTime;\
+               GrpTimesPtr->LostTime += FromGrpPtr->LostTime;\
+            }\
+            FromGrpPtr->ProductTime = 0.;\
+            FromGrpPtr->LostTime = 0.;\
+         }\
+      }\
+      if(IsVariation && IsStat[EventNumber] &&\
+         (DVMCallLevel == 0 || stat_event_flag) && CurrOperFix == 0)\
+      {\
+         stat_event(EventNumber);\
+      }\
+   }\
+   DVMCallLevel++
+
+
+
+#define DVMFTimeFinish(EventNumber)\
+   DVMCallLevel--;\
+   if((IsExpend || (IsVariation && IsStat[EventNumber]) ||\
+       (TimeExpendPrint > 0 && DVMCallLevel == 0)) && UserSumFlag &&\
+       StatOff == 0)\
+   {  Curr_dvm_time = dvm_time();\
+      if(TimeExpendPrint > 0 && DVMCallLevel == 0)\
+         DVMFTime += Curr_dvm_time - MeasureLocalTime;\
+      if(IsExpend)\
+      {  StatGrpStack[DVMCallLevel].dvm_time = Curr_dvm_time;\
+         ToGrpPtr = &StatGrpStack[DVMCallLevel+1];\
+         ToGrpNumber = StatGrp[EventNumber];\
+         Double1 = (Curr_dvm_time - ToGrpPtr->dvm_time) *\
+                   d1_CurrEnvProcCount;\
+         Double2 = CurrEnvProcCount_m1 * Double1;\
+         if(TimeExpendPrint > 1)\
+         {  GrpTimesPtr = &TaskInter[CurrOper][ToGrpNumber];\
+            if((DVMCallLevel == 0 || stat_event_flag) &&\
+               CurrOperFix == 0)\
+               TaskInter[UserGrp][ToGrpNumber].CallCount++;\
+            else\
+               GrpTimesPtr->CallCount++;\
+            GrpTimesPtr->ProductTime += ToGrpPtr->ProductTime+Double1;\
+            GrpTimesPtr->LostTime += ToGrpPtr->LostTime+Double2;\
+         }\
+         if(RTL_STAT)\
+         {  GrpTimesPtr = &CurrInterPtr[CurrOper][ToGrpNumber];\
+            if((DVMCallLevel == 0 || stat_event_flag) &&\
+               CurrOperFix == 0)\
+               CurrInterPtr[UserGrp][ToGrpNumber].CallCount +=\
+               d1_CurrEnvProcCount;\
+            else\
+               GrpTimesPtr->CallCount += d1_CurrEnvProcCount;\
+            GrpTimesPtr->ProductTime += ToGrpPtr->ProductTime+Double1;\
+            GrpTimesPtr->LostTime += ToGrpPtr->LostTime+Double2;\
+         }\
+      }\
+      if(IsVariation && IsStat[EventNumber] &&\
+         (DVMCallLevel == 0 || stat_event_flag) && CurrOperFix == 0)\
+      {\
+         stat_event(EventNumber);\
+      }\
+   }
+
+
+
+#define SetHostOper(HostOper)\
+   if(IsExpend && UserSumFlag)\
+   {  Curr_dvm_time = dvm_time();\
+      FromGrpPtr = &StatGrpStack[DVMCallLevel];\
+      Double1 = (Curr_dvm_time - FromGrpPtr->dvm_time) *\
+                d1_CurrEnvProcCount;\
+      FromGrpPtr->ProductTime += Double1;\
+      FromGrpPtr->LostTime += CurrEnvProcCount_m1 * Double1;\
+      if(TimeExpendPrint > 1)\
+      {  GrpTimesPtr = &TaskInter[CurrOper][FromGrpPtr->GrpNumber];\
+         GrpTimesPtr->ProductTime += FromGrpPtr->ProductTime;\
+         GrpTimesPtr->LostTime += FromGrpPtr->LostTime;\
+      }\
+      if(RTL_STAT)\
+      {  GrpTimesPtr = &CurrInterPtr[CurrOper][FromGrpPtr->GrpNumber];\
+         GrpTimesPtr->ProductTime += FromGrpPtr->ProductTime;\
+         GrpTimesPtr->LostTime += FromGrpPtr->LostTime;\
+      }\
+      FromGrpPtr->ProductTime = 0.;\
+      FromGrpPtr->LostTime = 0.;\
+      FromGrpPtr->dvm_time = Curr_dvm_time;\
+      CurrOper = HostOper;\
+   }
+
+#else
+
+#define DVMFTimeStart(EventNumber)      DVMCallLevel++
+#define DVMFTimeFinish(EventNumber)     DVMCallLevel--
+#define SetHostOper(HostOper)
+
+#endif
+
+
+
+#ifdef _F_TIME_
+
+#define DVMMTimeStart(EventNumber)\
+   if(UserSumFlag)\
+      EventCount[EventNumber]++;\
+   else\
+      EventCount0[EventNumber]++;\
+   if((IsExpend || (TimeExpendPrint > 0 && DVMCallLevel == 0)) &&\
+      UserSumFlag && StatOff == 0)\
+   {  Curr_dvm_time = dvm_time();\
+      Is_Curr_dvm_time = 1;\
+      if(DVMCallLevel == 0)\
+      {  if(CurrOperFix == 0)\
+            CurrOper = MsgPasGrp;\
+         if(TimeExpendPrint > 0)\
+            MeasureLocalTime = Curr_dvm_time;\
+      }\
+      if(IsExpend)\
+      {  ToGrpPtr = &StatGrpStack[DVMCallLevel+1];\
+         ToGrpPtr->GrpNumber = MsgPasGrp;\
+         ToGrpPtr->dvm_time = Curr_dvm_time;\
+         ToGrpPtr->ProductTime = 0.;\
+         ToGrpPtr->LostTime = 0.;\
+         FromGrpPtr = &StatGrpStack[DVMCallLevel];\
+         if(FromGrpPtr->GrpNumber == MsgPasGrp)\
+            FromGrpPtr->LostTime += Curr_dvm_time -\
+                                    FromGrpPtr->dvm_time;\
+         else\
+         {  Double1 = (Curr_dvm_time - FromGrpPtr->dvm_time) *\
+                      d1_CurrEnvProcCount;\
+            FromGrpPtr->ProductTime += Double1;\
+            FromGrpPtr->LostTime += CurrEnvProcCount_m1 * Double1;\
+         }\
+      }\
+   }\
+   DVMCallLevel++
+
+
+
+#define DVMMTimeFinish\
+   DVMCallLevel--;\
+   if((IsExpend || (TimeExpendPrint > 0 && DVMCallLevel == 0)) &&\
+      UserSumFlag && StatOff == 0)\
+   {  Curr_dvm_time = dvm_time();\
+      if(TimeExpendPrint > 0 && DVMCallLevel == 0)\
+         DVMFTime += Curr_dvm_time - MeasureLocalTime;\
+      if(IsExpend)\
+      {  StatGrpStack[DVMCallLevel].dvm_time = Curr_dvm_time;\
+         ToGrpPtr = &StatGrpStack[DVMCallLevel+1];\
+         Double1 = Curr_dvm_time - ToGrpPtr->dvm_time;\
+         if(TimeExpendPrint > 1)\
+         {  GrpTimesPtr = &TaskInter[CurrOper][MsgPasGrp];\
+            if(DVMCallLevel == 0 && CurrOperFix == 0)\
+               TaskInter[UserGrp][MsgPasGrp].CallCount++;\
+            else\
+               GrpTimesPtr->CallCount++;\
+            GrpTimesPtr->ProductTime += Curr_synchr_time;\
+            GrpTimesPtr->LostTime += ToGrpPtr->LostTime+Double1;\
+         }\
+         if(RTL_STAT)\
+         {  GrpTimesPtr = &CurrInterPtr[CurrOper][MsgPasGrp];\
+            if(DVMCallLevel == 0 && CurrOperFix == 0)\
+               CurrInterPtr[UserGrp][MsgPasGrp].CallCount++;\
+            else\
+               GrpTimesPtr->CallCount++;\
+            GrpTimesPtr->ProductTime += Curr_synchr_time;\
+            GrpTimesPtr->LostTime += ToGrpPtr->LostTime+Double1;\
+         }\
+      }\
+   }\
+   Curr_synchr_time = 0.
+
+#else
+
+#define DVMMTimeStart     DVMCallLevel++
+#define DVMMTimeFinish    DVMCallLevel--
+
+#endif
+
+
+/************************************\
+ * Macros to deal  with DVM-memory        *
+\************************************/    /*E0004*/
+
+#ifdef _UNIX_
+#define  mac_aligned_malloc(ptr, type, MemSize, ErrFlag)\
+         SYSTEM_RET(ErrFlag, posix_memalign, (&(ptr), sysconf(_SC_PAGESIZE), (MemSize)))
+#else
+#define  mac_aligned_malloc(ptr, type, MemSize, ErrFlag)\
+         SYSTEM_RET(ptr, malloc, (MemSize));\
+         ErrFlag = (ptr == 0)
+#endif
+
+#define  getdvmmem(s_Mem, MemSize)\
+         (s_Mem).Size = (MemSize);\
+         (s_Mem).Ptr0 = NULL;\
+         if((MemSize) > 0)\
+         {  int ErrFlag;\
+            mac_aligned_malloc((s_Mem).Ptr0, void *, (MemSize), ErrFlag);\
+            if(ErrFlag)\
+            {  pprintf(2+MultiProcErrReg2,"*** RTS err 200.003: no memory\n");\
+               epprintf(MultiProcErrReg2,__FILE__,__LINE__,\
+                "malloc parameter: n=%ld;\n", (MemSize));\
+            }\
+         }\
+         (s_Mem).Ptr = (s_Mem).Ptr0
+
+
+
+#define  freedvmmem(s_MemPtr)\
+         SYSTEM(free, ((s_MemPtr)->Ptr0));\
+         (s_MemPtr)->Ptr0 = NULL;\
+         (s_MemPtr)->Ptr = NULL;\
+         (s_MemPtr)->Size = 0
+
+
+
+/****************************************************************\
+* Check that only one exchange between two processors is allowed *
+\****************************************************************/    /*E0005*/
+
+/* Check while beginning of exchange */    /*E0006*/
+
+#define  SendRendezvous(procnum)\
+if(CheckRendezvous && SendRendezvousArray &&\
+   SendRendezvousArray[(procnum)])\
+{  if(RendErrorPrint)\
+      pprintf(3,"*** RTS SendRendezvous err: procnum=%d(%d); "\
+                "procid=%d;\n",\
+                 (procnum), ProcNumberList[(procnum)],\
+                 ProcIdentList[(procnum)]);\
+   ( RTL_CALL, rtl_Waitrequest(SendRendezvousArray[(procnum)]) );\
+}
+
+
+
+#define  RecvRendezvous(procnum)\
+if(CheckRendezvous && RecvRendezvousArray &&\
+   RecvRendezvousArray[(procnum)])\
+{  if(RendErrorPrint)\
+      pprintf(3,"*** RTS RecvRendezvous err: procnum=%d(%d); "\
+                "procid=%d;\n",\
+                 (procnum),ProcNumberList[(procnum)],\
+                 ProcIdentList[(procnum)]);\
+   ( RTL_CALL, rtl_Waitrequest(RecvRendezvousArray[(procnum)]) );\
+}
+
+
+/* Check if it is necessary to open processor for exchange */    /*E0007*/
+
+#define  TstFreeProc(tst, procnum, RTL_ReqPtr)\
+tst = 1;\
+if(CheckRendezvous && SendRendezvousArray && RecvRendezvousArray)\
+{  if(SendRendezvousArray[procnum] != RTL_ReqPtr)\
+   {  if(RecvRendezvousArray[procnum] != RTL_ReqPtr)\
+         tst = 0;\
+   }\
+}
+
+
+/* Open processor for exchange */    /*E0008*/
+
+#define  FreeProc(procnum, RTL_ReqPtr)\
+if(CheckRendezvous && SendRendezvousArray && RecvRendezvousArray)\
+{  if(SendRendezvousArray[procnum] == RTL_ReqPtr)\
+      SendRendezvousArray[procnum] = NULL;\
+   if(RecvRendezvousArray[procnum] == RTL_ReqPtr)\
+      RecvRendezvousArray[procnum] = NULL;\
+}
+
+
+/**********\
+*  genv.c  *
+\**********/    /*E0009*/
+
+#define sysh_Build(Type, EnvInd, CrtEnvInd, lP, pP)\
+        sysh__Build((byte)(Type),(int)(EnvInd),(int)(CrtEnvInd),\
+                    (DvmType)(lP),(void *)(pP))
+
+#define genv_GetCurrEnv()\
+        coll_At(s_ENVIRONMENT *, gEnvColl, gEnvColl->Count-1)
+
+#define genv_GetEnvIndex(Env)\
+        coll__IndexOf(gEnvColl, (void *)(Env))
+
+
+/**********************\
+*  bounds.c , disio.c  *
+\**********************/    /*E0010*/
+
+#define PrepareCopy(Rank, pB, Block, SBlock, wsI, ContSize, Count, TLen)\
+{ int             m_i;\
+  s_REGULARSET  *_Set_;\
+  _Set_ = (SBlock).Set;\
+  ContSize = _Set_[Rank-1].Size * (TLen);\
+  for(m_i=1; m_i <= Rank; m_i++)\
+      wsI[m_i] = _Set_[m_i-1].Lower;\
+  pB += (long)block_GetLI(&(Block), wsI, 0)*((TLen)/sizeof(char));\
+  Count = 1;\
+  for(m_i=Rank-2; m_i >= 0; m_i--)\
+      Count *= _Set_[m_i].Size;\
+}
+
+
+
+#define IncCopyPtr(Rank, pB, pSB, Block, SBlock, ContSize, wsI, TLen)\
+{ int            _j_;\
+  s_REGULARSET  *_Set_;\
+  _Set_ = (SBlock).Set;\
+  pSB += (long)(ContSize)/sizeof(char);\
+  for (_j_=Rank-1; _j_ > 0; _j_--)\
+  { wsI[_j_]++;\
+    if(wsI[_j_]-_Set_[_j_-1].Lower == _Set_[_j_-1].Size)\
+       wsI[_j_] = _Set_[_j_-1].Lower;\
+    else\
+       break;\
+  }\
+  pB += (long)block_GetLI(&(Block), wsI, 0)*((TLen)/sizeof(char));\
+}
+
+
+/************\
+*  reduct.c  *
+\************/    /*E0011*/
+
+#define CopyRedVarToBuf(Type, Result, OpBuf) \
+        *((Type *)Result)=*((Type *)OpBuf)
+
+#define ApplyOperator(Type, Result, Op1Buf, Func, Op2Buf) \
+        *((Type *)Result)=*((Type *)Op1Buf) Func *((Type *)Op2Buf)
+
+#define ApplyOperatorWithInv(Type, Result, Op1Buf, Func, Op2Buf) \
+        *((Type *)Result)=~(*((Type *)Op1Buf) Func *((Type *)Op2Buf))
+
+#define ApplyLogOperator(Type, Result, Func2, Op1Buf, Func1, Op2Buf)\
+*((Type *)Result)=\
+(Type)( (int)(*((Type *)Result)) Func2 (*(Op1Buf) Func1 *(Op2Buf)) )
+
+#define ApplyFunc(Type, Result, Func, Op1Buf, Op2Buf) \
+        *((Type *)Result)=Func(*((Type *)Op1Buf),*((Type *)Op2Buf))
+
+#define ApplyMinLoc(Type, Var, InVar, Loc, InLoc, LocSize) \
+        if (*((Type *)Var) > *((Type *)InVar)) {\
+           *((Type *)Var) = *((Type *)InVar);\
+           dvm_memcopy(Loc, InLoc, LocSize);\
+        }
+
+#define ApplyMaxLoc(Type, Var, InVar, Loc, InLoc, LocSize) \
+        if (*((Type *)Var) < *((Type *)InVar)) {\
+	   *((Type *)Var) = *((Type *)InVar);\
+	   dvm_memcopy(Loc, InLoc, LocSize);\
+	}
+
+
+/*************\
+*  collect.c  *
+\*************/    /*E0012*/
+
+#define coll_Init(P1, P2, P3)  coll__Init(P1, P2, (t_Destructor *)P3)
+
+#define coll_At(Type, Coll, Index)\
+        (Type)(((void **)(Coll)->List)[Index])
+
+#define coll_Insert(Coll, NewRec)\
+        coll__AtInsert(Coll, (Coll)->Count, (void *)NewRec)
+
+#define coll_IndexOf(Coll, Record) coll__IndexOf(Coll, (void *)Record)
+
+#define coll_Delete(Coll, Record)\
+        coll_AtDelete(Coll, coll__IndexOf(Coll, (void *)Record) )
+
+#define coll_Free(Coll, Record) coll__Free(Coll, (void *)Record)
+
+
+/***********\
+*  space.c  *
+\***********/    /*E0013*/
+
+#define  space_GetSize(SpacePtr)\
+         ((SpacePtr)->Mult[0]*(SpacePtr)->Size[0])
+
+
+
+#define  block_InitFromElm(BlockPtr, Index)\
+{ int            _i_, _Rank_;\
+  long          *_Index_;\
+  s_REGULARSET  *_Set_;\
+  _Index_ = (Index);\
+  _Set_ = (BlockPtr)->Set;\
+  _Rank_ = (int)_Index_[0];\
+  (BlockPtr)->Rank = (byte)_Rank_;\
+  for(_i_=0; _i_ < _Rank_; _i_++)\
+  {  _Set_[_i_].Lower = _Index_[_i_+1];\
+     _Set_[_i_].Upper = _Index_[_i_+1];\
+     _Set_[_i_].Size = 1;\
+     _Set_[_i_].Step = 1;\
+  }\
+}
+
+
+
+#define  index_FromBlock(Index, CurrBlock, InitBlock, StepSign)\
+{ int            _i_, _Rank_;\
+  DvmType        *_Index_;\
+  s_REGULARSET  *_CSet_, *_ISet_;\
+  _Index_ = (Index);\
+  _CSet_ = (CurrBlock)->Set;\
+  _Rank_ = (CurrBlock)->Rank;\
+  for(_i_=0; _i_ < _Rank_; _i_++)\
+      _Index_[_i_] = _CSet_[_i_].Lower;\
+  if(StepSign == 0)\
+  {  for(_i_=_Rank_-1; _i_ >= 0; _i_--)\
+         if(_CSet_[_i_].Size > 1)\
+            break;\
+     if(_i_ >= 0)\
+     {  _ISet_ = (InitBlock)->Set;\
+        _CSet_[_i_].Lower++;\
+        _CSet_[_i_].Size--;\
+        for(_i_++; _i_ < _Rank_; _i_++)\
+        {  _CSet_[_i_].Lower = _ISet_[_i_].Lower;\
+           _CSet_[_i_].Size = _ISet_[_i_].Size;\
+        }\
+     }\
+  }\
+  else\
+  {  for(_i_=_Rank_-1; _i_ >= 0; _i_--)\
+         if(_CSet_[_i_].Size > _CSet_[_i_].Step)\
+            break;\
+     if(_i_ >= 0)\
+     { _ISet_ = (InitBlock)->Set;\
+        _CSet_[_i_].Lower += _CSet_[_i_].Step;\
+        _CSet_[_i_].Size  -= _CSet_[_i_].Step;\
+        for(_i_++; _i_ < _Rank_; _i_++)\
+        {  _CSet_[_i_].Lower = _ISet_[_i_].Lower;\
+           _CSet_[_i_].Size = _ISet_[_i_].Size;\
+        }\
+     }\
+  }\
+}
+
+
+
+#define  index_FromBlock1(Index, CurrBlock, InitBlock)\
+{ int            _i_, _Rank_;\
+  DvmType          *_Index_;\
+  s_REGULARSET  *_CSet_, *_ISet_;\
+  _Index_ = (Index);\
+  _CSet_ = (CurrBlock)->Set;\
+  _Rank_ = (CurrBlock)->Rank;\
+  for(_i_=0; _i_ < _Rank_; _i_++)\
+      _Index_[_i_] = _CSet_[_i_].Lower;\
+  for(_i_=_Rank_-2; _i_ >= 0; _i_--)\
+      if(_CSet_[_i_].Size > 1)\
+         break;\
+  if(_i_ >= 0)\
+  {  _ISet_ = (InitBlock)->Set;\
+     _CSet_[_i_].Lower++;\
+     _CSet_[_i_].Size--;\
+     _Rank_--;\
+     for(_i_++; _i_ < _Rank_; _i_++)\
+     {  _CSet_[_i_].Lower = _ISet_[_i_].Lower;\
+        _CSet_[_i_].Size = _ISet_[_i_].Size;\
+     }\
+  }\
+}
+
+
+
+#define  index_FromBlock1S(Index, CurrBlock, InitBlock)\
+{ int            _i_, _Rank_;\
+  DvmType          *_Index_;\
+  s_REGULARSET  *_CSet_, *_ISet_;\
+  _Index_ = (Index);\
+  _CSet_ = (CurrBlock)->Set;\
+  _Rank_ = (CurrBlock)->Rank;\
+  for(_i_=0; _i_ < _Rank_; _i_++)\
+      _Index_[_i_] = _CSet_[_i_].Lower;\
+  for(_i_=_Rank_-2; _i_ >= 0; _i_--)\
+      if(_CSet_[_i_].Size > _CSet_[_i_].Step)\
+         break;\
+  if(_i_ >= 0)\
+  { _ISet_ = (InitBlock)->Set;\
+     _CSet_[_i_].Lower += _CSet_[_i_].Step;\
+     _CSet_[_i_].Size  -= _CSet_[_i_].Step;\
+     _Rank_--;\
+     for(_i_++; _i_ < _Rank_; _i_++)\
+     {  _CSet_[_i_].Lower = _ISet_[_i_].Lower;\
+        _CSet_[_i_].Size = _ISet_[_i_].Size;\
+     }\
+  }\
+}
+
+
+
+#define  index_GetLI(Res, B, Index, StepSign)\
+{ DvmType           _CompressSize_;\
+  int            _i_, _Rank_;\
+  DvmType          *_Index_;\
+  s_REGULARSET  *_Set_;\
+  _Index_ = (Index);\
+  _Set_ = (B)->Set;\
+  Res = 0;\
+  _Rank_ = (B)->Rank;\
+  if(StepSign == 0)\
+  {  for(_i_=0; _i_ < _Rank_; _i_++)\
+        Res = Res*_Set_[_i_].Size +\
+              (_Index_[_i_] - _Set_[_i_].Lower);\
+  }\
+  else\
+  {  for(_i_=0; _i_ < _Rank_; _i_++)\
+     {  _CompressSize_ = (DvmType)ceil( (double)_Set_[_i_].Size /\
+                                     (double)_Set_[_i_].Step );\
+        Res = Res*_CompressSize_ +\
+              (_Index_[_i_] - _Set_[_i_].Lower) / _Set_[_i_].Step;\
+     }\
+  }\
+}
+
+
+
+#define  index_GetSI(B, Weight, LinIndex, Index, StepSign)\
+{ int            _i_, _Rank_;\
+  DvmType           _Ind_, _Lind_;\
+  DvmType          *_Weight_, *_Index_;\
+  s_REGULARSET  *_Set_;\
+  _Weight_ = (Weight);\
+  _Index_ = (Index);\
+  _Set_ = (B)->Set;\
+  _Lind_ = LinIndex;\
+  _Rank_ = (B)->Rank;\
+  if(StepSign == 0)\
+  {  for(_i_=0; _i_ < _Rank_; _i_++)\
+     {  _Ind_ = _Lind_ / _Weight_[_i_];\
+        _Lind_ -= _Ind_ * _Weight_[_i_];\
+        _Index_[_i_] = _Ind_ + _Set_[_i_].Lower;\
+     }\
+  }\
+  else\
+  {  for(_i_=0; _i_ < _Rank_; _i_++)\
+     {  _Ind_ = _Lind_ / _Weight_[_i_];\
+        _Lind_ -= _Ind_ * _Weight_[_i_];\
+        _Index_[_i_] = _Ind_*_Set_[_i_].Step + _Set_[_i_].Lower;\
+     }\
+  }\
+}
+
+
+
+#define  block_GetSize(Res, BPtr, StepSign)\
+{  int            _i_, _Rank_;\
+   s_REGULARSET  *_Set_;\
+   Res = 1;\
+   _Rank_ = (BPtr)->Rank;\
+   _Set_ = (BPtr)->Set;\
+   if(StepSign == 0)\
+   {  for(_i_=0; _i_ < _Rank_; _i_++)\
+          Res *= (long)_Set_[_i_].Size;\
+   }\
+   else\
+   {  for(_i_=0; _i_ < _Rank_; _i_++)\
+          Res *= (long)ceil( (double)_Set_[_i_].Size /\
+                            (double)_Set_[_i_].Step  );\
+   }\
+}
+
+
+/*************\
+*  elmcopy.c  *
+\*************/    /*E0014*/
+
+#define   LocElmAddr(Addr, DArr, IndexArray)\
+{ int          _Rank_, _i_;\
+  DvmType      _LI_;\
+  UDvmType    *_Header_;\
+  DvmType     *_IndexArray_;\
+  s_DISARRAY  *_DArr_;\
+  _DArr_ = (DArr);\
+  _IndexArray_ = (IndexArray);\
+  _Rank_ = (DArr)->Block.Rank;\
+  _LI_ = _IndexArray_[_Rank_-1];\
+  _Header_ = (UDvmType *)_DArr_->HandlePtr->HeaderPtr;\
+  for(_i_=1; _i_ < _Rank_; _i_++)\
+      _LI_ += _Header_[_i_] * _IndexArray_[_i_-1];\
+  Addr = (char *)_DArr_->BasePtr;\
+  Addr += (DvmType)( _DArr_->TLen * (_LI_+_Header_[_Rank_]) );\
+}
+
+
+
+#define   CopyLocElm(FromDArr, FromIndexArray, ToDArr, ToIndexArray)\
+{ char   *_FromAddr_, *_ToAddr_;\
+  long     _i_, _L_;\
+  LocElmAddr(_FromAddr_, FromDArr, FromIndexArray)\
+  LocElmAddr(_ToAddr_, ToDArr, ToIndexArray)\
+  _L_ = (ToDArr)->TLen;\
+  for(_i_=0; _i_ < _L_; _i_++,_ToAddr_++,_FromAddr_++)\
+      *_ToAddr_ = *_FromAddr_;\
+/*  SYSTEM(memcpy, (_ToAddr_, _FromAddr_, _L_))\*/    /*E0015*/\
+}
+
+
+
+#define   CopyLocElm1(FromDArr, FromIndexArray, ToDArr,\
+                      ToIndexArray, Count)\
+{ char   *_FromAddr_, *_ToAddr_;\
+  long     _i_, _L_;\
+  LocElmAddr(_FromAddr_, FromDArr, FromIndexArray)\
+  LocElmAddr(_ToAddr_, ToDArr, ToIndexArray)\
+  _L_ = (ToDArr)->TLen * (long)(Count);\
+  if(_L_ > 64)\
+  {\
+     SYSTEM(memcpy, (_ToAddr_, _FromAddr_, _L_))\
+  }\
+  else\
+  {\
+     for(_i_=0; _i_ < _L_; _i_++,_ToAddr_++,_FromAddr_++)\
+         *_ToAddr_ = *_FromAddr_;\
+  }\
+}
+
+
+
+#define   GetLocElm(DArr, IndexArray, BufferPtr)\
+{ char   *_Addr_, *_BufferPtr_;\
+  int     _i_, _L_;\
+  _BufferPtr_ = (char *)(BufferPtr);\
+  LocElmAddr(_Addr_, DArr, IndexArray)\
+  _L_ = (DArr)->TLen;\
+  for(_i_=0; _i_ < _L_; _i_++,_BufferPtr_++,_Addr_++)\
+      *_BufferPtr_ = *_Addr_;\
+/*  SYSTEM(memcpy, (BufferPtr, _Addr_, _L_))*/    /*E0016*/\
+}
+
+
+
+#define   GetLocElm1(DArr, IndexArray, BufferPtr, Count)\
+{ char   *_Addr_, *_BufferPtr_;\
+  long     _i_, _L_;\
+  _BufferPtr_ = (char *)(BufferPtr);\
+  LocElmAddr(_Addr_, DArr, IndexArray)\
+  _L_ = (DArr)->TLen * (long)(Count);\
+  if(_L_ > 64)\
+     SYSTEM(memcpy, (BufferPtr, _Addr_, _L_))\
+  else\
+  {  for(_i_=0; _i_ < _L_; _i_++,_BufferPtr_++,_Addr_++)\
+         *_BufferPtr_ = *_Addr_;\
+  }\
+}
+
+
+
+#define   PutLocElm(BufferPtr, DArr, IndexArray)\
+{ char   *_Addr_, *_BufferPtr_;\
+  int     _i_, _L_;\
+  _BufferPtr_ = (char *)(BufferPtr);\
+  LocElmAddr(_Addr_, DArr, IndexArray)\
+  _L_ = (DArr)->TLen;\
+  for(_i_=0; _i_ < _L_; _i_++,_BufferPtr_++,_Addr_++)\
+      *_Addr_ = *_BufferPtr_;\
+/*  SYSTEM(memcpy, (_Addr_, BufferPtr, _L_))*/    /*E0017*/\
+}
+
+
+
+#define   PutLocElm1(BufferPtr, DArr, IndexArray, Count)\
+{ char   *_Addr_, *_BufferPtr_;\
+  long     _i_, _L_;\
+  _BufferPtr_ = (char *)(BufferPtr);\
+  LocElmAddr(_Addr_, DArr, IndexArray)\
+  _L_ = (DArr)->TLen * (long)(Count);\
+  if(_L_ > 64)\
+     SYSTEM(memcpy, (_Addr_, BufferPtr, _L_))\
+  else\
+  {  for(_i_=0; _i_ < _L_; _i_++,_BufferPtr_++,_Addr_++)\
+         *_Addr_ = *_BufferPtr_;\
+  }\
+}
+
+
+#define   IsElmOfBlock(Res, Block, IndexArray)\
+{ int            _i_, _Rank_;\
+  s_BLOCK       *_B_;\
+  s_REGULARSET  *_S_;\
+  DvmType       *_I_;\
+  _B_ = (Block);\
+  _S_ = _B_->Set;\
+  _I_ = (IndexArray);\
+  _Rank_ = _B_->Rank;\
+  for(_i_ =0; _i_ < _Rank_; _i_++)\
+      if(_I_[_i_] < _S_[_i_].Lower ||\
+         _I_[_i_] > _S_[_i_].Upper)\
+         break;\
+  Res = (_Rank_ == _i_);\
+}
+
+
+/****************************************\
+* Macros to check if the system is      *
+* a subsystem of the given system       *
+\****************************************/    /*E0018*/
+
+#define NotSubsystem(Res, PVMS, DVMS)\
+        {  s_VMS  *_wVMS_, *_PVMS_, *_DVMS_;\
+           _PVMS_ = (PVMS);\
+           _DVMS_ = (DVMS);\
+           _wVMS_ = _DVMS_;\
+           while(_wVMS_ != _PVMS_ && _wVMS_->PHandlePtr != NULL)\
+                 _wVMS_ = (s_VMS *)(_wVMS_->PHandlePtr->pP);\
+           Res = (_wVMS_ != _PVMS_);\
+        }
+
+
+
+#define NotSubPS(Res, PVMS, DVMS)\
+        {  s_VMS  *_wVMS_, *_PVMS_, *_DVMS_;\
+           _PVMS_ = (PVMS);\
+           _DVMS_ = (DVMS);\
+           _wVMS_ = _DVMS_;\
+           while(_wVMS_ != _PVMS_ && _wVMS_->PHandlePtr != NULL &&\
+                 _DVMS_->Space.Rank == _wVMS_->Space.Rank)\
+                 _wVMS_ = (s_VMS *)(_wVMS_->PHandlePtr->pP);\
+           Res = (_wVMS_ != _PVMS_ ||\
+                  _DVMS_->Space.Rank != _wVMS_->Space.Rank);\
+        }
+
+
+
+#define NotDescendant(Res, PAMS, DAMS)\
+        {  s_AMS  *_wAMS_, *_PAMS_, *_DAMS_;\
+           _PAMS_ = (PAMS);\
+           _DAMS_ = (DAMS);\
+           _wAMS_ = _DAMS_;\
+           while(_wAMS_ != _PAMS_ && _wAMS_->ParentAMView != NULL)\
+                 _wAMS_ = (s_AMS *)\
+                          (_wAMS_->ParentAMView->AMHandlePtr->pP);\
+           Res = (_wAMS_ != _PAMS_);\
+        }
+
+
+/******************************************************\
+* Macro definitions to check object equivalence       *
+\******************************************************/    /*E0019*/
+
+#define  IsSpaceEqu(Res, Space1Ptr, Space2Ptr)\
+{ int       _i_, _Rank_;\
+  s_SPACE  *_Space1Ptr_, *_Space2Ptr_;\
+  DvmType     *_Size1_, *_Size2_;\
+  _Space1Ptr_ = (Space1Ptr);\
+  _Space2Ptr_ = (Space2Ptr);\
+  _Rank_ = _Space1Ptr_->Rank;\
+  Res = 1;\
+  if(_Rank_ != _Space2Ptr_->Rank)\
+     Res = 0;\
+  else\
+  {  _Size1_ = _Space1Ptr_->Size;\
+     _Size2_ = _Space2Ptr_->Size;\
+     for(_i_=0; _i_ < _Rank_; _i_++)\
+     {  if(_Size1_[_i_] != _Size2_[_i_])\
+        {  Res = 0;\
+           break;\
+        }\
+     }\
+  }\
+}
+
+
+
+#define  IsBlockEqu(Res, Block1Ptr, Block2Ptr)\
+{ int       _i_, _Rank_;\
+  s_BLOCK  *_Block1Ptr_, *_Block2Ptr_;\
+  s_REGULARSET  *_Set1_, *_Set2_;\
+  _Block1Ptr_ = (Block1Ptr);\
+  _Block2Ptr_ = (Block2Ptr);\
+  _Rank_ = _Block1Ptr_->Rank;\
+  Res = 1;\
+  if(_Rank_ != _Block2Ptr_->Rank)\
+     Res = 0;\
+  else\
+  {  _Set1_ = _Block1Ptr_->Set;\
+     _Set2_ = _Block2Ptr_->Set;\
+     for(_i_=0; _i_ < _Rank_; _i_++)\
+     {  if(_Set1_[_i_].Lower != _Set2_[_i_].Lower)\
+           break;\
+        if(_Set1_[_i_].Upper != _Set2_[_i_].Upper)\
+           break;\
+        if(_Set1_[_i_].Size  != _Set2_[_i_].Size)\
+           break;\
+        if(_Set1_[_i_].Step  != _Set2_[_i_].Step)\
+           break;\
+     }\
+     Res = (_i_ == _Rank_);\
+  }\
+}
+
+
+
+#define  IsArrBlockEqu(Result, ArrBlock1Ptr, ArrBlock2Ptr, TLenEqu)\
+{ s_ARRBLOCK  *_ArrBlock1Ptr_, *_ArrBlock2Ptr_;\
+  _ArrBlock1Ptr_ = (ArrBlock1Ptr);\
+  _ArrBlock2Ptr_ = (ArrBlock2Ptr);\
+  Result = 1;\
+  if((TLenEqu) && (_ArrBlock1Ptr_->TLen != _ArrBlock2Ptr_->TLen))\
+    Result = 0;\
+  else\
+    IsBlockEqu(Result, &_ArrBlock1Ptr_->Block, &_ArrBlock2Ptr_->Block)\
+}
+
+
+
+#define  IsAlignEqu(Align1Ptr, Align2Ptr)\
+         ( (Align1Ptr)->Attr  == (Align2Ptr)->Attr  &&\
+           (Align1Ptr)->Axis  == (Align2Ptr)->Axis  &&\
+           (Align1Ptr)->TAxis == (Align2Ptr)->TAxis &&\
+           (Align1Ptr)->A     == (Align2Ptr)->A     &&\
+           (Align1Ptr)->B     == (Align2Ptr)->B     &&\
+           (Align1Ptr)->Bound == (Align2Ptr)->Bound     )
+
+
+
+#define  IsMapEqu(Map1Ptr, Map2Ptr)\
+         ( (Map1Ptr)->Attr   == (Map2Ptr)->Attr   &&\
+           (Map1Ptr)->Axis   == (Map2Ptr)->Axis   &&\
+           (Map1Ptr)->PAxis  == (Map2Ptr)->PAxis  &&\
+           (Map1Ptr)->DisPar == (Map2Ptr)->DisPar     )
+
+
+#endif /* _SYSTEM_MAC_ */    /*E0020*/

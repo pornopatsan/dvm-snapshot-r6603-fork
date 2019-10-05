@@ -1,0 +1,274 @@
+/************************************************************************
+ *									*
+ *   This file contains the documentation of the tags used in various	*
+ *   structures of the Sigma database					*
+ *									*
+ ************************************************************************/
+
+/******************* variant tags for bif nodes **********************/
+
+#define GLOBAL		100	/* pseudo root node */
+#define PROG_HEDR	101	/* main program node */
+#define PROC_HEDR	102	/* procedure/function node */
+#define BASIC_BLOCK	103	/* start node of a basic block */
+#define CONTROL_END	104	/* end of a block */
+
+#define IF_NODE		105	/* an IF statement */
+#define ARITHIF_NODE	138	/* an arithmatic IF statement */
+#define LOGIF_NODE	145	/* a logical IF statement */
+
+#define LOOP_NODE	106	/* a loop statement */
+#define FOR_NODE	107	/* a DO (in fortran) or a for (in C) statement */
+#define FORALL_NODE	108	/* a forall (Blaze??) statement */
+#define WHILE_NODE	109	/* a while statement */
+#define CDOALL_NODE	124	/* a CDOALL statement */
+#define SDOALL_NODE	125	/* a SDOALL statement */
+#define DOACROSS_NODE	126	/* a DOACROSS statement */
+#define CDOACROSS_NODE	127	/* a CDOACROSS statement */
+#define EXIT_NODE	110	/* an EXIT statement */
+#define GOTO_NODE	139	/* a GOTO statement */
+#define ASSGOTO_NODE	140	/* an ASSIGN GOTO statement */
+#define COMGOTO_NODE	141	/* a COMPUTED GOGO statement */
+#define PAUSE_NODE	142	/* a PAUSE statement */
+#define STOP_NODE	143	/* a STOP statement */
+
+#define ASSIGN_STAT	111	/* an assignment statement */
+#define M_ASSIGN_STAT	112	/* a multiple assignment statement (Blaze??) */
+#define PROC_STAT	113	/*  */
+#define ASSLAB_STAT	146
+
+#define SUM_ACC		114	/* accumulation statements */
+#define MULT_ACC	115
+#define MAX_ACC		116
+#define MIN_ACC		117
+#define CAT_ACC		118
+#define OR_ACC		119
+#define AND_ACC		120
+
+#define READ_STAT	121
+#define WRITE_STAT	122
+#define OTHERIO_STAT	123
+
+#define BLOB		150
+#define SIZES		151
+
+
+#define FUNC_HEDR	130
+#define WHERE_NODE	131
+#define ALLDO_NODE	132
+#define IDENTIFY	133
+#define FORMAT_STAT	134
+#define STOP_STAT	135
+#define RETURN_STAT	136
+#define ELSEIF_NODE	137
+
+				/* NO_OP nodes */
+#define COMMENT_STAT	152
+#define CONT_STAT	153
+#define VAR_DECL	154
+#define PARAM_DECL	155
+#define COMM_STAT	156
+#define EQUI_STAT	157
+#define IMPL_DECL	158
+#define DATA_DECL	159
+#define SAVE_DECL	160
+#define ENTRY_STAT	162
+#define STMTFN_STAT	163
+#define DIM_STAT	164
+#define BLOCK_DATA	165
+#define EXTERN_STAT	166
+#define INTRIN_STAT	167
+
+#define ENUM_DECL	168	   /* New added for VPC */
+#define CLASS_DECL	169	   /* New added for VPC */
+#define UNION_DECL	170	   /* New added for VPC */
+#define STRUCT_DECL	171	   /* New added for VPC */
+#define DERIVED_CLASS_DECL  172	   /* New added for VPC */
+#define EXPR_STMT_NODE	    173	   /* New added for VPC */
+#define DO_WHILE_NODE	    174	   /* New added for VPC */
+#define SWITCH_NODE	    175	   /* New added for VPC */
+#define CASE_NODE	    176	   /* New added for VPC */
+#define DEFAULT_NODE	    177	   /* New added for VPC */
+#define BREAK_NODE	    178	   /* New added for VPC */
+#define CONTINUE_NODE	    179	   /* New added for VPC */
+#define RETURN_NODE	    180	   /* New added for VPC */
+#define ASM_NODE	    181	   /* New added for VPC */
+#define COBREAK_NODE	    182	   /* New added for VPC */
+#define COLOOP_NODE	    183	   /* New added for VPC */
+#define COEXEC_NODE	    184	   /* New added for VPC */
+#define LABEL_STAT	    185	   /* New added for VPC */
+#define PROC_COM	    186	   /* process common */
+#define ATTR_DECL	    187	   /* attribute declaration */
+#define NAMELIST_STAT	    188
+#define FUTURE_STMT	    189	   /* NEW added for VPC */
+
+
+/***************** variant tags for low level nodes ********************/
+
+#define INT_VAL		300
+#define FLOAT_VAL	301
+#define DOUBLE_VAL	302
+#define BOOL_VAL	303
+#define CHAR_VAL	304
+#define STRING_VAL	305
+#define COMPLEX_VAL	317
+
+#define CONST_REF	306
+#define VAR_REF		307
+#define ARRAY_REF	308
+#define RECORD_REF	309   /* different structure between Blaze and VPC++ */
+#define ENUM_REF	310
+#define LABEL_REF	318
+
+#define VAR_LIST	311
+#define EXPR_LIST	312
+#define RANGE_LIST	313
+
+#define CASE_CHOICE	314
+#define DEF_CHOICE	315
+#define VARIANT_CHOICE	316
+
+#define DDOT		324
+#define RANGE_OP	325
+#define UPPER_OP	326
+#define LOWER_OP	327
+
+#define EQ_OP		328
+#define LT_OP		329
+#define GT_OP		330
+#define NOTEQL_OP	331
+#define LTEQL_OP	332
+#define GTEQL_OP	333
+
+#define ADD_OP		334
+#define SUBT_OP		335
+#define OR_OP		336
+
+#define MULT_OP		337
+#define DIV_OP		338
+#define MOD_OP		339
+#define AND_OP		340
+
+#define EXP_OP		341
+#define ARRAY_MULT	342
+#define CONCAT_OP	343	/* cancatenation of strings */
+#define XOR_OP		344	/* .XOR. in fortran */
+#define EQV_OP		345	/* .EQV. in fortran */
+#define NEQV_OP		346	/* .NEQV. in fortran */
+
+#define MINUS_OP	350	/* unary operations */
+#define NOT_OP		351
+#define ASSGN_OP	352	/* New ADDED For VPC */
+#define DEREF_OP	353	/* New ADDED For VPC */
+#define POINTST_OP	354	/* New ADDED For VPC */	    /* ptr->x  */
+#define FUNCTION_OP	355	/* New ADDED For VPC */	    /* (*DD)() */
+#define MINUSMINUS_OP	356	/* New ADDED For VPC */
+#define PLUSPLUS_OP	357	/* New ADDED For VPC */
+#define BITAND_OP	358	/* New ADDED For VPC */
+#define BITOR_OP	359	/* New ADDED For VPC */
+
+
+
+
+#define STAR_RANGE	360	/* operations with no operands 360.. */
+
+#define PROC_CALL	370
+#define FUNC_CALL	371
+
+
+#define CONSTRUCTOR_REF 380
+#define ACCESS_REF	381
+#define CONS		382
+#define ACCESS		383
+#define IOACCESS	384
+#define CONTROL_LIST	385
+#define SEQ		386
+#define SPEC_PAIR	387
+#define COMM_LIST	388
+#define STMT_STR	389
+#define EQUI_LIST	390
+#define IMPL_TYPE	391
+#define STMTFN_DECL	392
+#define BIT_COMPLEMENT_OP     393
+#define EXPR_IF		394
+#define EXPR_IF_BODY	395
+#define FUNCTION_REF	396
+#define LSHIFT_OP	397
+#define RSHIFT_OP	398
+#define UNARY_ADD_OP	399
+#define SIZE_OP		400
+#define INTEGER_DIV_OP	401
+#define SUB_OP		402
+#define LE_OP		403	   /* New added for VPC */
+#define GE_OP		404	   /* New added for VPC */
+#define NE_OP		405	   /* New added for VPC */
+
+#define CLASSINIT_OP	406	   /* New added for VPC */
+#define CAST_OP		407	   /* New added for VPC */
+#define ADDRESS_OP	408	   /* New added for VPC */
+#define POINSTAT_OP	409	   /* New added for VPC */    
+#define COPY_NODE	410	   /* New added for VPC */    
+#define INIT_LIST	411	   /* New added for VPC */    
+#define VECTOR_CONST	412	   /* New added for VPC */    
+#define BIT_NUMBER	413	   /* New added for VPC */    
+#define ARITH_ASSGN_OP	414	   /* New added for VPC */    
+#define ARRAY_OP	415	   /* New added for VPC */    
+#define NEW_OP		416	   /* New added for VPC */
+#define DELETE_OP	417	   /* New added for VPC */
+#define NAMELIST_LIST	418
+#define THIS_NODE	419	   /* New added for VPC */    
+#define SCOPE_OP	420	   /* New added for VPC */    
+
+
+/***************** variant tags for symbol table entries ********************/
+
+
+#define CONST_NAME	500	/* constant types */
+#define ENUM_NAME	501
+#define FIELD_NAME	502   
+#define VARIABLE_NAME	503 
+#define TYPE_NAME	504
+#define PROGRAM_NAME	505
+#define PROCEDURE_NAME	506
+#define VAR_FIELD	507
+#define LABEL_VAR	508	/* dest of assigned goto stmt */
+#define FUNCTION_NAME	509
+#define MEMBER_FUNC	510	/* new added for VPC */
+#define CLASS_NAME	511	/* new added for VPC */
+#define UNION_NAME	512	/* new added for VPC */
+#define STRUCT_NAME	513	/* new added for VPC */
+#define LABEL_NAME	514	/* new added for VPC */
+
+
+#define DEFAULT		550  
+
+#define T_INT		551	/* scalar types */
+#define T_FLOAT		552
+#define T_DOUBLE	553
+#define T_CHAR		554
+#define T_BOOL		555
+#define T_STRING	556
+#define T_COMPLEX	564
+
+#define T_ENUM		557
+#define T_SUBRANGE	558
+#define T_LIST		559
+#define T_ARRAY		560
+#define T_RECORD	561
+#define T_ENUM_FIELD	562
+#define T_UNKNOWN	563
+#define T_VOID		565	       /* New one for VPC */
+#define T_DESCRIPT	566	       /* New one for VPC */
+#define T_FUNCTION	567	       /* New one for VPC */
+#define T_POINTER	568	       /* New one for VPC */
+#define T_UNION		569	       /* New one for VPC */
+#define T_STRUCT	570	       /* New one for VPC */
+#define T_CLASS		571	       /* New one for VPC */
+#define T_DERIVED_CLASS 572	       /* New one for VPC */
+#define T_DERIVED_TYPE	573	       /* New one for VPC */
+
+
+#define LOCAL		600		/* variable type */
+#define INPUT		601
+#define OUTPUT		602
+#define IO		603

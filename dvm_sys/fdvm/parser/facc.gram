@@ -1,0 +1,100 @@
+acc_directive: acc_region
+             | acc_end_region      
+             | acc_checksection
+             | acc_end_checksection
+             | acc_get_actual
+             | acc_actual 
+	     ;
+
+acc_region: ACC_REGION end_spec  opt_clause 
+             {  $$ = get_bfnd(fi,ACC_REGION_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+acc_checksection: ACC_CHECKSECTION end_spec 
+             {  $$ = get_bfnd(fi,ACC_CHECKSECTION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+             ;
+
+acc_get_actual:  ACC_GET_ACTUAL end_spec LEFTPAR acc_var_list RIGHTPAR
+             {  $$ = get_bfnd(fi,ACC_GET_ACTUAL_DIR,SMNULL,$4,LLNULL,LLNULL);}
+              |  ACC_GET_ACTUAL end_spec LEFTPAR RIGHTPAR
+             {  $$ = get_bfnd(fi,ACC_GET_ACTUAL_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+              |  ACC_GET_ACTUAL end_spec 
+             {  $$ = get_bfnd(fi,ACC_GET_ACTUAL_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+             ;
+
+acc_actual:     ACC_ACTUAL end_spec LEFTPAR acc_var_list RIGHTPAR
+             {  $$ = get_bfnd(fi,ACC_ACTUAL_DIR,SMNULL,$4,LLNULL,LLNULL);}
+          |   ACC_ACTUAL end_spec LEFTPAR RIGHTPAR
+             {  $$ = get_bfnd(fi,ACC_ACTUAL_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+          |   ACC_ACTUAL end_spec 
+             {  $$ = get_bfnd(fi,ACC_ACTUAL_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+             ;
+
+opt_clause:  needkeyword keywordoff
+              { $$ = LLNULL;}
+          |  acc_clause_list
+              { $$ = $1; }
+          ;
+
+acc_clause_list:   acc_clause
+	          { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+               | acc_clause_list COMMA acc_clause
+	          { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+               ;
+
+acc_clause:    needkeyword data_clause
+               { $$ = $2;}
+
+             | needkeyword async_clause
+               { $$ = $2;}
+               
+             | needkeyword targets_clause
+               { $$ = $2;}                   
+             ;
+
+
+data_clause:   INOUT   LEFTPAR acc_var_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_INOUT_OP,$3,LLNULL,SMNULL);}
+             | IN      LEFTPAR acc_var_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_IN_OP,$3,LLNULL,SMNULL);}
+             | OUT     LEFTPAR acc_var_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_OUT_OP,$3,LLNULL,SMNULL);}
+             | ACC_LOCAL   LEFTPAR acc_var_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_LOCAL_OP,$3,LLNULL,SMNULL);}             
+             | ACC_INLOCAL LEFTPAR acc_var_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_INLOCAL_OP,$3,LLNULL,SMNULL);}             
+             ;
+
+targets_clause:   ACC_TARGETS LEFTPAR computer_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_TARGETS_OP,$3,LLNULL,SMNULL);}
+             ;
+
+async_clause:   ACC_ASYNC             
+               { $$ = make_llnd(fi,ACC_ASYNC_OP,LLNULL,LLNULL,SMNULL);}
+             ;
+
+
+acc_var_list: variable_list
+              { $$ = $1;}
+            ;
+
+computer_list:   computer
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | computer_list COMMA computer
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+computer:       needkeyword ACC_HOST
+              { $$ = make_llnd(fi,ACC_HOST_OP, LLNULL,LLNULL,SMNULL);}
+             |  needkeyword ACC_CUDA
+              { $$ = make_llnd(fi,ACC_CUDA_OP, LLNULL,LLNULL,SMNULL);}
+             ;
+
+acc_end_region: ACC_END_REGION
+              {  $$ = get_bfnd(fi,ACC_END_REGION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+              ;
+     
+acc_end_checksection: ACC_END_CHECKSECTION
+              {  $$ = get_bfnd(fi,ACC_END_CHECKSECTION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+              ;     
+        

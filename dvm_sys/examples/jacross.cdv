@@ -1,0 +1,68 @@
+/* Jacobi A->A program */
+#include <math.h>
+#include <stdio.h>
+#define Max(a, b) ((a) > (b) ? (a) : (b))
+
+#define L 8
+#define ITMAX 20
+
+int i, j, it, k;
+double eps;
+double MAXEPS = 0.5;
+
+FILE *f;
+
+/* 2D array block distributed along 2 dimensions */
+#pragma dvm array distribute[block][block]
+double A[L][L];
+
+int main(int an, char **as)
+{
+    #pragma dvm region
+    {
+    /* 2D parallel loop with base array A */
+    #pragma dvm parallel([i][j] on A[i][j]) cuda_block(256)
+    for (i = 0; i < L; i++)
+        for (j = 0; j < L; j++)
+        {
+            if (i == 0 || j == 0 || i == L - 1 || j == L - 1)
+                A[i][j] = 0.;
+            else
+                A[i][j] = 3. + i + j;
+        }
+    }
+
+    /* iteration loop */
+    for (it = 1; it <= ITMAX; it++)
+    {
+        eps = 0.;
+        #pragma dvm actual(eps)
+
+        #pragma dvm region
+        {
+        /* Parallel loop with base array A */
+        /* calculating maximum in variable eps */
+        #pragma dvm parallel([i][j] on A[i][j]) across(A[1:1][1:1]), reduction(max(eps))
+        for (i = 1; i < L - 1; i++)
+            for (j = 1; j < L - 1; j++)
+            {
+                double b;
+                b = (A[i - 1][j] + A[i + 1][j] + A[i][j - 1] + A[i][j + 1]) / 4.;
+                eps = Max(fabs(b - A[i][j]), eps);
+                A[i][j] = b;
+            }
+        }
+
+        #pragma dvm get_actual(eps)
+        printf("it=%4i   eps=%e\n", it, eps);
+        if (eps < MAXEPS)
+            break;
+    }
+
+    f = fopen("jacobi.dat", "wb");
+    #pragma dvm get_actual(A)
+    fwrite(A, sizeof(double), L * L, f);
+    fclose(f);
+
+    return 0;
+}

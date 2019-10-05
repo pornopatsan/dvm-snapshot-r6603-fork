@@ -1,0 +1,42 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# Predictor/makefile.uni
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR= Rater Presage Trcutil
+
+rater:
+	cd Rater/Src; $(MAKE) "RELEASE=-DNDEBUG" all
+
+presage: rater
+	cd Presage/Src; $(MAKE) "RELEASE=-DNDEBUG" all
+
+trcutil:
+	cd Trcutil; $(MAKE) all
+
+all: debug
+
+debug:
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES Predictor: $(SUBDIR) ******"
+	cd Rater/Src; $(MAKE) all
+	cd Presage/Src; $(MAKE) all
+	cd Trcutil; $(MAKE) all
+	@echo "****** DONE MAKING dvm/: $(SUBDIR) ******"
+
+release: rater presage trcutil
+	@echo "****** DONE MAKING dvm/: $(SUBDIR) ******"
+
+clean1:
+	@echo "****** RECURSIVELY   CLEAN SUBDIRECTORIES Predictor: $(SUBDIR) ******"
+	cd Rater/Src; $(MAKE)  clean
+	cd Presage/Src; $(MAKE) clean
+	cd Trcutil; $(MAKE) clean
+	@echo "****** DONE  CLEAN Predictor/: $(SUBDIR) ******"
+
+.PHONY: all debug release clean1 rater presage trcutil

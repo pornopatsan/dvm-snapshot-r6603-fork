@@ -1,0 +1,40 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/lib/newsrc/makefile.sgi
+
+LIBDIR = ../../../lib
+
+OLDHEADERS = ../../h
+
+# Directory in which include file can be found
+TOOLBOX_INCLUDE = ../include
+
+INCL = -I$(OLDHEADERS) -I../include
+
+TOOLBOX_SRC	=  low_level.c unparse.c 
+
+TOOLBOX_HDR =  $(TOOLBOX_INCLUDE)/macro.h $(TOOLBOX_INCLUDE)/bif_node.def \
+	$(TOOLBOX_INCLUDE)/type.def  $(TOOLBOX_INCLUDE)/symb.def 
+
+CFLAGS = $(INCL) -c -DSYS5 -Wall
+
+low_level.o: low_level.c $(TOOLBOX_HDR)
+
+unparse.o:   unparse.c $(TOOLBOX_HDR) $(TOOLBOX_INCLUDE)/unparse.def \
+	 $(TOOLBOX_INCLUDE)/unparseC++.def
+
+TOOLBOX_OBJ	=  low_level.o  unparse.o 
+
+$(LIBDIR)/libsage.a: $(TOOLBOX_OBJ) $(TOOLBOX_HDR)  
+	ar qc $(LIBDIR)/libsage.a $(TOOLBOX_OBJ) 
+
+all: $(LIBDIR)/libsage.a
+	@echo "*** COMPILING LIBRARY newsrc DONE"
+
+clean:
+	rm -f $(TOOLBOX_OBJ)
+cleanall:
+	rm -f $(TOOLBOX_OBJ)

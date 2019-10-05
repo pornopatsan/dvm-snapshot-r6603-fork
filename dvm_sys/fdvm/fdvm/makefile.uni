@@ -1,0 +1,146 @@
+#echo#######################################################################
+# Makefile for   Fortran DVM back-end
+#
+#echo#######################################################################
+
+# dvm/fdvm/fdvm/makefile.uni
+
+SAGEROOT = ../Sage
+LIBDIR = ../lib
+BINDIR = ../../bin
+LIBINCLUDE = $(SAGEROOT)/lib/include
+HINCLUDE = $(SAGEROOT)/h
+DVMINCLUDE = ../include
+EXECUTABLES = f_dvm
+
+LOADER = $(LINKER)
+
+INCL = -I. -I$(LIBINCLUDE) -I$(HINCLUDE) -I$(DVMINCLUDE)
+
+CFLAGS = -c $(INCL) -Wall
+LDFLAGS =
+
+LIBS = $(LIBDIR)/libSage++.a $(LIBDIR)/libsage.a $(LIBDIR)/libdb.a
+OBJS = acc.o \
+	   acc_across.o \
+	   acc_across_analyzer.o \
+	   acc_analyzer.o \
+	   acc_data.o \
+	   acc_f2c.o \
+	   acc_f2c_handlers.o \
+	   acc_rtc.o \
+	   acc_utilities.o \
+	   aks_analyzeLoops.o \
+	   aks_structs.o \
+	   calls.o \
+	   debug.o \
+	   dvm.o \
+	   funcall.o \
+	   help.o \
+	   hpf.o \
+	   io.o \
+	   omp.o \
+	   ompdebug.o \
+           parloop.o \
+	   stmt.o 
+
+$(BINDIR)/$(EXECUTABLES): $(OBJS)
+	$(LOADER) $(LDFLAGS) -o $(BINDIR)/$(EXECUTABLES) $(OBJS) $(LIBS)
+
+all: $(BINDIR)/$(EXECUTABLES)
+	@echo "****** COMPILING $(EXECUTABLES) DONE ******"
+
+clean:
+	rm -f $(OBJS)
+cleanall:
+	rm -f $(OBJS)
+
+## TODO: create correct dependences
+############################# dependences ############################
+acc.o: acc.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) acc.cpp
+	
+acc_across.o: acc_across.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/aks_structs.h
+	$(CXX) $(CFLAGS) acc_across.cpp
+
+acc_across_analyzer.o: acc_across_analyzer.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/acc_across_analyzer.h
+	$(CXX) $(CFLAGS) acc_across_analyzer.cpp
+	
+acc_analyzer.o: acc_analyzer.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/acc_analyzer.h
+	$(CXX) $(CFLAGS) acc_analyzer.cpp
+
+acc_data.o: acc_data.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) acc_data.cpp
+
+acc_f2c.o: acc_f2c.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) acc_f2c.cpp
+
+acc_f2c_handlers.o: acc_f2c_handlers.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) acc_f2c_handlers.cpp
+
+acc_rtc.o: acc_rtc.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/acc_data.h
+	$(CXX) $(CFLAGS) acc_rtc.cpp
+	
+acc_utilities.o: acc_utilities.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) acc_utilities.cpp
+	
+aks_analyzeLoops.o: aks_analyzeLoops.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/aks_structs.h
+	$(CXX) $(CFLAGS) aks_analyzeLoops.cpp
+	
+aks_structs.o: aks_structs.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h $(DVMINCLUDE)/aks_structs.h
+	$(CXX) $(CFLAGS) aks_structs.cpp
+
+calls.o: calls.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) calls.cpp
+	
+debug.o: debug.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) debug.cpp
+	
+dvm.o: dvm.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) dvm.cpp
+	
+funcall.o: funcall.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) funcall.cpp
+
+help.o: help.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) help.cpp
+
+hpf.o: hpf.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) hpf.cpp
+
+io.o: io.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) io.cpp
+	
+omp.o: omp.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) omp.cpp
+
+ompdebug.o: ompdebug.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) ompdebug.cpp
+
+parloop.o: parloop.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) parloop.cpp
+
+stmt.o: stmt.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) stmt.cpp

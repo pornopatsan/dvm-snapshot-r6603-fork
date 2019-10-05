@@ -1,0 +1,114 @@
+### makefile for cdvmh converter (based on llvm+clang)
+# requires variables: CXX LLVMINCLUDE LIBCLANG
+# optional variables: LINKER
+
+!IF !DEFINED(LINKER)
+LINKER = $(CXX)
+!ENDIF
+
+BINDIR = ..\..\bin
+
+CXXFLAGS = $(LLVMINCLUDE) \
+ /DWIN32 /D_WINDOWS /W3 /GR /EHsc /MP4 \
+ /D_CRT_SECURE_NO_DEPRECATE \
+ /D_CRT_SECURE_NO_WARNINGS \
+ /D_CRT_NONSTDC_NO_DEPRECATE \
+ /D_CRT_NONSTDC_NO_WARNINGS \
+ /D_SCL_SECURE_NO_DEPRECATE \
+ /D_SCL_SECURE_NO_WARNINGS \
+ /wd4146 /wd4180 /wd4244 /wd4267 /wd4345 /wd4351 /wd4355 /wd4503 /wd4624 /wd4800 /wd4291 /w14062 /we4238 \
+ /D__STDC_CONSTANT_MACROS \
+ /D__STDC_FORMAT_MACROS \
+ /D__STDC_LIMIT_MACROS \
+ /MD /nologo
+
+LLVMLDFLAGS = \
+	$(LIBCLANG)LLVMTransformUtils.lib \
+	$(LIBCLANG)LLVMipa.lib \
+	$(LIBCLANG)LLVMAnalysis.lib \
+	$(LIBCLANG)LLVMTarget.lib \
+	$(LIBCLANG)LLVMMCParser.lib \
+	$(LIBCLANG)LLVMMC.lib \
+	$(LIBCLANG)LLVMObject.lib \
+	$(LIBCLANG)LLVMBitReader.lib \
+	$(LIBCLANG)LLVMOption.lib \
+	$(LIBCLANG)LLVMCore.lib \
+	$(LIBCLANG)LLVMSupport.lib 
+
+OBJECTS = \
+	c_dvmh.obj \
+	aux_visitors.obj \
+	cdvmh_log.obj \
+	converter_aux.obj \
+	converter_debug.obj \
+	converter_main.obj \
+	file_ctx.obj \
+	handler_gen.obj \
+	pass_ctx.obj \
+	pragma_parser.obj \
+	pragmas.obj \
+	project_ctx.obj \
+	utils.obj
+
+CLANGLIBS = \
+	$(LIBCLANG)clangFrontend.lib \
+	$(LIBCLANG)clangDriver.lib \
+	$(LIBCLANG)clangSerialization.lib \
+	$(LIBCLANG)clangParse.lib \
+	$(LIBCLANG)clangSema.lib \
+	$(LIBCLANG)clangAnalysis.lib \
+	$(LIBCLANG)clangRewriteCore.lib \
+	$(LIBCLANG)clangEdit.lib \
+	$(LIBCLANG)clangAST.lib \
+	$(LIBCLANG)clangLex.lib \
+	$(LIBCLANG)clangBasic.lib
+
+$(BINDIR)\c_dvmh.exe: $(OBJECTS)
+	$(LINKER) /out:$(BINDIR)\c_dvmh.exe $(OBJECTS) $(CLANGLIBS) $(LLVMLDFLAGS) 
+
+all: $(BINDIR)\c_dvmh.exe
+
+aux_visitors.obj: aux_visitors.cpp aux_visitors.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) /c aux_visitors.cpp
+c_dvmh.obj: c_dvmh.cpp converter.h pragmas.h cdvmh_log.h messages.h \
+ file_ctx.h project_ctx.h utils.h settings.h pass_ctx.h pragma_parser.h \
+ handler_gen.h aux_visitors.h
+	$(CXX) $(CXXFLAGS) /c c_dvmh.cpp
+cdvmh_log.obj: cdvmh_log.cpp cdvmh_log.h
+	$(CXX) $(CXXFLAGS) /c cdvmh_log.cpp
+converter_aux.obj: converter_aux.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) /c converter_aux.cpp
+converter_debug.obj: converter_debug.cpp converter_debug.h converter.h pragmas.h \
+ cdvmh_log.h messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) /c converter_debug.cpp
+converter_main.obj: converter_main.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h aux_visitors.h
+	$(CXX) $(CXXFLAGS) /c converter_main.cpp
+file_ctx.obj: file_ctx.cpp file_ctx.h project_ctx.h utils.h settings.h \
+ pragmas.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) /c file_ctx.cpp
+handler_gen.obj: handler_gen.cpp handler_gen.h aux_visitors.h pragmas.h \
+ cdvmh_log.h messages.h file_ctx.h project_ctx.h utils.h settings.h \
+ pass_ctx.h
+	$(CXX) $(CXXFLAGS) /c handler_gen.cpp
+pass_ctx.obj: pass_ctx.cpp pass_ctx.h file_ctx.h project_ctx.h utils.h \
+ settings.h pragmas.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) /c pass_ctx.cpp
+pragma_parser.obj: pragma_parser.cpp pragma_parser.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) /c pragma_parser.cpp
+pragmas.obj: pragmas.cpp pragmas.h cdvmh_log.h messages.h file_ctx.h \
+ project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) /c pragmas.cpp
+project_ctx.obj: project_ctx.cpp project_ctx.h utils.h cdvmh_log.h \
+ messages.h
+	$(CXX) $(CXXFLAGS) /c project_ctx.cpp
+utils.obj: utils.cpp utils.h settings.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) /c utils.cpp
+
+clean:
+	del $(OBJECTS)
+
+cleanall: clean

@@ -1,0 +1,60 @@
+.KEEP_STATE:
+#############################################################################
+#                                                                           #
+#                                  PRESAGE                                  #
+#                                                                           #
+#############################################################################
+
+EXE	= predictor
+LIB	= rater
+INC_DIR = -I../Include -I../../Rater/Include
+#ROUTDIR  = ../Release
+ROUTDIR  = ../Debug
+LIBDIR = ../../Rater/Src/$(ROUTDIR)
+
+##################### for GNU ####################
+
+COPT    = -O -w $(INC_DIR)
+
+release : $(ROUTDIR)/$(EXE)
+
+debug   : $(ROUTDIR)/$(EXE)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+.cpp.o:
+	$(CXX) -c $(COPT) $*.cpp
+
+
+MODULES   = \
+	AppModelData.o	ModelInterval.o	\
+	AppModelMain.o	ModelMPS_AM.o	ParseString.o \
+	CallParams.o	ModelMessages.o	RuntimeInfo.o \
+	DVM_Event.o	ModelParLoop.o	SaveHTML.o \
+	LoopBlock.o	ModelReduct.o	SaveResults.o \
+	LoopLS.o	ModelRegular.o	TraceRead.o \
+	PS.o		ModelShadow.o	Predictor.o \
+	ModelDArray.o	ModelUnknown.o	ModelIO.o \
+	TraceLine.o	interval.o
+
+#$(ROUTDIR)/%.o:%.cpp
+#	$(CXX) -c $(COPT) -o $(ROUTDIR)/$*.o $*.cpp
+
+
+
+################################## PREDICTOR ################################
+
+$(ROUTDIR)/$(EXE): $(MODULES)
+	$(CXX) -o ../../../bin/$(EXE) $(MODULES) -L$(LIBDIR) -l$(LIB)
+#	$(LINKER) -o $(ROUTDIR)/$(EXE) $(MODULES) -L$(LIBDIR) -l$(LIB)
+
+############################################################################
+
+clean1:
+#	rm -f *.o
+	rm -f $(MODULES)
+tags:
+	rm -f tags
+	ectags -f tags $(SRCFILES)   
+
+################################## END #####################################

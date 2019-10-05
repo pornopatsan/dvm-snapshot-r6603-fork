@@ -1,0 +1,144 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# dvm/fdvm/fdvm/makefile.win
+
+OUTDIR = ..\obj
+BINDIR = ..\..\bin
+LIBDIR = ..\lib
+SAGEROOT =..\Sage
+
+LIBINCLUDE = $(SAGEROOT)\lib\include
+HINCLUDE = $(SAGEROOT)\h
+FDVMINCL = ..\include
+EXECUTABLES = f_dvm
+
+INCL = -I. -I$(LIBINCLUDE) -I$(HINCLUDE) -I$(FDVMINCL)
+
+
+# -w don't issue warning now.
+#CFLAGS=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+#	/Fp"$(OUTDIR)/f_dvm.pch" /YX /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+	/Fp"$(OUTDIR)/f_dvm.pch" /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+.cpp{$(OUTDIR)/}.obj:
+    $(CXX) $(CFLAGS) $<
+
+LINK=$(LINKER)
+ 
+LINK_FLAGS=/nologo /subsystem:console /incremental:no\
+ /pdb:"$(OUTDIR)\$(EXECUTABLES).pdb" /out:"$(BINDIR)\$(EXECUTABLES).exe" 
+
+LINK_FLAGS=/nologo /subsystem:console /incremental:no\
+ /pdb:"$(OUTDIR)\$(EXECUTABLES).pdb" /out:"$(BINDIR)\$(EXECUTABLES).exe" 
+
+OBJS = $(OUTDIR)/acc.obj \
+	   $(OUTDIR)/acc_across.obj \
+	   $(OUTDIR)/acc_across_analyzer.obj \
+	   $(OUTDIR)/acc_analyzer.obj \
+	   $(OUTDIR)/acc_data.obj \
+	   $(OUTDIR)/acc_f2c.obj \
+	   $(OUTDIR)/acc_f2c_handlers.obj \
+	   $(OUTDIR)/acc_rtc.obj \
+	   $(OUTDIR)/acc_utilities.obj \
+	   $(OUTDIR)/aks_analyzeLoops.obj \
+	   $(OUTDIR)/aks_structs.obj \
+	   $(OUTDIR)/calls.obj \
+	   $(OUTDIR)/debug.obj \
+	   $(OUTDIR)/dvm.obj \
+	   $(OUTDIR)/funcall.obj \
+	   $(OUTDIR)/help.obj \
+	   $(OUTDIR)/hpf.obj \
+	   $(OUTDIR)/io.obj \
+	   $(OUTDIR)/omp.obj \
+	   $(OUTDIR)/ompdebug.obj \
+           $(OUTDIR)/parloop.obj \
+	   $(OUTDIR)/stmt.obj
+
+LIBS = $(LIBDIR)/libSage++.lib $(LIBDIR)\libsage.lib $(LIBDIR)\libdb.lib 
+
+
+$(BINDIR)/$(EXECUTABLES).exe: $(OBJS)
+	$(LINK) @<<
+	$(LINK_FLAGS) $(OBJS) $(LIBS)  
+<<
+
+all: $(BINDIR)/$(EXECUTABLES).exe
+    @echo "*** COMPILING EXECUTABLE $(EXECUTABLES) DONE"
+
+
+clean:
+
+cleanall:
+
+
+# ***********************************************************
+## TODO: create correct dependences
+acc.obj: acc.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+acc_across.obj: acc_across.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+acc_across_analyzer.obj: acc_across_analyzer.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h $(FDVMINCL)/acc_across_analyzer.h
+
+acc_analyzer.obj: acc_analyzer.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h $(FDVMINCL)/acc_analyzer.h
+
+acc_data.obj: acc_data.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+	
+acc_f2c.obj: acc_f2c.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+	
+acc_f2c_handlers.obj: acc_f2c_handlers.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+acc_rtc.obj: acc_rtc.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+	
+acc_utilities.obj: acc_utilities.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+	
+aks_analyzeLoops.obj: aks_analyzeLoops.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h $(FDVMINCL)/aks_structs.h
+
+aks_structs.obj: aks_structs.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h $(FDVMINCL)/aks_structs.h
+
+calls.obj: calls.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+debug.obj: debug.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+dvm.obj: dvm.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+funcall.obj: funcall.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+help.obj: help.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h	 
+
+hpf.obj: hpf.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+io.obj: io.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+omp.obj: omp.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+ompdebug.obj: ompdebug.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+parloop.obj: parloop.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+stmt.obj: stmt.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h

@@ -1,0 +1,50 @@
+/****************************************\
+* Parameters of built-in debugging tools * 
+\****************************************/    /*E0000*/
+DEBUG_VERS=2889; /* minimal RTL version number, this file can be used with */    /*E0001*/
+
+TstObject=1;     /* flag to check the object is DVM one */    /*E0002*/
+DisArrayFill=1;  /* flag: distributed arrays should be filled  with zero byte
+                    during distribution and redistribution */    /*E0003*/
+FillCode=0;      /* sequence of bytes for filling  
+                    initialized elements of distributed arrays */    /*E0004*/
+
+WaitDelay=0;     /* value of delay of rtl_Waitrequest function execution */    /*E0005*/
+RecvDelay=0;     /* value of delay of rtl_Recvnowait function execution*/    /*E0006*/
+SendDelay=0;     /* value of delay of rtl_Sendnowait function execution*/    /*E0007*/
+
+SaveAllocMem=0;  /* flag to keep allocations in array of structures */    /*E0008*/
+CheckFreeMem=1;  /* flag to check the array of structures on each memory freeing */    /*E0009*/
+
+AllocBufSize=5000; /* size of array of structures to keep memory allocations */    /*E0010*/
+BoundSize=8;       /* length of left and right bounds of allocated memory in bytes */    /*E0011*/
+BoundCode=255;     /* fill code for left and right bounds */    /*E0012*/
+CheckPtr=0;        /* flag: pointer value control
+                      while allocate and free memory */    /*E0013*/
+
+/* */    /*E0014*/
+
+MPI_MsgTest=0;   /* */    /*E0015*/
+
+MPI_TestCount=100; /* */    /*E0016*/
+MPI_TestSize=10000; /* */    /*E0017*/
+
+/* */    /*E0018*/
+
+MPI_TraceRoutine=0; /* */    /*E0019*/
+DVM_TraceOff=1;   /* */    /*E0020*/
+MPI_TraceLevel=0; /* */    /*E0021*/
+MPI_TraceReg=0;   /* */    /*E0022*/
+MPI_TraceTimeReg=0; /* */    /*E0023*/
+MPI_SlashOut=1;   /* */    /*E0024*/
+MPI_TraceAll=1;   /* */    /*E0025*/
+MPI_TraceTime=1;     /* */    /*E0026*/
+MPI_TraceFileLine=1; /* */    /*E0027*/
+MPI_TraceMsgChecksum=1; /* */    /*E0028*/
+MPI_DynAnalyzer=1;/* */    /*E0029*/
+MPI_TestTraceCount=1000; /* */    /*E0030*/
+MPI_TraceBufSize=3072000;   /* */    /*E0031*/
+MPI_TraceFileSize=10240000; /* */    /*E0032*/
+MPI_TotalTraceFileSize=100000000; /* */    /*E0033*/
+MPI_DebugMsgChecksum=0;  /* */    /*E0034*/
+MPI_DebugBufChecksum=1;  /* */    /*E0035*/

@@ -1,0 +1,92 @@
+/* MULTIGRID program */
+#include <stdio.h>
+#include <stdlib.h>
+
+#define DVM(dvmdir)
+#define DO(v,l,h,s) for(v=(l); v<=(h); v+=(s))
+
+void oper(
+    DVM(*DISTRIBUTE [*][*][*])  float *AA,
+            int AAN, int AAM, int AAK,
+    DVM(*DISTRIBUTE [*][*][*])  float *BB,
+            int BBN, int BBM, int BBK)
+/*Parameters: two distributed 3D arrays and */
+/* their  actual dimensions */
+    {
+#define AA(i,j,k) AA[((i)*AAM+(j))*AAK+(k)]
+#define BB(i,j,k) BB[((i)*BBM+(j))*BBK+(k)]
+int i, j,k;
+/* Alignment of array BB with array AA using stretching*/
+DVM(REALIGN BB[i][j][k] WITH AA[2*i][2*j][2*k] NEW);
+/* forming array BB     */
+/* from elements of array AA with even indexes */
+DVM(PARALLEL [i][j][k] ON BB[i][j][k])
+    DO(i,0,BBN-1,1)
+    DO(j,0,BBM-1,1)
+    DO(k,0,BBK-1,1)
+        {
+            BB(i,j,k)=AA(i*2,j*2,k*2);
+        }
+
+#undef AA
+#undef BB
+    }
+
+int main(int argn, char **args)
+{
+    int N1=8,M1=12,K1=16;
+    int N2,M2,K2;
+    int Narr=5,Nit=5;
+    int grid=0;
+    int ACM,ACK;
+    int i,j,k;
+    int step_grid=1;
+
+/* Up to 20 distributed arrays */
+DVM(DISTRIBUTE[BLOCK][BLOCK][]) float *A[20];
+
+/* Pointer to current distributed array */
+DVM(*DISTRIBUTE[*][*][*]) float *AC;
+
+/*  creation of array  A[0] */
+    A[grid]=malloc(N1*M1*K1*sizeof(float));
+    AC=A[grid];
+    ACM=M1;
+    ACK=K1;
+#define AC(i,j,k) AC[((i)*ACM+(j))*ACK+(k)]
+
+/* initialization of source array */
+DVM(PARALLEL [i][j][k] ON AC[i][j][k])
+    DO(i,0,N1-1,1)
+    DO(j,0,M1-1,1)
+    DO(k,0,K1-1,1)
+            AC(i,j,k)=1.+i+j+k ;
+
+#undef AC
+
+    do{
+    printf("N1=%d M1=%d K1=%d \n",N1,M1,K1);
+    N2=N1/2;
+    M2=M1/2;
+    K2=K1/2;
+    grid++;
+
+/*  creation of array A[grid] */
+    A[grid]=malloc(N2*M2*K2*sizeof(float));
+
+    oper(A[grid-1],N1,M1,K1,
+         A[grid],N2,M2,K2);
+
+    N1=N2;
+    M1=M2;
+    K1=K2;
+    }
+    while (N2>2 && grid<Narr);
+
+    for(i=0;i<=grid;i++)
+        free(A[i]);
+
+    return 0;
+}
+
+

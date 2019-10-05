@@ -1,0 +1,21 @@
+#!/bin/sh
+
+# Uses variables: DVMVERS, dvmdir
+
+printf '%s' "DVM-system version $DVMVERS"
+if [ -e "$dvmdir/../revision" ]; then
+    printf '%s' ", revision $(cat "$dvmdir/../revision")"
+fi
+echo
+cat "$dvmdir/bin/dvm_help.txt"
+
+: '
+The following env vars omitted from the help text:
+    DVMH_CUDA_PREFER_SHARED
+    DVMH_SCHED_FILE
+    DVMH_REDUCE_DEPS
+    DVMH_ALLOW_ASYNC
+    DVMH_USE_GENBLOCK
+    DVMH_PREFER_BEST_ORDER
+    DVMH_CHECK_EXCHANGE_MAP
+'

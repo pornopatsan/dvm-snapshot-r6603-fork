@@ -1,0 +1,28 @@
+#For SSCC (nks-g6.sscc.ru) PLATFORM (Intel compilers with OpenMP)
+# for DVM tools
+ CC="/bioifs/opt/intel/composer_xe_2015.3.187/bin/intel64/icc -g -O2 -no-scalar-rep -gdwarf-2"
+ CXX="/bioifs/opt/intel/composer_xe_2015.3.187/bin/intel64/icpc -g -O2 -no-scalar-rep -gdwarf-2"
+ LINKER="/bioifs/opt/intel/composer_xe_2015.3.187/bin/intel64/icpc -g -O2 -gdwarf-2"
+ LLVMCONFIG="/ifs/apps/DVM/clang/bin/llvm-config"
+# for parallel programs
+ MPIR_HOME="/ifs/opt/2013/intel/impi/4.1.3.049/intel64"
+ PCC="$MPIR_HOME/bin/mpiicc -g -O2 -openmp -gdwarf-2 -no-scalar-rep"
+ PCXX="$MPIR_HOME/bin/mpiicpc -g -O2 -openmp -gdwarf-2 -no-scalar-rep"
+ PFORT="$MPIR_HOME/bin/mpiifort -g  -O2 -openmp -gdwarf-2 -no-scalar-rep"
+ PLINKER="$MPIR_HOME/bin/mpiicpc -openmp -gdwarf-2"
+ PFLINKER="$MPIR_HOME/bin/mpiifort -openmp -gdwarf-2"
+ ADD_LIBS="-L/ifs/apps/DVM/cudalib"
+ CUDA_PATH="/usr/local/cuda-6.5"
+ NVCC="$CUDA_PATH/bin/nvcc -arch=sm_20 -O3 -DCUDA_FERMI_ARCH -D__NVCC__"
+# launch settings
+ dvmcopy=1
+ dvmrun="pbs.run"
+ maxtime="00:30:00"
+ queuemode=SL_q
+# DVMH options for default preset
+ DVMH_PPN=12
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=3

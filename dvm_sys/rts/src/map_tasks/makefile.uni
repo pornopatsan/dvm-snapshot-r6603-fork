@@ -1,0 +1,44 @@
+### makefile for automated task mapping algorithm
+# requires variables: CXX ar LINKER
+# optional variables: ld objcopy
+
+LIBDIR=../../../lib
+
+SRCS = Distribution.cpp NaiveDistribution.cpp ProcessorLoad.cpp Task.cpp TaskData.cpp TransposedDistribution.cpp Muzzle.cpp
+INCS = Distribution.h MyException.h NaiveDistribution.h ProcessorLoad.h Task.h TaskData.h TaskInfo.h TransposedDistribution.h
+OBJS = $(SRCS:.cpp=.o)
+
+ifdef IS_OSX
+all: $(LIBDIR)/map_tasks.a
+else ifdef IS_WIN
+all: $(LIBDIR)/map_tasks.a
+	cp $(LIBDIR)/map_tasks.a $(LIBDIR)/map_tasks.lib
+else
+all: $(LIBDIR)/map_tasks.a $(LIBDIR)/libdvm-map-tasks.so
+endif
+
+$(LIBDIR)/map_tasks.a: $(SRCS) $(INCS)
+	$(CXX) -fPIC -fvisibility=hidden -c $(SRCS)
+	rm -f $@
+	$(ar) crs $@ $(OBJS)
+ifdef ld
+ifdef objcopy
+	rm -f $@
+	$(ld) -r -o all_objs.o $(OBJS)
+	$(objcopy) --localize-hidden all_objs.o
+	$(ar) crs $@ all_objs.o
+	rm all_objs.o
+endif
+endif
+
+$(LIBDIR)/libdvm-map-tasks.so: $(LIBDIR)/map_tasks.a
+	$(LINKER) -shared -o $@ -Wl,--whole-archive $^ -Wl,--no-whole-archive
+
+clean:
+	rm -f $(OBJS)
+
+cleanall: clean
+	rm -f $(LIBDIR)/map_tasks.a
+	rm -f $(LIBDIR)/libdvm-map-tasks.so
+
+.PHONY: all clean cleanall

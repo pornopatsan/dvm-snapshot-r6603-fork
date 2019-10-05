@@ -1,0 +1,104 @@
+#ifdef _MS_F_
+
+#define dvmh_line_ dvmh_line
+
+#define dvmh_init2_ dvmh_init2
+#define dvmh_init_lib_ dvmh_init_lib
+#define dvmh_exit_ dvmh_exit
+
+#define dvmh_array_create_ dvmh_array_create
+#define dvmh_template_create_ dvmh_template_create
+
+#define dvmh_distribute_ dvmh_distribute
+#define dvmh_redistribute2_ dvmh_redistribute2
+#define dvmh_align_ dvmh_align
+#define dvmh_realign2_ dvmh_realign2
+
+#define dvmh_delete_object_ dvmh_delete_object
+#define dvmh_forget_header_ dvmh_forget_header
+
+#define dvmh_variable_fill_header_ dvmh_variable_fill_header
+#define dvmh_variable_gen_header_ dvmh_variable_gen_header
+#define dvmh_data_enter_ dvmh_data_enter
+#define dvmh_data_exit_ dvmh_data_exit
+
+#define dvmh_array_slice_ dvmh_array_slice
+#define dvmh_array_copy_whole_ dvmh_array_copy_whole
+#define dvmh_array_copy_ dvmh_array_copy
+
+#define dvmh_fill_header2_ dvmh_fill_header2
+#define dvmh_fill_header_ex2_ dvmh_fill_header_ex2
+
+#define dvmh_get_actual_subvariable2_ dvmh_get_actual_subvariable2
+#define dvmh_get_actual_variable2_ dvmh_get_actual_variable2
+#define dvmh_get_actual_subarray2_ dvmh_get_actual_subarray2
+#define dvmh_get_actual_array2_ dvmh_get_actual_array2
+#define dvmh_get_actual_all2_ dvmh_get_actual_all2
+
+#define dvmh_actual_subvariable2_ dvmh_actual_subvariable2
+#define dvmh_actual_variable2_ dvmh_actual_variable2
+#define dvmh_actual_subarray2_ dvmh_actual_subarray2
+#define dvmh_actual_array2_ dvmh_actual_array2
+#define dvmh_actual_all2_ dvmh_actual_all2
+
+#define dvmh_shadow_renew2_ dvmh_shadow_renew2
+#define dvmh_indirect_shadow_renew_ dvmh_indirect_shadow_renew
+#define dvmh_indirect_localize_ dvmh_indirect_localize
+#define dvmh_indirect_unlocalize_ dvmh_indirect_unlocalize
+#define dvmh_remote_access2_ dvmh_remote_access2
+#define dvmh_has_element_ dvmh_has_element
+#define dvmh_calc_linear_ dvmh_calc_linear
+
+#define dvmh_region_create_ dvmh_region_create
+#define dvmh_region_register_subarray_ dvmh_region_register_subarray
+#define dvmh_region_register_array_ dvmh_region_register_array
+#define dvmh_region_register_scalar_ dvmh_region_register_scalar
+#define dvmh_region_execute_on_targets_ dvmh_region_execute_on_targets
+#define dvmh_region_end_ dvmh_region_end
+
+#define dvmh_loop_create_ dvmh_loop_create
+#define dvmh_loop_map_ dvmh_loop_map
+#define dvmh_loop_set_cuda_block_ dvmh_loop_set_cuda_block
+#define dvmh_loop_set_stage_ dvmh_loop_set_stage
+#define dvmh_loop_reduction_ dvmh_loop_reduction
+#define dvmh_loop_across_ dvmh_loop_across
+#define dvmh_loop_shadow_compute_ dvmh_loop_shadow_compute
+#define dvmh_loop_consistent_ dvmh_loop_consistent
+#define dvmh_loop_remote_access_ dvmh_loop_remote_access
+#define dvmh_loop_register_handler_ dvmh_loop_register_handler
+#define dvmh_loop_perform_ dvmh_loop_perform
+#define dvmh_loop_get_dependency_mask_ dvmh_loop_get_dependency_mask
+#define dvmh_loop_get_device_num_ dvmh_loop_get_device_num
+#define dvmh_loop_autotransform_ dvmh_loop_autotransform
+#define dvmh_loop_fill_bounds_ dvmh_loop_fill_bounds
+#define dvmh_loop_get_slot_count_ dvmh_loop_get_slot_count
+#define dvmh_loop_fill_local_part_ dvmh_loop_fill_local_part
+#define dvmh_loop_guess_index_type_ dvmh_loop_guess_index_type
+#define dvmh_loop_get_remote_buf_ dvmh_loop_get_remote_buf
+#define dvmh_loop_red_init_ dvmh_loop_red_init
+#define dvmh_loop_has_element_ dvmh_loop_has_element
+#define dvmh_loop_red_post_ dvmh_loop_red_post
+
+#define dvmh_scope_start_ dvmh_scope_start
+#define dvmh_scope_insert_ dvmh_scope_insert
+#define dvmh_scope_end_ dvmh_scope_end
+
+#define dvmh_interval_start_ dvmh_interval_start
+#define dvmh_interval_end_ dvmh_interval_end
+
+#define dvmh_get_addr_ dvmh_get_addr
+#define dvmh_string_ dvmh_string
+#define dvmh_string_var_ dvmh_string_var
+
+#define dvmh_ftn_open_ dvmh_ftn_open
+#define dvmh_ftn_close_ dvmh_ftn_close
+#define dvmh_ftn_connected_ dvmh_ftn_connected
+
+#define dvmh_ftn_read_unf_ dvmh_ftn_read_unf
+#define dvmh_ftn_write_unf_ dvmh_ftn_write_unf
+
+#define dvmh_ftn_endfile_ dvmh_ftn_endfile
+#define dvmh_ftn_rewind_ dvmh_ftn_rewind
+#define dvmh_ftn_flush_ dvmh_ftn_flush
+
+#endif

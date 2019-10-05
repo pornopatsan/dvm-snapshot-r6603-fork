@@ -1,0 +1,102 @@
+#ifndef _DYNCNTRL_DEC_
+#define _DYNCNTRL_DEC_
+/********************/
+
+void table__Init(TABLE* pTabel, size_t nTableSize, size_t nElemSize, PFN_TABLE_ELEMDESTRUCTOR pfnDestruct);
+void table_Done(TABLE* pTabel);
+DvmType table_Count(TABLE* pTabel);
+void* table__At(TABLE* pTabel, DvmType lNo);
+DvmType table__Put(TABLE* pTabel, void* pStruct);
+void table_Pop(TABLE* pTable, void* pStruct);
+void* table__GetBack(TABLE* pTable);
+void* table__GetNew(TABLE* pTabel);
+DvmType table_GetNewNo(TABLE* pTable);
+void table_RemoveFrom(TABLE* pTabel, DvmType lIndex);
+void table_RemoveLast(TABLE* pTable);
+void table_RemoveAll(TABLE* pTabel);
+void table__Iterator(TABLE* pTabel, PFN_TABLEITERATION pfnProc, void* pParam1, void* pParam2);
+
+void dyn_Init( void );
+void dyn_Done( void );
+void dyn_LevelDone( void );
+void dyn_RemoveAll( void );
+VarInfo *dyn_GetVarInfo( void *addr );
+void dyn_CheckVar(char* szOperand, void* pAddr, SysHandle* pHandle, byte bIsWrt);
+VarInfo* dyn_CheckValidVar(VarInfo* pCurrent, void* pAddr, SysHandle* pHandle, byte bIsWrt);
+void dyn_CheckReadOnlyVar(char* szOperand, VarInfo *pVar, byte bIsWrt, DvmType lLineIndex);
+void dyn_CheckPrivateVar(char* szOperand, VarInfo* pVar, byte bIsWrt, DvmType lLineIndex);
+void dyn_CheckReductVar(char* szOperand, VarInfo *pVar, byte bIsWrt, DvmType lLineIndex);
+void dyn_CheckDisArrayVar(char* szOperand, VarInfo *pVar, void* pElmAddr, byte bIsWrt, DvmType lLineIndex);
+VarInfo *dyn_DefineVar( byte type, byte Stat, void *addr, SysHandle *Handle, void *Info, PFN_VARTABLE_ELEMDESTRUCTOR pfnDestructor);
+VarInfo *dyn_DefineReduct( byte Stat, void *addr );
+VarInfo *dyn_DefineDisArray( SysHandle *Handle, byte Stat, DISARR_INFO *Info );
+VarInfo *dyn_DefinePrivate( void *addr, byte Stat );
+VarInfo *dyn_DefineReadOnly( void *addr, void *Info );
+VarInfo *dyn_DefineRemoteBufferArray( SysHandle *SrcHandle, SysHandle *DstHandle, DvmType *Index );
+VarInfo *dyn_DefineRemoteBufferScalar( SysHandle *SrcHandle, void *RmtBuff, DvmType *Index );
+void dyn_DestructReduct( VarInfo *Var );
+void dyn_DestructPrivate( VarInfo *Var );
+void dyn_DestructReadOnly( VarInfo *Var );
+void dyn_DestructDisArray( VarInfo *Var );
+void dyn_RemoveVar( void *addr );
+void dyn_InitializeSetArr(SysHandle* pHandle);
+void dyn_InitializeSetScal(void* pAddr);
+void dyn_InitializeSet(VarInfo* pVar, size_t LI);
+void dyn_InitializeClear(VarInfo* pVar);
+int dyn_InitializeCheck(VarInfo* pVar, size_t LI);
+void dyn_DisArrDisableLocalCheck(SysHandle* pHandle);
+void dyn_DisArrClearInfo( DISARR_INFO *Info );
+void dyn_DisArrCheckBounds( char *Operand, VarInfo *Var, size_t LI, byte isWrt, DvmType Iter );
+void dyn_DisArrCheckSequential(char* szOperand, VarInfo* pVar, byte bIsWrt, DvmType lLineIndex);
+void dyn_DisArrCheckDataDepends( char *Operand, VarInfo *Var, void* pElmAddr, size_t LI, byte isWrt, DvmType Iter );
+byte dyn_DisArrCheckLimits( char *Operand, DvmType LI, DISARR_INFO *Info );
+void dyn_DisArrTestVal( SysHandle *Handle, DvmType *InitIndex, DvmType *LastIndex, DvmType *Step );
+void dyn_DisArrSetVal( SysHandle *Handle, DvmType *InitIndex, DvmType *LastIndex, DvmType *Step );
+void dyn_DisArrTestElement( SysHandle *Handle );
+void dyn_DisArrDefineShadow(s_DISARRAY* pArr, s_BOUNDGROUP* pBndGroup, s_SHDWIDTH* pRtsShadow);
+void dyn_DisArrDefineShadowCompute(s_DISARRAY* pArr, DISARR_INFO* pInfo);
+void dyn_DisArrCompleteShadows(s_DISARRAY* pArr, s_BOUNDGROUP* pBndGroup);
+void dyn_DisArrClearShadows(DISARR_INFO* pInfo);
+void dyn_DisArrFreeUnusedShadows(DISARR_INFO* pInfo);
+void dyn_DisArrAcross(s_DISARRAY* pArr, byte bAcrossType);
+void dyn_DisArrShadowGroupDeleted(s_BOUNDGROUP* pBndGroup);
+void dyn_AReductSetState(s_COLLECTION* pRedVars, byte bState);
+void dyn_AReductSetStateByAddr(void* pAddr, byte bState);
+int dyn_InsideBlock(s_BLOCK* pBlock, DvmType* sI);
+int dyn_FindShadowIndex(s_BLOCK* pBlock, DvmType* sI, DISARR_INFO* pInfo);
+DvmType dyn_GetCurrentIter(void);
+s_PARLOOP *dyn_GetCurrLoop(void);
+void dyn_CalcSI(DvmType LI, s_BLOCK *pBlock, DvmType** psI);
+size_t dyn_CalcLI(VarInfo *Var, void *addr);
+DvmType dyn_Remap(DvmType LI, VarInfo* Var);
+
+void hash_Init(HASH_TABLE* pHashTable, short sKeyRank, size_t nIndexSize, int nTableSize, PFN_CALC_HASH_FUNC pfnHash);
+void hash_Done(HASH_TABLE* pHashTable);
+DvmType hash_Find(HASH_TABLE* pHashTable, DvmType* plKey);
+void hash_Insert(HASH_TABLE* pHashTable, DvmType* plKey, DvmType lValue);
+void hash_Change(HASH_TABLE* pHashTable, DvmType* plKey, DvmType lValue);
+void hash_Remove(HASH_TABLE* pHashTable, DvmType* plKey);
+void hash_Iterator(HASH_TABLE* pHashTable, PFN_HASHITERATION pfnProc, void* pParam);
+void hash_RemoveAll(HASH_TABLE* pHashTable);
+int hash_CompareKeys(short sKeyRank, DvmType* plKey1, DvmType* plKey2);
+void hash_PrintStatistics(HASH_TABLE* pHashTable);
+
+HASH_VALUE StandartHashCalc(HASH_TABLE* pHashTable, DvmType* plKey);
+HASH_VALUE OffsetHashCalc(HASH_TABLE* pHashTable, DvmType* plKey);
+
+void vartable_Init( VAR_TABLE *VT, int vTableSize, int hIndexSize, int hTableSize, PFN_CALC_HASH_FUNC Func );
+void vartable_Done( VAR_TABLE *VT );
+VarInfo *vartable_GetVarInfo( VAR_TABLE *VT, DvmType NoVar );
+VarInfo *vartable_FindVar( VAR_TABLE *VT, void * Addr );
+DvmType vartable_FindNoVar( VAR_TABLE *VT, void * Addr );
+DvmType vartable_PutVariable( VAR_TABLE *VT, void * Addr, int Env, byte Type, SysHandle *Handle, int Tag, void *Info, PFN_VARTABLE_ELEMDESTRUCTOR pfnDestructor );
+void vartable_VariableDone( VarInfo *Var );
+void vartable_RemoveVariable( VAR_TABLE *VT, void * Addr );
+void IterRemoveProc( /*void *addr, */ DvmType NoVar, VAR_TABLE *VT );
+void vartable_RemoveAll( VAR_TABLE *VT );
+void IterLevelProc(VarInfo *Var, int *Level, VAR_TABLE *VT);
+void vartable_RemoveVarOnLevel(VAR_TABLE *VT, int Level);
+void vartable_Iterator(VAR_TABLE *VT, PFN_VARTABLEITERATION Func);
+void vartable_LevelIterator(VAR_TABLE *VT, int Level, PFN_VARTABLEITERATION Func);
+
+#endif  /* _DYNCNTRL_DEC_ */

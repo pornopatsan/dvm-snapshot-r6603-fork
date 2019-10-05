@@ -1,0 +1,19 @@
+Copyright
+----------------
+The following is a notice of limited availability of the code, and disclaimer
+which must be included in the prologue of the code and in all source listings
+of the code.
+
+DVM-system is Copyright 1999-2014 by KIAM RAS (Keldysh Institute 
+               for Applied Mathematics of Russian Academy of Sciences),
+               e-mail: DVM@Keldysh.ru. 
+
+Permission is hereby granted to use, reproduce, prepare derivative works, and
+to redistribute to others. 
+
+This software is provided 'as-is', without any express or implied
+warranty.  In no event will the author be held liable for any damages
+arising from the use of this software.
+
+NOTE. Fortran-DVM compiler use SAGE++ system,
+      needed part of which is included in DVM-system code with its own license. 

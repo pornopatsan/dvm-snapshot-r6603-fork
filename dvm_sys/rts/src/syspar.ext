@@ -1,0 +1,263 @@
+#ifndef _SYSPAR_EXT_
+#define _SYSPAR_EXT_
+/******************/    /*E0000*/
+
+/*************************************************\
+* Parameters controlling runtime system operation *
+\*************************************************/    /*E0001*/
+
+extern byte  IsUserPS;                 /* flag: user program
+                                          processor system */    /*E0002*/
+extern DvmType  UserPS[MaxVMRank+1];      /* sizes of user program
+                                          processor system
+                                          ( virtual processor system) */    /*E0003*/
+extern byte  ProcListSign;                    /* flag of using list of
+                                                 external processor numbers */    /*E0004*/
+extern int   ProcNumberList[MaxProcNumber+1];/* list of external processor numbers */    /*E0005*/
+
+extern int   OneProcSign;        /* */    /*E0006*/
+
+extern long  PPMeasureCount;     /* number of loops for
+                                    processor performance measuring */    /*E0007*/
+extern byte  ProcWeightSign;                  /* flag to use list of
+                                                 processor performance weights */    /*E0008*/
+extern double ProcWeightList[MaxProcNumber+1];/* list of processor performance weights:
+                                                 external number -> weight */    /*E0009*/
+extern byte  CoordWeightSign;               /* flag of using lists of
+                                                 processor coordinate weights */    /*E0010*/
+
+extern double MaxCoordWeight;
+
+extern double CoordWeightList1[MaxProcNumber+1];/* list of processor
+                                                   coordinate weights of
+                                                   initial processor system
+                                                   1-st dimension */    /*E0011*/
+extern double CoordWeightList2[MaxProcNumber+1];/* list of processor
+                                                   coordinate weights of
+                                                   initial processor system
+                                                   2-nd dimension */    /*E0012*/
+extern double CoordWeightList3[MaxProcNumber+1];/* list of processor
+                                                   coordinate weights of
+                                                   initial processor system
+                                                   3-rd dimension */    /*E0013*/
+extern double CoordWeightList4[MaxProcNumber+1];/* list of processor
+                                                   coordinate weights of
+                                                   initial processor system
+                                                   4-th dimension */    /*E0014*/
+                      
+extern byte  StdOutToFile;    /* redirect stdout in file */    /*E0015*/
+extern char  StdOutFileName[128]; /* file name for stdout 
+                                     redirection in it */    /*E0016*/
+extern byte  StdErrToFile;    /* redirect stderr in file */    /*E0017*/
+extern char  StdErrFileName[128]; /* file name for stderr 
+                                     redirection in it */    /*E0018*/
+extern byte  DelStdStream;    /* flag on deleting old file with
+                                 standard streams */    /*E0019*/ 
+
+
+extern byte MultiProcErrReg; /* byte of output mode of error messages
+                                on multiprocessor system */    /*E0020*/
+
+
+extern byte SysInfoPrint;    /* general flag on output of information messages
+                                of support system */    /*E0021*/
+extern byte SysInfoStdOut;   /* output information messages 
+                                into stdout  */    /*E0022*/
+extern byte SysInfoStdErr;   /* output information messages 
+                                into stderr  */    /*E0023*/
+extern byte SysInfoFile;     /* output information messages 
+                                in file  */    /*E0024*/
+extern byte SysInfoSepFile;  /* save information messages in
+                                separate file for all processor */    /*E0025*/
+extern char SysInfoFileName[128]; /* file name for
+                                     information messages */    /*E0026*/
+extern byte FatInfoNoOpen;   /* stop execution when failed opening file for 
+                                information messages */    /*E0027*/
+extern byte DelSysInfo;      /* flag on deleting old files
+                                with information messages */    /*E0028*/
+
+extern byte DelCurrentPar;   /* */    /*E0029*/
+
+extern byte InputParPrint;       /* flag to print start of input of each parameter file */    /*E0030*/
+extern byte EndReadParPrint;     /* flag to print end of reading of each parameter file */    /*E0031*/
+extern byte VersStartPrint;      /* flag of version number output at startup */    /*E0032*/
+extern byte VersFullStartPrint;  /* flag of detailed output of version number at startup */    /*E0033*/
+extern byte SysParPrint;         /* flag of initialization parameter output at startup */    /*E0034*/
+extern byte ProcListPrint;       /* flag of processor table output at startup */    /*E0035*/
+extern byte WeightListPrint;     /* flag to output processor coordinate weights at startup */    /*E0036*/
+extern byte MsgSchedulePrint;    /* */    /*E0037*/
+extern byte ParamRunPrint;       /* flag of screen output of information
+                                    about starting parameters at startup */    /*E0038*/
+extern byte AcrossInfoPrint;     /* flag: output information of
+                                    ACROSS scheme execution  */    /*E0039*/
+extern byte MPIReducePrint;      /* */    /*E0040*/
+extern byte MPIBcastPrint;       /* */    /*E0041*/
+extern byte MPIBarrierPrint;     /* */    /*E0042*/
+extern byte MPIInfoPrint;        /* */    /*E0043*/
+extern byte PPMeasurePrint;      /* */    /*E0044*/
+extern byte VersFinishPrint;     /* flag of version output on job termination */    /*E0045*/
+extern byte VersFullFinishPrint; /* flag of detailed version output at the end of the work */    /*E0046*/
+extern byte EndProgMemoryPrint;  /* output information of non free memory
+                                    at the end of execution */    /*E0047*/  
+extern byte EndProgObjectPrint;  /* output information of non free DVM-objrcts
+                                    at the end of execution */    /*E0048*/
+extern byte EndProgCheckSumPrint;/* output information of checksum of
+                                    memory domains under control
+                                    at the end of execution */    /*E0049*/
+extern byte RouterKillPrint;     /* output canceled subtask numbers
+                                    while working with ROUTER */    /*E0050*/
+extern byte SysProcessNamePrint; /* */    /*E0051*/
+extern byte SubTasksTimePrint;   /* */    /*E0052*/
+extern byte UserTimePrint;       /* */    /*E0053*/
+
+extern byte  FreeObjects;    /* flag on deleting non static DVM-objects
+                                at the end of execution */    /*E0054*/
+extern byte  S_MPIAlltoall; /* */    /*E0055*/
+extern byte  A_MPIAlltoall; /* */    /*E0056*/
+extern byte  CG_MPIAlltoall;/* */    /*E0057*/
+extern byte  AlltoallWithMsgSchedule; /* */    /*E0058*/
+extern byte  MPIReduce;  /* */    /*E0059*/
+extern byte  MPIBcast;   /* */    /*E0060*/
+extern byte MPIBarrier;  /* */    /*E0061*/
+extern byte MPIGather;   /* */    /*E0062*/
+extern byte strtac_FreeBuf; /* */    /*E0063*/
+extern byte consda_FreeBuf; /* */    /*E0064*/
+extern byte dopl_WaitRD; /* flag of surpassed execution of 
+                            reduction in dopl_ function */    /*E0065*/
+extern byte dopl_MPI_Test; /* call MPI_Test function
+                              while dopl_ function execution */    /*E0066*/
+extern int  dopl_MPI_Test_Count; /* */    /*E0067*/
+extern int InPLQNumber;    /* number of parts
+                              internal part of parallel loop is divided in*/    /*E0068*/
+extern int AcrossGroupNumber; /* number of parts, into which 
+                                 quanted dimension of loop 
+                                 is partitioned during pipelining
+                                 of ACROSS scheme            */    /*E0069*/
+extern byte AcrossQuantumReg; /* */    /*E0070*/
+extern byte ASynchrPipeLine;  /* flag of asynchronous ACROSS 
+                                pipeline scheme*/    /*E0071*/
+extern double CoilTime;       /* time of execution of one ACROSS loop iteration */    /*E0072*/
+extern int ReqBufSize;     /* size of buffer to save pointers to
+                              exchange flags if dopl_MPI_Test=1 */    /*E0073*/
+extern int MPS_ReqBufSize; /* */    /*E0074*/
+extern int MPI_Issend_sign; /* flag: function MPI_Issend may be used with MPI
+                               if the value = 0 
+                               MPI_Isend function may be used only */    /*E0075*/
+extern long IssendMsgLength; /* for message which length is more than the given value
+                                MP_Issend function will be used instead of 
+                                MPI_Isend function */    /*E0076*/
+extern int  MsgSchedule;     /* */    /*E0077*/
+extern int MsgPartReg;       /* */    /*E0078*/
+extern int  MaxMsgLength;    /* */    /*E0079*/
+extern int  MaxMsgParts;     /* */    /*E0080*/
+extern int  MsgExchangeScheme; /* */    /*E0081*/
+extern int  MsgPairNumber;     /* */    /*E0082*/
+extern double setelw_precision; /* precision of calculations of 
+                                   processor coordinate weights  
+                                   by setelw_ function */    /*E0083*/
+extern byte DVMInputPar;     /* flag of parameter input by DVM-functions */    /*E0084*/
+extern int  MaxMeasureIndex; /* maximal index of time measuring */    /*E0085*/
+extern byte CheckRendezvous; /* flag of check for exactly one exchange between two processors */    /*E0086*/
+extern byte RendErrorPrint;  /* flag of message output in CheckRendezvous=1 mode */    /*E0087*/
+extern DVMUSERVAR
+int  Msk3;                   /* mask for message length */    /*E0088*/
+
+/* */    /*E0089*/
+
+extern int MsgBuf1Length;     /* */    /*E0090*/
+extern int MsgBufLength;      /* */    /*E0091*/
+extern byte DuplChanSign;     /* */    /*E0092*/
+extern int  ParChanNumber;    /* */    /*E0093*/
+extern int  MaxMsgSendNumber; /* */    /*E0094*/
+extern int  MaxMsg1SendNumber;/* */    /*E0095*/
+extern double ResCoeff;       /* */    /*E0096*/
+extern double ResCoeffDoPL;   /* */    /*E0097*/
+extern double ResCoeffTstReq; /* */    /*E0098*/
+extern double ResCoeffWaitReq;/* */    /*E0099*/
+extern double ResCoeffDACopy; /* */    /*E0100*/
+extern double ResCoeffElmCopy;/* */    /*E0101*/
+extern double ResCoeffRedNonCentral; /* */    /*E0102*/
+extern double ResCoeffRedCentral;    /* */    /*E0103*/
+extern double ResCoeffLoadIB; /* */    /*E0104*/
+extern double ResCoeffLoadIG; /* */    /*E0105*/
+extern double ResCoeffAcross; /* */    /*E0106*/
+extern double ResCoeffShdSend;/* */    /*E0107*/
+extern double ResCoeffInSend; /* */    /*E0108*/
+extern double ResCoeffLoadRB; /* */    /*E0109*/
+extern double ResCoeffLoadBG; /* */    /*E0110*/
+extern byte   MsgWaitReg;     /* */    /*E0111*/
+extern int    FreeChanReg;    /* */    /*E0112*/
+
+/* */    /*E0113*/
+
+extern int  AlignMemoryAddition;
+extern int  AlignMemoryDelta;
+extern int  AlignMemoryCircle;
+
+/* ------------------------------------------------------------------- */    /*E0114*/
+
+extern int  CompressLevel; /* */    /*E0115*/
+extern byte CompressFlush; /* */    /*E0116*/
+
+/* ------------------------------------------------------------------- */    /*E0117*/
+
+extern int TimeEqualizationCount; /* */    /*E0118*/
+
+extern byte MPI_Wtime_Sign; /* */    /*E0119*/
+extern byte UTime_Sign;     /* */    /*E0120*/
+
+/* */    /*E0121*/
+
+extern byte  ShgSave;   /* */    /*E0122*/
+extern byte  RgSave;    /* */    /*E0123*/
+
+/* ------------------------------------------------------------------- */    /*E0124*/
+
+extern int  BoundAddition;  /* */    /*E0125*/
+
+/* */    /*E0126*/
+
+extern int MsgCompressLevel;       /* */    /*E0127*/
+extern int MsgCompressStrategy;    /* */    /*E0128*/ 
+extern int MsgDVMCompress;         /* */    /*E0129*/
+extern float CompressCoeff;        /* */    /*E0130*/
+extern int MinMsgCompressLength;   /* */    /*E0131*/
+extern int MsgCompressWithMsgPart; /* */    /*E0132*/
+extern byte ZLIB_Warning;          /* */    /*E0133*/
+extern byte AlltoallCompress;      /* */    /*E0134*/
+extern byte GatherCompress;        /* */    /*E0135*/
+extern byte BcastCompress;         /* */    /*E0136*/
+
+/* */    /*E0137*/
+
+extern byte DAReadPlane;   /* */    /*E0138*/
+extern byte DAWritePlane;  /* */    /*E0139*/
+
+extern byte DAVoidRead;    /* */    /*E0140*/
+extern byte DAVoidWrite;   /* */    /*E0141*/
+
+/* */    /*E0142*/
+
+extern byte dvm_void_scan;   /* */    /*E0143*/
+extern byte dvm_void_fread;  /* */    /*E0144*/
+extern byte dvm_void_fwrite; /* */    /*E0145*/
+extern long MinIOMsgSize;    /* */    /*E0146*/
+extern long MaxIOMsgSize;    /* */    /*E0147*/
+extern byte FreeIOBuf;       /* */    /*E0148*/
+extern int MPITestAfterSend; /* */    /*E0149*/
+extern int MPITestAfterRecv; /* */    /*E0150*/
+extern byte SaveIOFlag;      /* */    /*E0151*/
+extern byte PrtSign;         /* */    /*E0152*/
+extern int IOProcPrt;        /* */    /*E0153*/
+extern int ApplProcPrt;      /* */    /*E0154*/
+extern int SleepCount;       /* */    /*E0155*/
+
+/* */    /*E0156*/
+
+extern byte StrtRedSynchr; /* */    /*E0157*/
+extern byte StrtShdSynchr; /* */    /*E0158*/
+extern byte DACopySynchr;  /* */    /*E0159*/
+extern byte ADACopySynchr; /* */    /*E0160*/
+
+
+#endif  /* _SYSPAR_EXT_ */    /*E0161*/

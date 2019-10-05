@@ -1,0 +1,143 @@
+#ifndef _SYSTRACE_EXT_
+#define _SYSTRACE_EXT_
+/********************/    /*E0000*/
+
+/***********************************\
+* Parameters specifying trace modes *
+\***********************************/    /*E0001*/
+
+extern DVMUSERVAR
+byte Is_DVM_TRACE;            /* general flag of trace on */    /*E0002*/
+extern byte Is_IO_TRACE;      /* */    /*E0003*/
+extern byte Is_ALL_TRACE;     /* flag on tracing all functions 
+                                 except statistics and debugger calls */    /*E0004*/
+extern byte Is_DEB_TRACE;     /* flag on tracing debugger calls */    /*E0005*/
+extern byte Is_STAT_TRACE;    /* flag on tracing statistics calls */    /*E0006*/
+extern byte Is_IOFun_TRACE;   /* */    /*E0007*/
+extern byte UserCallTrace;    /* */    /*E0008*/
+extern byte DisableTraceTime; /* flag on subtraction of trace time
+                                 from the tracing output time */    /*E0009*/
+extern byte BlockTrace;       /* stop tracing till 
+                                 special function  tron_ */    /*E0010*/
+extern byte IsTraceProcList;  /* list TraceProcList is on */    /*E0011*/
+extern int  TraceProcList[MaxProcNumber+1];/* list of internal numbers of traced processors */    /*E0012*/
+extern byte FullTrace;        /* flag of detailed trace mode */    /*E0013*/
+extern DvmType TraceBufLength;   /* trace buffer size in bytes */    /*E0014*/
+extern byte BufferTrace;      /* flag of tracing in a buffer */    /*E0015*/
+extern byte FullBufferStop;   /* flag to stop tracing when buffer overflowed */    /*E0016*/
+extern byte BufferTraceUnLoad;/* flag of trace buffer upload at work termination */    /*E0017*/
+extern byte ScreenTrace;   /* flag of trace output to screen */    /*E0018*/
+extern byte FileTrace;     /* flag of trace accumulation in files */    /*E0019*/
+extern DvmType MaxTraceFileSize; /* */    /*E0020*/
+extern DvmType MaxCommTraceFileSize; /* */    /*E0021*/
+extern byte TraceFileOverflowReg; /* */    /*E0022*/ 
+extern byte KeyWordName;   /* flag of "NAME=" output before every event name */    /*E0023*/
+extern byte SetTraceBuf;   /* flag on trace buffering by
+                              operating system */    /*E0024*/
+extern byte TraceFlush;    /* flag of output stream clearing when tracing each event */    /*E0025*/
+extern byte FatTraceNoOpen;/* flag of work termination if output trace file was not successfully opened */    /*E0026*/
+extern byte PreUnderLine;  /* flag of underlining title of each event */    /*E0027*/
+extern byte PostUnderLine; /* flag of underlining end of output of each event */    /*E0028*/
+extern byte BufferTraceShift; /* indent size according to function call level when tracing in buffer */    /*E0029*/
+extern byte FileTraceShift;   /* indent size according to function call level when tracing in file */    /*E0030*/
+
+extern byte MaxTraceLevel;    /* max. traced nesting level of function calls */    /*E0031*/
+
+extern byte TraceClosePrint;  /* flag to output messages after trace dump was finished */    /*E0032*/
+
+extern char TracePath[128];   /* access path to trace files */    /*E0033*/
+extern char TraceFileExt[4];  /* file extension when tracing in files */    /*E0034*/
+extern char TraceBufferExt[4];/* file extension when tracing in buffer */    /*E0035*/
+extern byte MPI_TraceFileNameNumb;/* */    /*E0036*/
+extern byte DelSysTrace;      /* flag to delete old trace files */    /*E0037*/
+
+/* string of title underlining for each event */    /*E0038*/
+extern char PreUnderLining[256];
+
+/* string of print completion for each event */    /*E0039*/ 
+extern char PostUnderLining[256];
+
+extern byte CurrentTimeTrace; /* flag of current sysytem time
+                                 tracing */    /*E0040*/
+extern byte TimePrecision;    /* a number of digits after comma when printing time in trace */    /*E0041*/
+
+extern byte LowDumpLevel;     /* flag of trace dump using
+                                 low level i/o functions */    /*E0042*/
+
+extern byte mappl_Trace;      /* additional information output mode
+                                 while tracing mappl_ function:
+                                 0 - do not output 
+                                 1 - output index values 
+                                 2 - output all additional information */    /*E0043*/
+extern byte dopl_Trace;       /* flag to output additional information when
+                                 dopl_ function is traced */    /*E0044*/
+extern byte dopl_dyn_GetLocalBlock;/* flag on test calling of 
+                                      dyn_GetLocalBlock function 
+                                      while tracing dopl_ function */    /*E0045*/
+extern byte distr_Trace;      /* flag to output additional information when
+                                 distr_ function is traced */    /*E0046*/ 
+extern byte align_Trace;      /* flag to output additional information when
+                                 align_ function is traced */    /*E0047*/
+extern byte dacopy_Trace;     /* flag to output additional information when
+                                 functions arrcpy_ and aarrcp_ are traced */    /*E0048*/
+extern byte OutIndexTrace;    /* flag to print output indexes
+                                 in  GetIndexArray function */    /*E0049*/
+extern int  RedVarTrace;      /* flag to print reduction variables 
+                                 in saverg_, saverv_, strtrd
+                                 and waitrd_ functions */    /*E0050*/ 
+extern byte diter_Trace;      /* output detail information while tracing 
+                                 function diter  */    /*E0051*/
+extern byte drmbuf_Trace;     /* output detail information while tracing 
+                                 function drmbuf */    /*E0052*/
+extern byte dyn_GetLocalBlock_Trace;/* flag on tracing dyn_GetLocalBlock 
+                                       function during detailed tracing mode */    /*E0053*/
+
+extern int  PrintBufferByteCount; /* a number of bytes, printed before Send and after Receive */    /*E0054*/
+
+extern uLLng TraceVarAddr;     /* trace variable address,
+                                 if address is equal to 0
+                                 variable is not traced */    /*E0055*/
+extern byte TraceVarType;     /* trace variable type:
+                                 1 - int,
+                                 2 - long,
+                                 3 - float,
+                                 4 - double,
+                                 5 - char,
+                                 6 - short,
+								 7 - long long.
+								 */    /*E0056*/
+extern byte LoadWeightTrace;  /* flag of processor load weights
+                                 tracing during function call */    /*E0057*/
+extern byte WeightArrayTrace; /* flag of coordinate load weights tracing
+                                 at the exit from function gettar_ */    /*E0058*/
+extern byte AcrossTrace;      /* flag of tracing ACROSS scheme execution
+                                 in across_ and dopl_ functions */    /*E0059*/
+extern byte MsgPartitionTrace;/* */    /*E0060*/
+extern int  MsgScheduleTrace; /* */    /*E0061*/
+extern byte MPI_AlltoallTrace;/* */    /*E0062*/
+extern byte MPI_ReduceTrace;  /* */    /*E0063*/
+extern byte DAConsistTrace;   /* */    /*E0064*/
+extern byte MPI_MapAMTrace;   /* */    /*E0065*/
+extern byte CrtPSTrace;       /* */    /*E0066*/
+extern byte MsgCompressTrace; /* */    /*E0067*/
+extern byte SysProcessNameTrace; /* */    /*E0068*/
+extern byte MPI_RequestTrace; /* */    /*E0069*/
+extern byte MPI_IORequestTrace;/* */    /*E0070*/
+
+extern uLLng dvm_StartAddr;         /* beginning address of specified memory area */    /*E0071*/
+extern uLLng dvm_FinalAddr;         /* end of specified memory area address */    /*E0072*/      
+
+extern byte EveryEventCheckMem;    /* flag to check specified memory for each trace event */    /*E0073*/
+extern byte EveryTraceCheckMem;    /* flag to check specified memory on each trace entry */    /*E0074*/
+extern byte EveryEventCheckCodeMem;/* flag to check code memory in each trace event */    /*E0075*/ 
+extern byte EveryTraceCheckCodeMem;/* flag to check code memory on each trace entry */    /*E0076*/
+extern byte EveryEventCheckBound;  /* flag to check busy memory block bounds for each trace event */    /*E0077*/
+extern byte EveryTraceCheckBound;  /* flag to check busy memory block bounds on each trace entry */    /*E0078*/
+
+/* */    /*E0079*/
+
+extern int TraceCompressLevel; /* */    /*E0080*/
+extern int TraceCompressFlush; /* */    /*E0081*/
+
+
+#endif  /* _SYSTRACE_EXT_ */    /*E0082*/

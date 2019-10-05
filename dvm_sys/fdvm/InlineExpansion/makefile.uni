@@ -1,0 +1,46 @@
+#echo#######################################################################
+# Makefile for   Fortran DVM transformator
+#
+#echo#######################################################################
+
+# dvm/fdvm/fdvm_transform/makefile.uni
+
+SAGEROOT = ../Sage
+LIBDIR = ../lib
+BINDIR = ../../bin
+LIBINCLUDE = $(SAGEROOT)/lib/include
+HINCLUDE = $(SAGEROOT)/h
+DVMINCLUDE = ../include
+EXECUTABLES = inl_exp
+
+LOADER = $(LINKER)
+
+INCL = -I. -I$(LIBINCLUDE) -I$(HINCLUDE) -I$(DVMINCLUDE)
+
+CFLAGS = -c $(INCL) -Wall
+LDFLAGS =
+
+LIBS = $(LIBDIR)/libSage++.a $(LIBDIR)/libsage.a $(LIBDIR)/libdb.a
+OBJS = inl_exp.o inliner.o hlp.o
+
+
+$(BINDIR)/$(EXECUTABLES): $(OBJS)
+	$(LOADER) $(LDFLAGS) -o $(BINDIR)/$(EXECUTABLES) $(OBJS) $(LIBS)
+
+all: $(BINDIR)/$(EXECUTABLES)
+	@echo "****** COMPILING $(EXECUTABLES) DONE ******"
+
+clean:
+	rm -f $(OBJS)
+cleanall:
+	rm -f $(OBJS)
+
+############################# dependencies ############################
+
+
+inl_exp.o: inl_exp.cpp inline.h
+	$(CXX) $(CFLAGS) inl_exp.cpp
+inliner.o: inliner.cpp inline.h
+	$(CXX) $(CFLAGS) inliner.cpp
+hlp.o: hlp.cpp inline.h
+	$(CXX) $(CFLAGS) hlp.cpp

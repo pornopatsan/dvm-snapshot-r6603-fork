@@ -1,0 +1,74 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+ 
+
+# predictor/makefile.win
+
+# Valentin Emelianov  (11/07/99)
+
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+CC      = cl.exe 
+CXX     = cl.exe
+LINKER  = link.exe
+MAKE   = nmake
+
+# What to compile
+SUBDIR= Rater Presage Trcutil
+
+debug :
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES Predictor: $(SUBDIR) *****"
+	@cd Rater 
+	@$(MAKE)  /nologo /f Rater.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" ALL > translate.log 
+	@cd ..
+	@cd Presage
+	@$(MAKE)  /nologo /f Presage.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" ALL > translate.log
+	@cd .. 
+	@cd Trcutil
+	@$(MAKE)  /nologo /f trcutil.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" ALL > translate.log
+	@cd .. 
+	@echo "****** DONE MAKING Predictor/: $(SUBDIR) *****
+
+release :
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES Predictor: $(SUBDIR) *****"
+	@cd Rater 
+	@$(MAKE)  /nologo /f Rater.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CFG="Rater - Win32 Release" ALL > translate.log 
+	@cd ..
+	@cd Presage
+	@$(MAKE)  /nologo /f Presage.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CFG="Presage - Win32 Release" ALL > translate.log
+	@cd .. 
+	@cd Trcutil
+	@$(MAKE)  /nologo /f trcutil.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CFG="trcutil - Win32 Release" > translate.log
+	@cd .. 
+	@echo "****** DONE MAKING Predictor/: $(SUBDIR) *****
+
+
+cleand :
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES Predictor: $(SUBDIR) *****"
+	@cd Rater 
+	@$(MAKE)  /nologo /f Rater.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CLEAN
+	@cd ..
+	@cd Presage
+	@$(MAKE)  /nologo /f Presage.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CLEAN
+	@cd .. 
+	@cd Trcutil
+	@$(MAKE)  /nologo /f trcutil.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" CLEAN
+	@cd .. 
+	@echo "****** DONE CLEAN SUBDIRECTORIES Predictor/: $(SUBDIR) ******"
+
+cleanr :
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES Predictor: $(SUBDIR) *****"
+	@cd Rater 
+	@$(MAKE)  /nologo /f Rater.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" "CFG=Rater - Win32 Release" CLEAN
+	@cd ..
+	@cd Presage
+	@$(MAKE)  /nologo /f Presage.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" "CFG=Presage - Win32 Release" CLEAN
+	@cd .. 
+	@cd Trcutil
+	@$(MAKE)  /nologo /f trcutil.mak "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" "CFG=trcutil - Win32 Release" CLEAN
+	@cd .. 
+	@echo "****** DONE CLEAN SUBDIRECTORIES Predictor/: $(SUBDIR) ******"

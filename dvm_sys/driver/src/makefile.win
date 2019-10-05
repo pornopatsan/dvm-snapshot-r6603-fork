@@ -1,0 +1,40 @@
+OUTDIR=..\obj
+BINDIR=..\..\bin
+
+LINK=$(LINKER)
+
+LINK_FLAGS=/nologo /subsystem:console /incremental:no
+
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" \
+	/Fo"$(OUTDIR)/" /c
+
+.cpp{$(BINDIR)/}.exe:
+	$(CXX) $(CFLAGS) $<
+	$(LINK) $(LINK_FLAGS) /out:"$(BINDIR)/$(<B).exe" "$(OUTDIR)\$(<B).obj"
+
+.c{$(BINDIR)/}.exe:
+	$(CC) $(CFLAGS) $<
+	$(LINK) $(LINK_FLAGS) /out:"$(BINDIR)/$(<B).exe" "$(OUTDIR)\$(<B).obj"
+
+all: $(BINDIR)/dvmdiff.exe $(BINDIR)/analyzePtxasCuda.exe $(BINDIR)/dvmh_conv_include.exe
+	@copy dvm_drv.bat $(BINDIR)
+	@copy setvars.bat $(BINDIR)
+	@copy dvm_drv $(BINDIR)
+	@copy dvm_utils.sh $(BINDIR)
+	@copy dvm_help $(BINDIR)
+	@copy dvm_comp $(BINDIR)
+	@copy dvm_link $(BINDIR)
+	@copy dvm_run $(BINDIR)
+	@copy $(DVMRUN) $(BINDIR)
+	@copy dvm_ver $(BINDIR)
+	@copy dvm_help.txt $(BINDIR)
+# Revision needed:
+	@copy dvm_test $(BINDIR)
+	@copy dvm_pred $(BINDIR)
+	@copy dvm_doc $(BINDIR)
+
+clean:
+
+cleanall:
+
+.PHONY: all clean cleanall

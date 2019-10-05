@@ -1,0 +1,140 @@
+#ifndef _CNTRLERR_VAR_
+#define _CNTRLERR_VAR_
+/********************/
+
+TABLE gContext;
+
+ERRORTABLE DynControlErrors;
+ERRORTABLE TraceCompareErrors;
+
+char *ErrString[] =
+{
+    "Success",                                                  /* SUCCESS */
+    "Bad file structure",                                       /* ERR_RD_STRUCT */
+    "Undefined keyword",                                        /* ERR_RD_UNDEF_KEY */
+    "Bad command syntax",                                       /* ERR_RD_SYNTAX */
+    "Reference to undefined array",                             /* ERR_RD_UNDEFINED */
+    "Array access mismatch",                                    /* ERR_RD_ARR_MISMATCH */
+    "Warning: failed checksums found. They won't be recounted", /* ERR_RD_FAILED_CS */
+    "Can't open file %s",                                       /* ERR_RD_OPENFILE */
+    "No trace",                                                 /* ERR_RD_EMPTY */
+    "Input trace files mismatch",                               /* ERR_RD_TRACEF_MISMATCH */
+    "Trace file %s is incomplete",                              /* ERR_RD_TRACE_INCOMPLETE */
+    "Invalid error code !!!",                                   /* ERR_RD_LAST */
+    "Bad trace structure (missing current program construct)",  /* ERR_TR_NO_CURSTRUCT */
+    "Abnormal termination by signal %d at point %s",            /* ERR_TR_TERM_BY_SIGNAL */
+    "Invalid error code !!!",                                   /* ERR_TR_LAST */
+    "No current program construct",                             /* ERR_CMP_NO_CURSTRUCT */
+    "Unexpected task or iteration of loop %ld",                 /* ERR_CMP_NO_ITER */
+    "Double execution of task or iteration, No = %ld",          /* ERR_CMP_DUAL_ITER */
+    "Unexpected execution of program construct",                /* ERR_CMP_NO_STRUCT */
+    "Abnormal loop exit",                                       /* ERR_CMP_OUT_STRUCT */
+    "Unexpected use of variable",                               /* ERR_CMP_NO_INFO */
+    "Unexpected trace record",                                  /* ERR_CMP_NO_TRACE */
+    "Unexpected skip event",                                    /* ERR_CMP_NO_SKIP */
+    "NAN or INF value is found during the execution",           /* ERR_CMP_NAN_VALUE */
+    "Different INT values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- d\n\t\tval2=%- d",        /* ERR_CMP_DIFF_INT_VAL */
+    "Different LOGICAL values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=- %d\n\t\tval2=%- d",    /* ERR_CMP_DIFF_BOOL_VAL */
+    "Different LONG values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- ld\n\t\tval2=%- ld",     /* ERR_CMP_DIFF_LONG_VAL */
+    "Different LLONG values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- lld\n\t\tval2=%- lld",     /* ERR_CMP_DIFF_LLONG_VAL */
+    "Different FLOAT values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- .*G\n\t\tval2=%- .*G",  /* ERR_CMP_DIFF_FLOAT_VAL */
+    "Different DOUBLE values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- .*lG\n\t\tval2=%- .*lG", /* ERR_CMP_DIFF_DBL_VAL */
+    "Different COMPLEX FLOAT values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=(%- .*G,%- .*G)\n\t\tval2=(%- .*G,%- .*G)",  /* ERR_CMP_DIFF_COMPLEX_FLOAT_VAL */
+    "Different COMPLEX DOUBLE values\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=(%- .*lG,%- .*lG)\n\t\tval2=(%- .*lG,%- .*lG)",  /* ERR_CMP_DIFF_COMPLEX_DOUBLE_VAL */
+    "Different INT values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- d\n\t\tval2=%- d",                                      /* ERR_CMP_DIFF_REDUCT_INT_VAL */
+    "Different LOGICAL values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=- %d\n\t\tval2=%- d",                                  /* ERR_CMP_DIFF_REDUCT_BOOL_VAL */
+    "Different LONG values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- ld\n\t\tval2=%- ld",                                   /* ERR_CMP_DIFF_REDUCT_LONG_VAL */
+    "Different LLONG values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- lld\n\t\tval2=%- lld",                                   /* ERR_CMP_DIFF_REDUCT_LLONG_VAL */
+    "Different FLOAT values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- .*G\n\t\tval2=%- .*G",                                /* ERR_CMP_DIFF_REDUCT_FLOAT_VAL */
+    "Different DOUBLE values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=%- .*lG\n\t\tval2=%- .*lG",                             /* ERR_CMP_DIFF_REDUCT_DBL_VAL */
+    "Different COMPLEX FLOAT values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=(%- .*G,%- .*G)\n\t\tval2=(%- .*G,%- .*G)",      /* ERR_CMP_DIFF_REDUCT_COMPLEX_FLOAT_VAL */
+    "Different COMPLEX DOUBLE values (reduction)\n\t\t%%s%%sVar. name = %s  File: %%s  Line: %%lu\n\t\tval1=(%- .*lG,%- .*lG)\n\t\tval2=(%- .*lG,%- .*lG)", /* ERR_CMP_DIFF_REDUCT_COMPLEX_DBL_VAL */
+    "Array index out of bounds. Array: %s",                     /* ERR_CMP_ARRAY_OUTOFBOUND */
+    "Different checksums for array (\"%s\", \"%s\", %ld, %d, \"%s\", %d): %.*G != %.*G at point %s", /* ERR_CMP_DIFF_CS_VALUES */
+    "Unable to compute checksum for array (\"%s\", \"%s\", %ld, %d) at the point %s", /* ERR_CMP_FAILED_CS */
+    "Instances of replicated array (\"%s\", \"%s\", %ld, %d) do not match at the point %s", /* ERR_CMP_DIFF_REPL_ARR */
+    "Invalid error code !!!",                                   /* ERR_CMP_LAST */
+    "Writing to read-only variable %s",                         /* ERR_DYN_WRITE_RO */
+    "Using non-initialized variable %s",                        /* ERR_DYN_PRIV_NOTINIT */
+    "Using non-initialized element %s",                         /* ERR_DYN_DISARR_NOTINIT */
+    "Using variable %s before asynchronous reduction completed", /* ERR_DYN_ARED_NOCOMPLETE */
+    "Access to non-local element %s",                           /* ERR_DYN_NONLOCAL_ACCESS */
+    "Writing to shadow element %s of array",                    /* ERR_DYN_WRITE_IN_BOUND */
+    "Data dependence in loop due to access to element %s",      /* ERR_DYN_DATA_DEPEND */
+    "Using shadow element %s before asynchronous shadow renew completed",  /* ERR_DYN_BOUND_RENEW_NOCOMPLETE */
+    "Writing to remote data buffer %s",                         /* ERR_DYN_WRITE_REMOTEBUFF */
+    "Writing to remote element %s in sequential branch",        /* ERR_DYN_SEQ_WRITEARRAY */
+    "Reading remote element %s in sequential branch",           /* ERR_DYN_SEQ_READARRAY */
+    "WAIT for reduction without START",                         /* ERR_DYN_REDUCT_WAIT_BSTART */
+    "Using element outside of array limits: %s",                /* ERR_DYN_DISARR_LIMIT */
+    "START for reduction without WAIT",                         /* ERR_DYN_REDUCT_START_WITHOUT_WAIT */
+    "Reduction operation was not started",                      /* ERR_DYN_REDUCT_NOT_STARTED */
+    "Invalid error code !!!",                                   /* ERR_DYN_LAST */
+    "Invalid error code !!!"                                    /* ERR_LAST */
+};
+
+byte ErrFatality[] =
+{
+    0,  /* SUCCESS */
+    1,  /* ERR_RD_STRUCT */
+    1,  /* ERR_RD_UNDEF_KEY */
+    1,  /* ERR_RD_SYNTAX */
+    1,  /* ERR_RD_UNDEFINED */
+    1,  /* ERR_RD_ARR_MISMATCH */
+    0,  /* ERR_RD_FAILED_CS */
+    1,  /* ERR_RD_OPENFILE */
+    1,  /* ERR_RD_EMPTY */
+    1,  /* ERR_RD_TRACEF_MISMATCH */
+    0,  /* ERR_RD_TRACE_INCOMPLETE */
+    1,  /* ERR_RD_LAST */
+    1,  /* ERR_TR_NO_CURSTRUCT */
+    1,  /* ERR_TR_TERM_BY_SIGNAL */
+    1,  /* ERR_TR_LAST */
+    1,  /* ERR_CMP_NO_CURSTRUCT */
+    1,  /* ERR_CMP_NO_ITER */
+    1,  /* ERR_CMP_DUAL_ITER */
+    1,  /* ERR_CMP_NO_STRUCT */
+    1,  /* ERR_CMP_OUT_STRUCT */
+    1,  /* ERR_CMP_NO_INFO */
+    1,  /* ERR_CMP_NO_TRACE */
+    1,  /* ERR_CMP_NO_SKIP */
+    0,  /* ERR_CMP_NAN_VALUE */
+    0,  /* ERR_CMP_DIFF_INT_VAL */
+    0,  /* ERR_CMP_DIFF_BOOL_VAL */
+    0,  /* ERR_CMP_DIFF_LONG_VAL */
+    0,  /* ERR_CMP_DIFF_FLOAT_VAL */
+    0,  /* ERR_CMP_DIFF_DBL_VAL */
+    0,  /* ERR_CMP_DIFF_COMPLEX_FLOAT_VAL */
+    0,  /* ERR_CMP_DIFF_COMPLEX_DOUBLE_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_INT_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_BOOL_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_LONG_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_FLOAT_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_DBL_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_COMPLEX_FLOAT_VAL */
+    0,  /* ERR_CMP_DIFF_REDUCT_COMPLEX_DBL_VAL */
+    0,  /* ERR_CMP_ARRAY_OUTOFBOUND */
+    0,  /* ERR_CMP_DIFF_CS_VALUES */
+    0,  /* ERR_CMP_FAILED_CS */
+    0,  /* ERR_CMP_DIFF_REPL_ARR */
+    1,  /* ERR_CMP_LAST */
+    0,  /* ERR_DYN_WRITE_RO */
+    0,  /* ERR_DYN_PRIV_NOTINIT */
+    0,  /* ERR_DYN_DISARR_NOTINIT */
+    0,  /* ERR_DYN_ARED_NOCOMPLETE */
+    0,  /* ERR_DYN_NONLOCAL_ACCESS */
+    0,  /* ERR_DYN_WRITE_IN_BOUND */
+    0,  /* ERR_DYN_DATA_DEPEND */
+    0,  /* ERR_DYN_BOUND_RENEW_NOCOMPLETE */
+    0,  /* ERR_DYN_WRITE_REMOTEBUFF */
+    0,  /* ERR_DYN_SEQ_WRITEARRAY */
+    0,  /* ERR_DYN_SEQ_READARRAY */
+    0,  /* ERR_DYN_REDUCT_WAIT_BSTART */
+    0,  /* ERR_DYN_DISARR_LIMIT */
+    0,  /* ERR_DYN_REDUCT_START_WITHOUT_WAIT */
+    0,  /* ERR_DYN_REDUCT_NOT_STARTED */
+    1,  /* ERR_DYN_LAST */
+    1   /* ERR_LAST */
+};
+
+#endif  /* _CNTRLERR_VAR_ */

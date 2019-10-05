@@ -1,0 +1,69 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+
+# dvm/fdvm/makefile.win
+
+# Valentin Emelianov  (4/01/99)
+
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR=Sage parser fdvm InlineExpansion
+
+all: 
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"
+	@cd Sage
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+	@cd ..
+	@cd parser
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+	@cd .. 
+	@cd fdvm
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+	@cd .. 
+	@cd InlineExpansion
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+	@cd .. 
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"
+	@cd Sage
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@cd ..
+	@cd parser
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@cd .. 
+	@cd fdvm
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@cd .. 
+	@cd InlineExpansion
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@cd .. 
+	@del /q .\obj\*.* > NUL
+	@del /q .\lib\*.* > NUL
+	@echo "****** DONE CLEAN SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"
+	@cd Sage
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall 
+	@cd ..
+	@cd parser
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall
+	@cd ..
+	@cd fdvm
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall
+	@cd .. 
+	@cd InlineExpansion
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall
+	@cd .. 
+	@del /q .\lib\*.* > NUL
+	@del /q .\obj\*.* > NUL
+	@del /q .\bin\*.* > NUL
+	@echo "****** DONE CLEANALL SUBDIRECTORIES dvm/fdvm/: $(SUBDIR) ******"

@@ -1,0 +1,30 @@
+/*********************************************************************/
+/*                  pC++/Sage++  Copyright (C) 1993                  */
+/*  Indiana University  University of Oregon  University of Rennes   */
+/*********************************************************************/
+
+DEFNODECODE(BIF_PARM_DECL,'_','_','_','_','_')
+DEFNODECODE(CONST_NAME,'_','_','_','_','_')
+DEFNODECODE(ENUM_NAME,'_','_','_','_','_')
+DEFNODECODE(FIELD_NAME,'_','_','_','_','_')
+DEFNODECODE(VARIABLE_NAME,'_','_','_','_','_')
+DEFNODECODE(TYPE_NAME,'_','_','_','_','_')
+DEFNODECODE(PROGRAM_NAME,'_','_','_','_','_')
+DEFNODECODE(PROCEDURE_NAME,'_','_','_','_','_')
+DEFNODECODE(PROCESS_NAME,'_','_','_','_','_')
+DEFNODECODE(VAR_FIELD,'_','_','_','_','_')
+DEFNODECODE(LABEL_VAR,'_','_','_','_','_')
+DEFNODECODE(FUNCTION_NAME,'_','_','_','_','_')
+DEFNODECODE(MEMBER_FUNC,'_','_','_','_','_')
+DEFNODECODE(CLASS_NAME,'_','_','_','_','_')
+DEFNODECODE(TECLASS_NAME,'_','_','_','_','_')
+DEFNODECODE(UNION_NAME,'_','_','_','_','_')
+DEFNODECODE(STRUCT_NAME,'_','_','_','_','_')
+DEFNODECODE(LABEL_NAME,'_','_','_','_','_')
+DEFNODECODE(COLLECTION_NAME,'_','_','_','_','_')	
+DEFNODECODE(ROUTINE_NAME,'_','_','_','_','_')	
+DEFNODECODE(CONSTRUCT_NAME,'_','_','_','_','_')  
+DEFNODECODE(INTERFACE_NAME,'_','_','_','_','_')	
+DEFNODECODE(MODULE_NAME,'_','_','_','_','_')
+DEFNODECODE(COMMON_NAME,'_','_','_','_','_')
+	

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+npp="$1"
+shift
+
+if [ "$npp" != "1" ]; then
+    echo "Launching on one processor"
+fi
+
+do_cmd "$@"

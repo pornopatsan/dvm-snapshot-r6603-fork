@@ -1,0 +1,26 @@
+/**
+ * File contains event groups for DVMH library
+ *
+ * @link system.def main file for groups definition (depending on this file)
+ * @link ../include/dvmh_events.def events definition
+ * @link intergrp.c setup bindings between groups and events
+ * @link groups.c setup statistics groups
+ *
+ * @author Aleksei Shubert <alexei@shuber.ru>
+ */
+
+/* DVMH memory copy events */
+#define DVMH_STAT_GRP_CPY_HTOD_TIME   17
+#define DVMH_STAT_GRP_CPY_HTOD_BYTES  18
+#define DVMH_STAT_GRP_CPY_DTOH_TIME   19
+#define DVMH_STAT_GRP_CPY_DTOH_BYTES  20
+#define DVMH_STAT_GRP_CPY_DTOD_TIME   21
+#define DVMH_STAT_GRP_CPY_DTOD_BYTES  22
+
+/* DVMH loop events */
+#define DVMH_STAT_GRP_LOOP_PORTION_TIME 23
+
+/* DVMH utility functions events */
+#define DVMH_STAT_GRP_UTIL_ARRAY_TRANSFORMATION_TIME  24
+#define DVMH_STAT_GRP_UTIL_ARRAY_TRANSFORMATION_BYTES 25
+#define DVMH_STAT_GRP_UTIL_ARRAY_REDUCTION_TIME       26

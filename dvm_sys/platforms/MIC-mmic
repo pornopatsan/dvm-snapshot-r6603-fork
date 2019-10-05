@@ -1,0 +1,22 @@
+#For MIC (mic.dvm-system.org) PLATFORM (For the actual MIC device)
+# for DVM tools
+ CC="icc -g"
+ CXX="icpc -g"
+ LINKER="icpc -g"
+ LLVMCONFIG="llvm-config"
+# for parallel programs
+ PCC="/nethome/intel/impi/latest/mic/bin/mpiicc -mmic -g -O3 -qopenmp"
+ PCXX="/nethome/intel/impi/latest/mic/bin/mpiicpc -mmic -g -O3 -qopenmp"
+ PFORT="/nethome/intel/impi/latest/mic/bin/mpiifort -mmic -g -O3 -qopenmp"
+ PLINKER="/nethome/intel/impi/latest/mic/bin/mpiicpc -mmic -g -qopenmp"
+ PFLINKER="/nethome/intel/impi/latest/mic/bin/mpiifort -mmic -g -qopenmp"
+# Par="/opt/mpss/3.6.1/sysroots/x86_64-mpsssdk-linux/usr/libexec/k1om-mpss-linux/gcc/k1om-mpss-linux/5.1.1/ar"
+ Pld="/opt/mpss/3.6.1/sysroots/x86_64-mpsssdk-linux/usr/libexec/k1om-mpss-linux/gcc/k1om-mpss-linux/5.1.1/ld"
+ Pobjcopy="/opt/mpss/3.6.1/sysroots/x86_64-mpsssdk-linux/usr/libexec/k1om-mpss-linux/gcc/k1om-mpss-linux/5.1.1/objcopy"
+# launch settings
+ dvmrun="runmpi.mic"
+# DVMH options for default preset
+ DVMH_NUM_THREADS=240
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=240

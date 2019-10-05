@@ -1,0 +1,2250 @@
+dvm_specification: dvm_template
+                 | dvm_align  
+                 | dvm_distribute   
+                 | dvm_dynamic   
+                 | dvm_processors 
+                 | dvm_shadow
+                 | dvm_combined_dir
+                 | dvm_pointer 
+                 | dvm_task
+                 | dvm_inherit
+                 | dvm_indirect_group
+                 | dvm_remote_group
+                 | dvm_reduction_group
+                 | dvm_consistent_group
+                 | dvm_heap
+                 | dvm_asyncid
+                 | dvm_consistent
+                 | ompdvm_onethread /*OMP*/
+		 | omp_specification_directive /*OMP*/
+                 ; 
+
+dvm_exec: dvm_redistribute
+        | dvm_realign
+        | dvm_parallel_on
+        | dvm_shadow_group
+        | dvm_shadow_start
+        | dvm_shadow_wait
+        | dvm_reduction_start
+        | dvm_reduction_wait
+        | dvm_consistent_start
+        | dvm_consistent_wait
+        | dvm_remote_access
+        | dvm_task_region
+        | dvm_end_task_region
+        | dvm_map
+        | dvm_on
+        | dvm_end_on
+        | dvm_indirect_access
+        | dvm_prefetch
+        | dvm_reset
+        | dvm_debug_dir
+        | dvm_enddebug_dir
+        | dvm_interval_dir
+        | dvm_endinterval_dir
+        | dvm_exit_interval_dir
+        | dvm_traceon_dir
+        | dvm_traceoff_dir
+        | dvm_barrier_dir
+        | dvm_check
+        | dvm_new_value   
+        | dvm_asynchronous
+        | dvm_endasynchronous
+        | dvm_asyncwait
+        | dvm_f90
+        | dvm_io_mode_dir
+        | dvm_shadow_add
+        | dvm_localize
+        | dvm_cp_create
+        | dvm_cp_load
+        | dvm_cp_save
+        | dvm_cp_wait
+        | dvm_template_create
+        | dvm_template_delete
+        | hpf_independent 
+	| omp_execution_directive /*OMP*/
+/*        | dvm_own      */
+        ;
+       
+dvm_template: HPF_TEMPLATE in_dcl template_obj	    
+	      { $$ = get_bfnd(fi,HPF_TEMPLATE_STAT, SMNULL, $3, LLNULL, LLNULL); }
+	    | dvm_template COMMA template_obj 
+              { PTR_SYMB s;
+                if($1->entry.Template.ll_ptr2)
+                {
+                  s = $3->entry.Template.ll_ptr1->entry.Template.symbol;
+                  s->attr = s->attr | COMMON_BIT;
+                }
+	        add_to_lowLevelList($3, $1->entry.Template.ll_ptr1);
+	      }
+	    ;
+
+template_obj: name dims
+             {PTR_SYMB s;
+	      PTR_LLND q;
+	    /* 27.06.18
+	      if(! explicit_shape)   
+                err("Explicit shape specification is required", 50);
+	    */  
+	      s = make_array($1, TYNULL, $2, ndim, LOCAL);
+              if(s->attr & TEMPLATE_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & PROCESSORS_BIT) || (s->attr & TASK_BIT) || (s->attr & DVM_POINTER_BIT))
+                errstr( "Inconsistent declaration of identifier  %s ", s->ident, 16);
+              else
+	        s->attr = s->attr | TEMPLATE_BIT;
+              if($2) s->attr = s->attr | DIMENSION_BIT;  
+	      q = make_llnd(fi,ARRAY_REF, $2, LLNULL, s);
+	      s->type->entry.ar_decl.ranges = $2;
+	      $$ = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	     }
+             ;
+
+dvm_dynamic: DYNAMIC in_dcl dyn_array_name_list
+    { $$ = get_bfnd(fi,DVM_DYNAMIC_DIR, SMNULL, $3, LLNULL, LLNULL);}
+           ;
+
+dyn_array_name_list: dyn_array_name
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | dyn_array_name_list COMMA dyn_array_name
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+dyn_array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              if(s->attr &  DYNAMIC_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & PROCESSORS_BIT) || (s->attr & TASK_BIT) || (s->attr & HEAP_BIT)) 
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16); 
+              else
+                s->attr = s->attr | DYNAMIC_BIT;        
+	      $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	   }
+           ;
+
+dvm_inherit: INHERIT in_dcl dummy_array_name_list
+    { $$ = get_bfnd(fi,DVM_INHERIT_DIR, SMNULL, $3, LLNULL, LLNULL);}
+           ;
+
+dummy_array_name_list: dummy_array_name
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | dummy_array_name_list COMMA dummy_array_name
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+dummy_array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              if((s->attr & PROCESSORS_BIT) ||(s->attr & TASK_BIT)  || (s->attr & TEMPLATE_BIT) || (s->attr & ALIGN_BIT) || (s->attr & DISTRIBUTE_BIT)) 
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16); 
+              else
+                s->attr = s->attr | INHERIT_BIT;        
+	      $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	   }
+           ;
+
+dvm_shadow: SHADOW in_dcl sh_array_name shadow_attr_stuff
+           { PTR_LLND q;
+             q = set_ll_list($3,LLNULL,EXPR_LIST);
+              /* (void)fprintf(stderr,"hpf.gram: shadow\n");*/ 
+	     $$ = get_bfnd(fi,DVM_SHADOW_DIR,SMNULL,q,$4,LLNULL);
+            }
+         /*
+          | SHADOW in_dcl shadow_attr_stuff COLON COLON sh_array_name_list
+            {$$ = get_bfnd(fi,DVM_SHADOW_DIR,SMNULL,$6,$3,LLNULL);}
+          */
+          ;
+shadow_attr_stuff: LEFTPAR sh_width_list RIGHTPAR
+                  { $$ = $2;}
+                 ;
+
+sh_width_list: sh_width
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | sh_width_list COMMA sh_width
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+             ;
+
+sh_width: expr
+          { $$ = $1;}
+        | expr COLON expr
+          { $$ = make_llnd(fi,DDOT, $1, $3, SMNULL);}
+        | COLON LEFTPAR subscript_list RIGHTPAR
+          {
+            if(parstate!=INEXEC) 
+               err("Illegal shadow width specification", 56);  
+            $$ = make_llnd(fi,SHADOW_NAMES_OP, $3, LLNULL, SMNULL);
+          }
+        ;
+     
+/*         
+sh_array_name_list: sh_array_name
+	           { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                  | sh_array_name_list COMMA sh_array_name
+	           { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+*/
+sh_array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              if(s->attr & SHADOW_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & PROCESSORS_BIT) ||(s->attr & TASK_BIT)  || (s->attr & TEMPLATE_BIT) || (s->attr & HEAP_BIT)) 
+                      errstr( "Inconsistent declaration of identifier %s", s->ident, 16); 
+              else
+        	      s->attr = s->attr | SHADOW_BIT;  
+	      $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	   }
+           ;  
+dvm_processors: HPF_PROCESSORS in_dcl name dims 
+	    { PTR_SYMB s;
+	      PTR_LLND q, r;
+	      if(! explicit_shape) {
+              err("Explicit shape specification is required", 50);
+		/* $$ = BFNULL;*/
+	      }
+	      s = make_array($3, TYNULL, $4, ndim, LOCAL);
+              if(s->attr &  PROCESSORS_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT) || (s->attr & TASK_BIT) || (s->attr & DVM_POINTER_BIT) || (s->attr & INHERIT_BIT))
+                errstr("Inconsistent declaration of identifier %s", s->ident, 16);
+              else
+	        s->attr = s->attr | PROCESSORS_BIT;
+              if($4) s->attr = s->attr | DIMENSION_BIT;
+	      q = make_llnd(fi,ARRAY_REF, $4, LLNULL, s);
+	      s->type->entry.ar_decl.ranges = $4;
+	      r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	      $$ = get_bfnd(fi,HPF_PROCESSORS_STAT, SMNULL, r, LLNULL, LLNULL);
+	    }
+	| OMPDVM_NODES in_dcl name dims 
+	    { PTR_SYMB s;
+	      PTR_LLND q, r;
+	      if(! explicit_shape) {
+              err("Explicit shape specification is required", 50);
+		/* $$ = BFNULL;*/
+	      }
+	      s = make_array($3, TYNULL, $4, ndim, LOCAL);
+              if(s->attr &  PROCESSORS_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT) || (s->attr & TASK_BIT) || (s->attr & DVM_POINTER_BIT) || (s->attr & INHERIT_BIT))
+                errstr("Inconsistent declaration of identifier %s", s->ident, 16);
+              else
+	        s->attr = s->attr | PROCESSORS_BIT;
+              if($4) s->attr = s->attr | DIMENSION_BIT;
+	      q = make_llnd(fi,ARRAY_REF, $4, LLNULL, s);
+	      s->type->entry.ar_decl.ranges = $4;
+	      r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	      $$ = get_bfnd(fi,HPF_PROCESSORS_STAT, SMNULL, r, LLNULL, LLNULL);
+	    }
+	| dvm_processors COMMA name dims 
+           {  PTR_SYMB s;
+	      PTR_LLND q, r;
+	      if(! explicit_shape) {
+		err("Explicit shape specification is required", 50);
+		/*$$ = BFNULL;*/
+	      }
+	      s = make_array($3, TYNULL, $4, ndim, LOCAL);
+              if(s->attr &  PROCESSORS_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT) || (s->attr & TASK_BIT) || (s->attr &  DVM_POINTER_BIT) || (s->attr & INHERIT_BIT) )
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16);
+              else
+	        s->attr = s->attr | PROCESSORS_BIT;
+              if($4) s->attr = s->attr | DIMENSION_BIT;
+	      q = make_llnd(fi,ARRAY_REF, $4, LLNULL, s);
+	      s->type->entry.ar_decl.ranges = $4;
+	      r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	      add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);
+	}
+	;
+
+dvm_indirect_group: INDIRECT_GROUP in_dcl indirect_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	           $$ = get_bfnd(fi,DVM_INDIRECT_GROUP_DIR, SMNULL, r, LLNULL, LLNULL);
+                }
+                  | dvm_indirect_group COMMA  indirect_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+                   add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);
+	           ;
+                }
+                  ;
+
+indirect_group_name: name
+          {$$ = make_local_entity($1, REF_GROUP_NAME,global_default,LOCAL);
+          if($$->attr &  INDIRECT_BIT)
+                errstr( "Multiple declaration of identifier  %s ", $$->ident, 73);
+           $$->attr = $$->attr | INDIRECT_BIT;
+          }
+                   ;
+
+dvm_remote_group: REMOTE_GROUP in_dcl remote_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	           $$ = get_bfnd(fi,DVM_REMOTE_GROUP_DIR, SMNULL, r, LLNULL, LLNULL);
+                }
+                  | dvm_remote_group COMMA  remote_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+                   add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);
+                }
+                  ;
+
+remote_group_name: name
+          {$$ = make_local_entity($1, REF_GROUP_NAME,global_default,LOCAL);
+           if($$->attr &  INDIRECT_BIT)
+                errstr( "Inconsistent declaration of identifier  %s ", $$->ident, 16);
+          }
+          ;
+
+dvm_reduction_group: REDUCTION_GROUP in_dcl reduction_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	           $$ = get_bfnd(fi,DVM_REDUCTION_GROUP_DIR, SMNULL, r, LLNULL, LLNULL);
+                }
+                  | dvm_reduction_group COMMA  reduction_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+                   add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);
+	           ;
+                }
+                  ;
+
+reduction_group_name:  name
+       {$$ = make_local_entity($1, REDUCTION_GROUP_NAME,global_default,LOCAL);}
+            ;       
+
+dvm_consistent_group: CONSISTENT_GROUP in_dcl consistent_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	           $$ = get_bfnd(fi,DVM_CONSISTENT_GROUP_DIR, SMNULL, r, LLNULL, LLNULL);
+                }
+                  | dvm_consistent_group COMMA  consistent_group_name
+                {  PTR_LLND q,r;
+                   q = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $3);
+                   r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+                   add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);	           
+                }
+                  ;
+
+consistent_group_name:  name
+       {$$ = make_local_entity($1, CONSISTENT_GROUP_NAME,global_default,LOCAL);}
+            ;       
+
+
+/*opt_new: 
+*	    { $$ = LLNULL; opt_kwd_ = NO;}
+*	|    NEW 
+*	    { $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+*             $$->entry.string_val = (char *) "new";
+*             $$->type = global_string;
+*           }
+*       ;
+*/
+opt_onto:   ONTO name dims 
+            { PTR_SYMB s;
+            if(parstate == INEXEC){
+              if (!(s = $2->id_attr))
+              {
+	         s = make_array($2, TYNULL, LLNULL, 0, LOCAL);
+	     	 s->decl = SOFT;
+	      } 
+            } else
+              s = make_array($2, TYNULL, LLNULL, 0, LOCAL);
+
+              $$ = make_llnd(fi,ARRAY_REF, $3, LLNULL, s);
+            }               
+	|  
+            { $$ = LLNULL; opt_kwd_ = NO;}
+	    
+	;
+
+
+dvm_distribute: DISTRIBUTE in_dcl dist_name  opt_dist_format_clause opt_onto 
+           { PTR_LLND q;
+             if(!$4)
+               err("Distribution format list is omitted", 51);
+            /* if($6)
+               err("NEW_VALUE specification in DISTRIBUTE directive");*/
+             q = set_ll_list($3,LLNULL,EXPR_LIST);
+	     $$ = get_bfnd(fi,DVM_DISTRIBUTE_DIR,SMNULL,q,$4,$5);
+            }
+      /*        | DISTRIBUTE in_dcl opt_aster opt_key_word opt_dist_format_clause opt_onto COLON COLON dist_name_list
+	    { if(!$3 && !$5)
+                err(" dist-format-clause is omitted");
+              $$ = get_bfnd(fi,DVM_DISTRIBUTE_DIR,$6,$9,$5,$3); }
+      */
+	      ;
+
+dvm_redistribute: REDISTRIBUTE end_spec  dist_name dist_format_clause opt_key_word opt_onto  
+            { PTR_LLND q;
+                /*  if(!$4)
+                  {err("Distribution format is omitted", 51); errcnt--;}
+                 */
+              q = set_ll_list($3,LLNULL,EXPR_LIST);
+                 /* r = LLNULL;
+                   if($6){
+                     r = set_ll_list($6,LLNULL,EXPR_LIST);
+                     if($7) r = set_ll_list(r,$7,EXPR_LIST);
+                   } else
+                     if($7) r = set_ll_list(r,$7,EXPR_LIST);
+                 */
+	      $$ = get_bfnd(fi,DVM_REDISTRIBUTE_DIR,SMNULL,q,$4,$6);}
+
+                | REDISTRIBUTE end_spec  dist_format_clause  opt_key_word opt_onto  COLON COLON dist_name_list
+             {
+                 /* r = LLNULL;
+                    if($5){
+                      r = set_ll_list($5,LLNULL,EXPR_LIST);
+                      if($6) r = set_ll_list(r,$6,EXPR_LIST);
+                    } else
+                      if($6) r = set_ll_list(r,$6,EXPR_LIST);
+                  */
+	      $$ = get_bfnd(fi,DVM_REDISTRIBUTE_DIR,SMNULL,$8 ,$3,$5 );
+             }
+/*              | REDISTRIBUTE_NEW end_spec dist_name dist_format_clause opt_key_word opt_onto
+            { PTR_LLND q,p;
+              q = set_ll_list($3,LLNULL,EXPR_LIST);
+	      p = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              p->entry.string_val = (char *) "new";
+              p->type = global_string;
+	      $$ = get_bfnd(fi,DVM_REDISTRIBUTE_DIR,$6,q,$4,p);
+            }
+               | REDISTRIBUTE_NEW end_spec dist_format_clause  opt_key_word opt_onto COLON COLON dist_name_list
+	    { PTR_LLND p;
+	      p = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              p->entry.string_val = (char *) "new";
+              p->type = global_string;
+              $$ = get_bfnd(fi,DVM_REDISTRIBUTE_DIR,$5,$8,$3,p); }
+*/    
+            ;
+
+dist_name_list: distributee
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | dist_name_list COMMA distributee
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+distributee: dist_name
+             {$$ = $1;}
+           | pointer_ar_elem
+             {$$ = $1;}
+           ;
+
+dist_name: name 
+       {  PTR_SYMB s;
+ 
+          if(parstate == INEXEC){
+            if (!(s = $1->id_attr))
+              {
+	         s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+	     	 s->decl = SOFT;
+	      } 
+            if(s->attr & PROCESSORS_BIT)
+              errstr( "Illegal use of PROCESSORS name %s ", s->ident, 53);
+            if(s->attr & TASK_BIT)
+              errstr( "Illegal use of task array name %s ", s->ident, 71);
+
+          } else {
+            s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+            if(s->attr & DISTRIBUTE_BIT)
+              errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+            else if( (s->attr & PROCESSORS_BIT) || (s->attr & TASK_BIT) || (s->attr & INHERIT_BIT))
+              errstr("Inconsistent declaration of identifier  %s",s->ident, 16);
+            else
+              s->attr = s->attr | DISTRIBUTE_BIT;
+          } 
+         if(s->attr & ALIGN_BIT)
+               errstr("A distributee may not have the ALIGN attribute:%s",s->ident, 54);
+          $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);               	  
+	}
+        ;
+
+pointer_ar_elem: name LEFTPAR subscript_list RIGHTPAR
+       {  PTR_SYMB s;
+          s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+        
+          if(parstate != INEXEC) 
+               errstr( "Illegal distributee:%s", s->ident, 312);
+          else {
+            if(s->attr & PROCESSORS_BIT)
+               errstr( "Illegal use of PROCESSORS name %s ", s->ident, 53);  
+            if(s->attr & TASK_BIT)
+               errstr( "Illegal use of task array name %s ", s->ident, 71);        
+            if(s->attr & ALIGN_BIT)
+               errstr("A distributee may not have the ALIGN attribute:%s",s->ident, 54);
+            if(!(s->attr & DVM_POINTER_BIT))
+               errstr("Illegal distributee:%s", s->ident, 312);
+          /*s->attr = s->attr | DISTRIBUTE_BIT;*/
+	  $$ = make_llnd(fi,ARRAY_REF, $3, LLNULL, s); 
+          }
+        
+	}
+        ;
+
+
+processors_name: name 
+       {  PTR_SYMB s;
+          if((s=$1->id_attr) == SMNULL)
+            s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+          if((parstate == INEXEC) && !(s->attr & PROCESSORS_BIT))
+               errstr( "'%s' is not processor array ", s->ident, 67);
+	  $$ = s;
+	}
+        ;
+/*
+opt_aster:
+          {$$ = LLNULL;} 
+         | ASTER
+          { 
+            $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+            $$->entry.string_val = (char *) "*";
+            $$->type = global_string;
+          }
+          ; 
+*/
+opt_dist_format_clause: 
+                       { $$ = LLNULL;  }
+                      | dist_format_clause opt_key_word 
+                        { $$ = $1;}
+                      ; 
+ 
+dist_format_clause: LEFTPAR dist_format_list RIGHTPAR
+                      { $$ = $2;}
+                  ;
+/*opt_dist_format_clause: dist_format_clause
+                      { (void)fprintf(stderr,"hpf.gram:opt_dist_format_clause\n");
+                         $$ = $1;}
+                      | ASTER dist_format_clause
+                      { PTR_LLND q;
+                         q = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+                         q->entry.string_val = (char *) "*";
+                         q->type = global_string;
+                      (void)fprintf(stderr,"hpf.gram: * opt_dist_format_clause\n");
+                       $$ = make_llnd(fi,ARRAY_OP, q, $2, SMNULL);} 
+                      | ASTER 
+           {         
+             $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+             $$->entry.string_val = (char *) "*";
+             $$->type = global_string;
+           } 
+                  ; 
+*/
+dist_format_list: opt_key_word dist_format
+	    { $$ = set_ll_list($2,LLNULL,EXPR_LIST); }
+                | dist_format_list COMMA opt_key_word dist_format
+	    { $$ = set_ll_list($1,$4,EXPR_LIST); }	    
+	        ;
+opt_key_word:
+            { opt_kwd_ = YES; }
+            ;
+/*
+no_opt_key_word:
+            { opt_kwd_ = NO; }
+	     ;	     
+*/
+
+dist_format:   BLOCK
+        {  
+               $$ = make_llnd(fi,BLOCK_OP, LLNULL, LLNULL, SMNULL);
+        }
+           |   BLOCK LEFTPAR in_ioctl shadow_width  RIGHTPAR
+        {  err("Distribution format BLOCK(n) is not permitted in FDVM", 55);
+          $$ = make_llnd(fi,BLOCK_OP, $4, LLNULL, SMNULL);
+          endioctl();
+        }
+           |   GEN_BLOCK LEFTPAR array_name RIGHTPAR
+        { $$ = make_llnd(fi,BLOCK_OP, LLNULL, LLNULL, $3); }  
+           |   WGT_BLOCK LEFTPAR array_name COMMA expr RIGHTPAR
+        { $$ = make_llnd(fi,BLOCK_OP,  $5,  LLNULL,  $3); }   
+           |   MULT_BLOCK LEFTPAR  expr RIGHTPAR
+        { $$ = make_llnd(fi,BLOCK_OP,  LLNULL, $3,  SMNULL); } 
+           |  ASTER
+        { 
+          $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+          $$->entry.string_val = (char *) "*";
+          $$->type = global_string;
+        }
+           |  INDIRECT LEFTPAR array_name RIGHTPAR 
+        { $$ = make_llnd(fi,INDIRECT_OP, LLNULL, LLNULL, $3); }     
+           |  DERIVED LEFTPAR derived_spec RIGHTPAR 
+        { $$ = make_llnd(fi,INDIRECT_OP, $3, LLNULL, SMNULL); }     
+           ;
+
+array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              if((s->attr & PROCESSORS_BIT) ||(s->attr & TASK_BIT)  || (s->attr & TEMPLATE_BIT)) 
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16); 
+       
+	      $$ = s;
+	   }
+           ;
+
+derived_spec: LEFTPAR derived_elem_list  RIGHTPAR needkeyword WITH target_spec 
+            { $$ = make_llnd(fi,DERIVED_OP, $2, $6, SMNULL); }
+            ;
+
+derived_elem_list: derived_elem 
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | derived_elem_list COMMA derived_elem 
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+
+             ;
+
+derived_elem: expr
+              { $$ = $1;}
+            | expr COLON expr
+              { $$ = make_llnd(fi,DDOT, $1, $3, SMNULL);} 
+            ;
+
+target_spec: derived_target 
+            { 
+              $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, $1);
+	    }
+            | derived_target LEFTPAR derived_subscript_list RIGHTPAR
+            { 
+              $$ = make_llnd(fi,ARRAY_REF, $3, LLNULL, $1);
+	    }
+            ;
+
+derived_target:  name 
+            { 
+              if (!($$ = $1->id_attr))
+              {
+	         $$ = make_array($1, TYNULL, LLNULL,0,LOCAL);
+	         $$->decl = SOFT;
+	      } 
+            }
+            ;
+
+derived_subscript_list: derived_subscript
+	                { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                      | derived_subscript_list COMMA derived_subscript
+	                { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+                      ;
+
+derived_subscript:  expr
+                   {  $$ = $1;}
+                 |  aster_expr
+                   {  $$ = $1;}
+                 |  AT dummy_ident opt_plus_shadow
+                   {
+                      $2->entry.Template.ll_ptr1 = $3; 
+                      $$ = $2;   
+                   }     
+                 ;
+
+dummy_ident: name
+          { PTR_SYMB s;
+            s = make_scalar($1,TYNULL,LOCAL);
+	    $$ = make_llnd(fi,DUMMY_REF, LLNULL, LLNULL, s);
+            /*$$->type = global_int;*/
+          }
+          ; 
+/*
+dummy_ident: IDENTIFIER
+           {
+                    PTR_HASH hash_entry;
+                    hash_entry = just_look_up_sym_in_scope(cur_scope(),yytext);
+                    if
+           }
+           ;
+*/
+
+opt_plus_shadow: 
+               {  $$ = LLNULL; }
+               | plus_shadow
+               {  $$ = $1; }
+               ; 
+
+plus_shadow: PLUS shadow_id
+           {  $$ = set_ll_list($2,LLNULL,EXPR_LIST); }
+           | opt_plus_shadow PLUS shadow_id
+           {  $$ = set_ll_list($1,$3,EXPR_LIST); }
+           ;
+ 
+shadow_id:  expr
+            {  if($1->type->variant != T_STRING)
+                 errstr( "Illegal type of shadow_name", 627);
+               $$ = $1; 
+            }
+         ;
+
+shadow_width: nameeq expr
+        { char *q;
+          nioctl = 1;
+          q = $1->entry.string_val;
+          if((!strcmp(q,"shadow")) && ($2->variant == INT_VAL))                          $$ = make_llnd(fi,SPEC_PAIR, $1, $2, SMNULL);
+          else
+          {  err("Illegal shadow width specification", 56);
+             $$ = LLNULL;
+          }
+        }
+           | nameeq expr COMMA nameeq expr 
+        { char *ql, *qh;
+          PTR_LLND p1, p2;
+          nioctl = 2;
+          ql = $1->entry.string_val;
+          qh = $4->entry.string_val;
+          if((!strcmp(ql,"low_shadow")) && ($2->variant == INT_VAL) && (!strcmp(qh,"high_shadow")) && ($5->variant == INT_VAL)) 
+              {
+                 p1 = make_llnd(fi,SPEC_PAIR, $1, $2, SMNULL);
+                 p2 = make_llnd(fi,SPEC_PAIR, $4, $5, SMNULL);
+                 $$ = make_llnd(fi,CONS, p1, p2, SMNULL);
+              } 
+          else
+          {  err("Illegal shadow width specification", 56);
+             $$ = LLNULL;
+          }
+        }
+          ;
+
+/*
+opt_new_value_spec:
+                     {$$ = LLNULL;}
+                  |  COMMA needkeyword NEW_VALUE
+                     {$$ = make_llnd(fi,NEW_VALUE_OP, LLNULL, LLNULL, SMNULL);}
+                  |  COMMA needkeyword NEW_VALUE LEFTPAR  array_ident_list RIGHTPAR
+                     {$$ = make_llnd(fi,NEW_VALUE_OP, $5, LLNULL, SMNULL);}
+                  ;
+*/
+
+dvm_align:  ALIGN in_dcl alignee align_directive_stuff
+	    { PTR_LLND q;
+              q = set_ll_list($3,LLNULL,EXPR_LIST);
+              $$ = $4;
+              $$->entry.Template.ll_ptr1 = q;
+            }
+           /*
+            *|  ALIGN in_dcl  align_directive_stuff COLON COLON alignee_list
+	    * { 
+            *   $$ = $3;
+            *   $$->entry.Template.ll_ptr1 = $6;
+            * }
+            */
+	;
+
+dvm_realign:  REALIGN end_spec realignee align_directive_stuff 
+	    { PTR_LLND q;
+              q = set_ll_list($3,LLNULL,EXPR_LIST);
+              $$ = $4;
+              $$->variant = DVM_REALIGN_DIR; 
+              $$->entry.Template.ll_ptr1 = q;
+            }
+           |  REALIGN end_spec  align_directive_stuff COLON COLON realignee_list
+	    {
+              $$ = $3;
+              $$->variant = DVM_REALIGN_DIR; 
+              $$->entry.Template.ll_ptr1 = $6;
+            }
+        /*
+           |  REALIGN_WITH end_spec  align_base COLON COLON realignee_list
+	    { $$ = get_bfnd(fi,DVM_REALIGN_DIR,SMNULL,$6,LLNULL,$3);}
+         */
+	   ;
+/*
+alignee_list: alignee
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | alignee_list COMMA alignee
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+*/
+realignee_list: realignee
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | realignee_list COMMA realignee
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+alignee: name
+       {  PTR_SYMB s;
+          s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+          if((s->attr & ALIGN_BIT)) 
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+          if((s->attr & PROCESSORS_BIT) || (s->attr & TASK_BIT) || (s->attr & INHERIT_BIT)) 
+                errstr( "Inconsistent declaration of identifier  %s", s->ident, 16); 
+          else  if(s->attr & DISTRIBUTE_BIT)
+               errstr( "An alignee may not have the DISTRIBUTE attribute:'%s'", s->ident,57);             else
+                s->attr = s->attr | ALIGN_BIT;     
+	  $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	}
+        ;
+  
+realignee: ident
+       {PTR_SYMB s;
+        s = $1->entry.Template.symbol;
+        if(s->attr & PROCESSORS_BIT)
+               errstr( "Illegal use of PROCESSORS name %s ", s->ident, 53);
+        else  if(s->attr & TASK_BIT)
+              errstr( "Illegal use of task array name %s ", s->ident, 71);
+        else if( !(s->attr & DIMENSION_BIT) && !(s->attr & DVM_POINTER_BIT))
+            errstr("The alignee %s isn't an array", s->ident, 58);
+        else {
+            /*  if(!(s->attr & DYNAMIC_BIT))
+                 errstr("'%s' hasn't the DYNAMIC attribute", s->ident, 59);
+             */
+              if(!(s->attr & ALIGN_BIT) && !(s->attr & INHERIT_BIT))
+                 errstr("'%s' hasn't the ALIGN attribute", s->ident, 60);
+              if(s->attr & DISTRIBUTE_BIT)
+                 errstr("An alignee may not have the DISTRIBUTE attribute: %s", s->ident, 57);
+
+/*               if(s->entry.var_decl.local == IO)
+ *                 errstr("An alignee may not be the dummy argument");
+*/
+          }
+	  $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	}
+        ;
+
+align_directive_stuff: LEFTPAR dim_ident_list RIGHTPAR needkeyword WITH align_base 
+           { /* PTR_LLND r;
+              if($7) {
+                r = set_ll_list($6,LLNULL,EXPR_LIST);
+                r = set_ll_list(r,$7,EXPR_LIST);
+              }
+              else
+                r = $6;
+              */
+            $$ = get_bfnd(fi,DVM_ALIGN_DIR,SMNULL,LLNULL,$2,$6);
+           }  
+                     ;
+
+align_base:  align_base_name LEFTPAR align_subscript_list RIGHTPAR
+	  {
+           $$ = make_llnd(fi,ARRAY_REF, $3, LLNULL, $1);        
+          } 
+/*
+          |  align_base_name
+          {PTR_LLND q;
+           q = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, $2);
+           if($1)
+               $$ = make_llnd(fi,ARRAY_OP, $1, q, SMNULL);
+           else
+               $$ = q;
+          } 
+*/
+          ;
+
+align_subscript_list: align_subscript
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | align_subscript_list COMMA align_subscript
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+                    ;
+align_subscript:  expr
+                 { $$ = $1;}
+               | ASTER
+                 {
+                  $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+                  $$->entry.string_val = (char *) "*";
+                  $$->type = global_string;
+                 }
+               | triplet
+                 { $$ = $1;}
+               ;
+ 
+align_base_name: name
+       { 
+         /* if(parstate == INEXEC){ *for REALIGN directive*
+              if (!($$ = $1->id_attr))
+              {
+	         $$ = make_array($1, TYNULL, LLNULL,0,LOCAL);
+	     	 $$->decl = SOFT;
+	      } 
+          } else
+             $$ = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+          */
+          if (!($$ = $1->id_attr))
+          {
+	       $$ = make_array($1, TYNULL, LLNULL,0,LOCAL);
+	       $$->decl = SOFT;
+	  } 
+          $$->attr = $$->attr | ALIGN_BASE_BIT;
+          if($$->attr & PROCESSORS_BIT)
+               errstr( "Illegal use of PROCESSORS name %s ", $$->ident, 53);
+          else  if($$->attr & TASK_BIT)
+               errstr( "Illegal use of task array name %s ", $$->ident, 71);
+          else
+          if((parstate == INEXEC) /* for  REALIGN directive */
+             &&   !($$->attr & DIMENSION_BIT) && !($$->attr & DVM_POINTER_BIT))
+            errstr("The align-target %s isn't declared as array", $$->ident, 61); 
+         }  
+              ;
+
+dim_ident_list: dim_ident
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | dim_ident_list COMMA dim_ident
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+dim_ident: name
+          { PTR_SYMB s;
+            s = make_scalar($1,TYNULL,LOCAL);
+            if(s->type->variant != T_INT || s->attr & PARAMETER_BIT)             
+              errstr("The align-dummy %s isn't a scalar integer variable", s->ident, 62); 
+	   $$ = make_llnd(fi,VAR_REF, LLNULL, LLNULL, s);
+           $$->type = global_int;
+         }  
+           |  ASTER
+        {  
+          $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+          $$->entry.string_val = (char *) "*";
+          $$->type = global_string;
+        }
+           |  COLON
+        {   $$ = make_llnd(fi,DDOT, LLNULL, LLNULL, SMNULL); }   
+        ;
+dvm_combined_dir: dvm_attribute_list COLON COLON  in_dcl name dims
+                   { PTR_SYMB s;
+	             PTR_LLND q, r, p;
+                     int numdim;
+                     if(type_options & PROCESSORS_BIT) {    /* 27.06.18 || (type_options & TEMPLATE_BIT)){ */
+                       if(! explicit_shape) {
+                         err("Explicit shape specification is required", 50);
+		         /*$$ = BFNULL;*/
+	               }
+                     } 
+
+                    /*  else {
+                       if($6)
+                         err("Shape specification is not permitted", 263);
+                     } */
+
+                     if(type_options & DIMENSION_BIT)
+                       { p = attr_dims; numdim = attr_ndim;}
+                     else
+                       { p = LLNULL; numdim = 0; }
+                     if($6)          /*dimension information after the object name*/
+                     { p = $6; numdim = ndim;} /*overrides the DIMENSION attribute */
+	             s = make_array($5, TYNULL, p, numdim, LOCAL);
+
+                     if((type_options & COMMON_BIT) && !(type_options & TEMPLATE_BIT))
+                     {
+                        err("Illegal combination of attributes", 63);
+                        type_options = type_options & (~COMMON_BIT);
+                     }
+                     if((type_options & PROCESSORS_BIT) &&((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT) ||(type_options & TEMPLATE_BIT) || (type_options & DYNAMIC_BIT) ||(type_options & SHADOW_BIT) ))
+                        err("Illegal combination of attributes", 63);
+                     else  if((type_options & PROCESSORS_BIT) && ((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT)) )
+                     {  errstr("Inconsistent declaration of  %s", s->ident, 16);
+                        type_options = type_options & (~PROCESSORS_BIT);
+                     }
+                     else if ((s->attr & PROCESSORS_BIT) && ((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT) ||(type_options & TEMPLATE_BIT) || (type_options & DYNAMIC_BIT) ||(type_options & SHADOW_BIT))) 
+                        errstr("Inconsistent declaration of  %s", s->ident, 16);
+                     else if ((s->attr & INHERIT_BIT) && ((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT)))
+                        errstr("Inconsistent declaration of  %s", s->ident, 16);
+                     if(( s->attr & DISTRIBUTE_BIT) &&  (type_options & DISTRIBUTE_BIT))
+                           errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & ALIGN_BIT) &&  (type_options & ALIGN_BIT))
+                           errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & SHADOW_BIT) &&  (type_options & SHADOW_BIT))
+                           errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & TEMPLATE_BIT) &&  (type_options & TEMPLATE_BIT))
+                           errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & PROCESSORS_BIT) &&  (type_options & PROCESSORS_BIT))
+                           errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+	             s->attr = s->attr | type_options;
+                     if($6) s->attr = s->attr | DIMENSION_BIT;
+                     if((s->attr & DISTRIBUTE_BIT) && (s->attr & ALIGN_BIT))
+                       errstr("%s has the DISTRIBUTE and ALIGN attribute",s->ident, 64);
+	             q = make_llnd(fi,ARRAY_REF, $6, LLNULL, s);
+	             if(p) s->type->entry.ar_decl.ranges = p;
+	             r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	             $$ = get_bfnd(fi,DVM_VAR_DECL, SMNULL, r, LLNULL,$1);
+	            }
+                | dvm_combined_dir COMMA name dims
+                   { PTR_SYMB s;
+	             PTR_LLND q, r, p;
+                     int numdim;
+                    if(type_options & PROCESSORS_BIT) { /*23.10.18  || (type_options & TEMPLATE_BIT)){ */
+                       if(! explicit_shape) {
+                         err("Explicit shape specification is required", 50);
+		         /*$$ = BFNULL;*/
+	               }
+                     } 
+                    /* else {
+                       if($4)
+                         err("Shape specification is not permitted", 263);
+                     } */
+                     if(type_options & DIMENSION_BIT)
+                       { p = attr_dims; numdim = attr_ndim;}
+                     else
+                       { p = LLNULL; numdim = 0; }
+                     if($4)                   /*dimension information after the object name*/
+                     { p = $4; numdim = ndim;}/*overrides the DIMENSION attribute */
+	             s = make_array($3, TYNULL, p, numdim, LOCAL);
+
+                     if((type_options & COMMON_BIT) && !(type_options & TEMPLATE_BIT))
+                     {
+                        err("Illegal combination of attributes", 63);
+                        type_options = type_options & (~COMMON_BIT);
+                     }
+                     if((type_options & PROCESSORS_BIT) &&((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT) ||(type_options & TEMPLATE_BIT) || (type_options & DYNAMIC_BIT) ||(type_options & SHADOW_BIT) ))
+                       err("Illegal combination of attributes", 63);
+                     else  if((type_options & PROCESSORS_BIT) && ((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT)) )
+                     {  errstr("Inconsistent declaration of identifier %s", s->ident, 16);
+                        type_options = type_options & (~PROCESSORS_BIT);
+                     }
+                     else if ((s->attr & PROCESSORS_BIT) && ((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT) ||(type_options & TEMPLATE_BIT) || (type_options & DYNAMIC_BIT) ||(type_options & SHADOW_BIT))) 
+                          errstr("Inconsistent declaration of identifier  %s", s->ident,16);
+                     else if ((s->attr & INHERIT_BIT) && ((type_options & ALIGN_BIT) ||(type_options & DISTRIBUTE_BIT)))
+                          errstr("Inconsistent declaration of identifier %s", s->ident, 16);
+                     if(( s->attr & DISTRIBUTE_BIT) &&  (type_options & DISTRIBUTE_BIT))
+                          errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & ALIGN_BIT) &&  (type_options & ALIGN_BIT))
+                          errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & SHADOW_BIT) &&  (type_options & SHADOW_BIT))
+                          errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & TEMPLATE_BIT) &&  (type_options & TEMPLATE_BIT))
+                          errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+                     if(( s->attr & PROCESSORS_BIT) &&  (type_options & PROCESSORS_BIT))
+                          errstr( "Multiple declaration of identifier  %s ", s->ident, 73);   
+	             s->attr = s->attr | type_options;
+                     if($4) s->attr = s->attr | DIMENSION_BIT;
+                     if((s->attr & DISTRIBUTE_BIT) && (s->attr & ALIGN_BIT))
+                           errstr("%s has the DISTRIBUTE and ALIGN attribute",s->ident, 64);
+	             q = make_llnd(fi,ARRAY_REF, $4, LLNULL, s);
+	             if(p) s->type->entry.ar_decl.ranges = p;
+	             r = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);
+	             add_to_lowLevelList(r, $1->entry.Template.ll_ptr1);
+	            }
+                ;
+         
+/*dvm_attribute_list: { type_options = 0; attr_ndim = 0; attr_dims = LLNULL;} dvm_attribute
+	    { $$ = set_ll_list($2,LLNULL,EXPR_LIST); }
+              | dvm_attribute_list COMMA needkeyword dvm_attribute
+	    { $$ = set_ll_list($1,$4,EXPR_LIST); }	
+                 ;
+*/
+dvm_attribute_list:  dvm_attribute
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); type_options = type_opt; }
+              | dvm_attribute_list COMMA needkeyword dvm_attribute
+	    { $$ = set_ll_list($1,$4,EXPR_LIST); type_options = type_options | type_opt;}
+                 ;
+dvm_attribute: HPF_TEMPLATE
+               { type_opt = TEMPLATE_BIT;
+               $$ = make_llnd(fi,TEMPLATE_OP,LLNULL,LLNULL,SMNULL);
+               } 
+             | HPF_PROCESSORS
+               { type_opt = PROCESSORS_BIT;
+                $$ = make_llnd(fi,PROCESSORS_OP,LLNULL,LLNULL,SMNULL);
+               } 
+             | OMPDVM_NODES
+               { type_opt = PROCESSORS_BIT;
+                $$ = make_llnd(fi,PROCESSORS_OP,LLNULL,LLNULL,SMNULL);
+               } 
+             | DYNAMIC
+               { type_opt = DYNAMIC_BIT;
+                $$ = make_llnd(fi,DYNAMIC_OP,LLNULL,LLNULL,SMNULL);
+               } 
+            /* | DIMENSION dims
+               {
+                if(! explicit_shape) {
+                  err("Explicit shape specification is required", 50);
+                }
+                if(! $2) {
+                  err("No shape specification", 65);
+	        }
+                type_opt = DIMENSION_BIT;
+                attr_ndim = ndim; attr_dims = $2;
+                $$ = make_llnd(fi,DIMENSION_OP,$2,LLNULL,SMNULL);
+	       }*/
+
+            | DIMENSION LEFTPAR dimlist RIGHTPAR
+               {
+                if(! explicit_shape) {
+                  err("Explicit shape specification is required", 50);
+                }
+                if(! $3) {
+                  err("No shape specification", 65);
+	        }
+                type_opt = DIMENSION_BIT;
+                attr_ndim = ndim; attr_dims = $3;
+                $$ = make_llnd(fi,DIMENSION_OP,$3,LLNULL,SMNULL);
+	       }
+              | SHADOW shadow_attr_stuff
+                { type_opt = SHADOW_BIT;
+                  $$ = make_llnd(fi,SHADOW_OP,$2,LLNULL,SMNULL);
+                 } 
+              | ALIGN LEFTPAR dim_ident_list RIGHTPAR needkeyword WITH align_base
+                 { type_opt = ALIGN_BIT;
+                  $$ = make_llnd(fi,ALIGN_OP,$3,$7,SMNULL);
+                 } 
+              | ALIGN 
+                { type_opt = ALIGN_BIT;
+                  $$ = make_llnd(fi,ALIGN_OP,LLNULL,SMNULL,SMNULL);
+                }
+/*
+              | ALIGN_WITH align_base
+                { type_opt = ALIGN_BIT;
+                  $$ = make_llnd(fi,ALIGN_OP,LLNULL,$2,SMNULL);
+                }
+*/
+              | DISTRIBUTE  dist_format_clause opt_key_word  opt_onto 
+	        { 
+                 type_opt = DISTRIBUTE_BIT;
+                 $$ = make_llnd(fi,DISTRIBUTE_OP,$2,$4,SMNULL);
+                } 
+              | DISTRIBUTE  
+	        { 
+                 type_opt = DISTRIBUTE_BIT;
+                 $$ = make_llnd(fi,DISTRIBUTE_OP,LLNULL,LLNULL,SMNULL);
+                } 
+              | COMMON
+                {
+                 type_opt = COMMON_BIT;
+                 $$ = make_llnd(fi,COMMON_OP, LLNULL, LLNULL, SMNULL);
+                }
+               ; 
+
+dvm_pointer: type COMMA needkeyword DVM_POINTER in_dcl LEFTPAR dimension_list RIGHTPAR COLON COLON pointer_var_list
+           { 
+	      PTR_LLND  l;
+	      l = make_llnd(fi, TYPE_OP, LLNULL, LLNULL, SMNULL);
+	      l->type = $1;
+	      $$ = get_bfnd(fi,DVM_POINTER_DIR, SMNULL, $11,$7, l);
+	    }
+           ;
+
+dimension_list: {ndim = 0;} COLON
+	    { PTR_LLND  q;
+             if(ndim == maxdim)
+		err("Too many dimensions", 43);
+	      else if(ndim < maxdim)
+		q = make_llnd(fi,DDOT,LLNULL,LLNULL,SMNULL);
+	      ++ndim;
+              $$ = set_ll_list(q, LLNULL, EXPR_LIST);
+	       /*$$ = make_llnd(fi,EXPR_LIST, q, LLNULL, SMNULL);*/
+	       /*$$->type = global_default;*/
+	    }
+	| dimension_list COMMA COLON
+	    { PTR_LLND  q;
+             if(ndim == maxdim)
+		err("Too many dimensions", 43);
+	      else if(ndim < maxdim)
+		q = make_llnd(fi,DDOT,LLNULL,LLNULL,SMNULL);
+	      ++ndim;
+              $$ = set_ll_list($1, q, EXPR_LIST);
+            }
+	;
+
+pointer_var_list: pointer_var
+	          { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                |  pointer_var_list COMMA  pointer_var
+	          { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	        ;
+
+pointer_var: name
+           {PTR_SYMB s;
+           /* s = make_scalar($1,TYNULL,LOCAL);*/
+            s = make_array($1,TYNULL,LLNULL,0,LOCAL);
+            s->attr = s->attr | DVM_POINTER_BIT;
+            if((s->attr & PROCESSORS_BIT) || (s->attr & TASK_BIT) || (s->attr & INHERIT_BIT))
+               errstr( "Inconsistent declaration of identifier %s", s->ident, 16);     
+            $$ = make_llnd(fi,VAR_REF,LLNULL,LLNULL,s);
+            }
+            ;
+
+dvm_heap: HEAP in_dcl  heap_array_name_list
+           { $$ = get_bfnd(fi,DVM_HEAP_DIR, SMNULL, $3, LLNULL, LLNULL);}
+           ;
+
+heap_array_name_list: heap_array_name
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | heap_array_name_list COMMA heap_array_name
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+heap_array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              s->attr = s->attr | HEAP_BIT;
+              if((s->attr & PROCESSORS_BIT) ||(s->attr & TASK_BIT)  || (s->attr & TEMPLATE_BIT) || (s->attr & ALIGN_BIT) || (s->attr & DISTRIBUTE_BIT) || (s->attr & INHERIT_BIT) || (s->attr & DYNAMIC_BIT) || (s->attr & SHADOW_BIT) || (s->attr & DVM_POINTER_BIT)) 
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16); 
+      
+	      $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	   }
+           ;
+
+dvm_consistent: CONSISTENT in_dcl  consistent_array_name_list
+           { $$ = get_bfnd(fi,DVM_CONSISTENT_DIR, SMNULL, $3, LLNULL, LLNULL);}
+           ;
+
+consistent_array_name_list: consistent_array_name
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | consistent_array_name_list COMMA consistent_array_name
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+consistent_array_name: name
+           {  PTR_SYMB s;
+	      s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              s->attr = s->attr | CONSISTENT_BIT;
+              if((s->attr & PROCESSORS_BIT) ||(s->attr & TASK_BIT)  || (s->attr & TEMPLATE_BIT) || (s->attr & ALIGN_BIT) || (s->attr & DISTRIBUTE_BIT) || (s->attr & INHERIT_BIT) || (s->attr & DYNAMIC_BIT) || (s->attr & SHADOW_BIT) || (s->attr & DVM_POINTER_BIT)) 
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16); 
+      
+	      $$ = make_llnd(fi,ARRAY_REF, LLNULL, LLNULL, s);
+	   }
+           ;
+
+
+dvm_asyncid: ASYNCID in_dcl  async_id_list
+            { $$ = get_bfnd(fi,DVM_ASYNCID_DIR, SMNULL, $3, LLNULL, LLNULL);}
+	   | ASYNCID in_dcl COMMA needkeyword COMMON COLON COLON async_id_list 
+            { PTR_LLND p;
+              p = make_llnd(fi,COMM_LIST, LLNULL, LLNULL, SMNULL);              
+              $$ = get_bfnd(fi,DVM_ASYNCID_DIR, SMNULL, $8, p, LLNULL);
+            }
+           ;
+
+async_id_list: async_id
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | async_id_list COMMA async_id
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	     ;
+
+async_id: name dims
+           {  PTR_SYMB s;
+              if($2){
+                  s = make_array($1, global_default, $2, ndim, LOCAL);
+		  s->variant = ASYNC_ID;
+                  s->attr = s->attr | DIMENSION_BIT;
+                  s->type->entry.ar_decl.ranges = $2;
+                  $$ = make_llnd(fi,ARRAY_REF, $2, LLNULL, s);
+              } else {
+              s = make_local_entity($1, ASYNC_ID, global_default, LOCAL);
+	      $$ = make_llnd(fi,VAR_REF, LLNULL, LLNULL, s);
+              }
+	   }
+           ;
+
+
+dvm_new_value: NEW_VALUE  end_spec
+               { $$ = get_bfnd(fi,DVM_NEW_VALUE_DIR,SMNULL, LLNULL, LLNULL,LLNULL);} 
+          /* | NEW_VALUE  end_spec array_ident_list
+               { $$ = get_bfnd(fi,DVM_NEW_VALUE_DIR,SMNULL, $3, LLNULL,LLNULL);}
+           */
+             ;
+
+
+dvm_parallel_on: PARALLEL end_spec LEFTPAR loop_var_list RIGHTPAR opt_on opt_spec 
+ 
+
+                 {  if($6 &&  $6->entry.Template.symbol->attr & TASK_BIT)
+                        $$ = get_bfnd(fi,DVM_PARALLEL_TASK_DIR,SMNULL,$6,$7,$4);
+                    else
+                        $$ = get_bfnd(fi,DVM_PARALLEL_ON_DIR,SMNULL,$6,$7,$4);
+                 }
+               ;
+
+
+loop_var_list: loop_var
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | loop_var_list COMMA loop_var
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+loop_var: ident
+        
+
+opt_on:   opt_key_word ON distribute_cycles 
+          { $$ = $3;}
+                       
+	| opt_key_word 
+            { $$ = LLNULL; opt_kwd_ = NO;}
+	    
+	;
+
+distribute_cycles: ident LEFTPAR par_subscript_list RIGHTPAR
+        {
+          if($1->type->variant != T_ARRAY) 
+           errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66);
+                 $1->entry.Template.ll_ptr1 = $3;
+                 $$ = $1;
+                 $$->type = $1->type->entry.ar_decl.base_type;
+         }
+         ;
+
+par_subscript_list: par_subscript
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | par_subscript_list COMMA par_subscript
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+par_subscript: expr
+            { $$ = $1;}
+             | ASTER
+            {
+             $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+             $$->entry.string_val = (char *) "*";
+             $$->type = global_string;
+            }
+             ;
+
+opt_spec:
+          {  $$ = LLNULL;}
+        | spec_list
+          { $$ = $1;}
+        ;
+
+spec_list:     par_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | spec_list par_spec
+	       { $$ = set_ll_list($1,$2,EXPR_LIST); }	
+             ;
+           
+
+par_spec: new_spec
+        | reduction_spec
+        | shadow_spec
+        | remote_access_spec
+        | indirect_access_spec
+        | across_spec
+        | stage_spec
+        | consistent_spec
+        | private_spec     /*ACC*/
+        | cuda_block_spec  /*ACC*/
+        ;
+
+remote_access_spec:  COMMA needkeyword REMOTE_ACCESS_SPEC LEFTPAR group_name COLON remote_data_list RIGHTPAR
+                        { if($5->attr & INDIRECT_BIT)
+                            errstr("'%s' is not remote group name", $5->ident, 68);
+                          $$ = make_llnd(fi,REMOTE_ACCESS_OP,$7,LLNULL,$5);
+                        }
+                  |  COMMA needkeyword REMOTE_ACCESS_SPEC LEFTPAR remote_data_list RIGHTPAR
+                        { $$ = make_llnd(fi,REMOTE_ACCESS_OP,$5,LLNULL,SMNULL);}
+                      ;
+
+consistent_spec:  COMMA needkeyword CONSISTENT_SPEC LEFTPAR consistent_group COLON remote_data_list RIGHTPAR
+                        {
+                          $$ = make_llnd(fi,CONSISTENT_OP,$7,LLNULL,$5);
+                        }
+                  |  COMMA needkeyword CONSISTENT_SPEC LEFTPAR remote_data_list RIGHTPAR
+                        { $$ = make_llnd(fi,CONSISTENT_OP,$5,LLNULL,SMNULL);}
+                      ;
+
+consistent_group: name
+          {  
+            if(($$=$1->id_attr) == SMNULL){
+                errstr("'%s' is not declared as group", $1->ident, 74);
+                $$ = make_local_entity($1,CONSISTENT_GROUP_NAME,global_default,LOCAL);
+            } else {
+                if($$->variant != CONSISTENT_GROUP_NAME)
+                   errstr("'%s' is not declared as group", $1->ident, 74);
+            }
+          }
+          ;
+
+
+new_spec: COMMA needkeyword NEW LEFTPAR variable_list RIGHTPAR
+              {$$ = make_llnd(fi,NEW_SPEC_OP,$5,LLNULL,SMNULL);}
+/*	| COMMA needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
+	      {$$ = make_llnd(fi,NEW_SPEC_OP,$5,LLNULL,SMNULL);} */  /*OMP*/
+        | COMMA needkeyword OMPDVM_FIRSTPRIVATE LEFTPAR variable_list RIGHTPAR
+              {$$ = make_llnd(fi,NEW_SPEC_OP,$5,LLNULL,SMNULL);}   /*OMP*/
+        ;
+
+private_spec: COMMA needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_PRIVATE_OP,$5,LLNULL,SMNULL);}  /*ACC*/
+            ;
+
+cuda_block_spec: COMMA needkeyword ACC_CUDA_BLOCK LEFTPAR sizelist RIGHTPAR
+                { $$ = make_llnd(fi,ACC_CUDA_BLOCK_OP,$5,LLNULL,SMNULL);} /*ACC*/
+               ;
+sizelist:  expr
+           { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}        /*ACC*/
+        |  expr COMMA expr
+           {$$ = set_ll_list($1,$3,EXPR_LIST);}            /*ACC*/
+        |  expr COMMA expr COMMA expr
+           {$$ = set_ll_list($1,$3,EXPR_LIST); $$ = set_ll_list($$,$5,EXPR_LIST);} /*ACC*/
+        ;
+
+variable_list: lhs
+            { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+             | variable_list COMMA lhs
+            { $$ = set_ll_list($1,$3,EXPR_LIST);}
+             ;
+
+indirect_access_spec: COMMA needkeyword INDIRECT_ACCESS LEFTPAR group_name COLON indirect_list RIGHTPAR 
+                    { if(!($5->attr & INDIRECT_BIT))
+                         errstr("'%s' is not indirect group name", $5->ident, 313);
+                      $$ = make_llnd(fi,INDIRECT_ACCESS_OP,$7,LLNULL,$5);
+                    }
+                   |  COMMA needkeyword INDIRECT_ACCESS LEFTPAR  indirect_list RIGHTPAR 
+                        { $$ = make_llnd(fi,INDIRECT_ACCESS_OP,$5,LLNULL,SMNULL);}
+                   ;
+
+stage_spec:  COMMA needkeyword STAGE LEFTPAR expr RIGHTPAR
+              {$$ = make_llnd(fi,STAGE_OP,$5,LLNULL,SMNULL);}
+          ;
+
+across_spec: COMMA needkeyword ACROSS in_out_across
+               {$$ = make_llnd(fi,ACROSS_OP,$4,LLNULL,SMNULL);}
+           | COMMA needkeyword ACROSS in_out_across in_out_across
+               {$$ = make_llnd(fi,ACROSS_OP,$4,$5,SMNULL);}
+           ;
+
+in_out_across:  LEFTPAR opt_key_word opt_in_out dependent_array_list RIGHTPAR
+                {  if($3)
+                     $$ = make_llnd(fi,DDOT,$3,$4,SMNULL);
+                   else
+                     $$ = $4;
+                }
+             ;
+
+opt_in_out:  IN  COLON
+            {
+	      $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "in";
+              $$->type = global_string;
+            }
+          |  OUT COLON
+            {
+	      $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "out";
+              $$->type = global_string;
+            }
+          |
+            {  $$ = LLNULL; opt_kwd_ = NO;}
+          ;
+
+dependent_array_list: dependent_array
+            { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+             | dependent_array_list COMMA dependent_array 
+            { $$ = set_ll_list($1,$3,EXPR_LIST);}
+             ;
+
+dependent_array: array_ident
+                 { $$ = $1;}
+               | array_ident LEFTPAR dependence_list RIGHTPAR
+                  { $$ = $1;
+                    $$-> entry.Template.ll_ptr1 = $3;  
+                  }
+               | array_ident LEFTPAR dependence_list RIGHTPAR LEFTPAR section_spec_list RIGHTPAR
+                 { /*  PTR_LLND p;
+                       p = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+                       p->entry.string_val = (char *) "corner";
+                       p->type = global_string;
+                   */
+                   $1-> entry.Template.ll_ptr1 = $3;  
+                   $$ = make_llnd(fi,ARRAY_OP,$1,$6,SMNULL);
+                 }
+
+               ;  
+ 
+dependence_list: dependence
+            { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+             | dependence_list COMMA dependence 
+            { $$ = set_ll_list($1,$3,EXPR_LIST);}
+             ; 
+  
+dependence:  expr COLON expr
+             { $$ = make_llnd(fi,DDOT, $1, $3, SMNULL);}
+          ;      
+
+section_spec_list: section_spec
+              { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+            | section_spec_list COMMA  section_spec
+              { $$ = set_ll_list($1,$3,EXPR_LIST);}
+            ;
+
+section_spec: ar_section COLON low_section COLON high_section 
+             { $$ = make_llnd(fi,DDOT,$1,make_llnd(fi,DDOT,$3,$5,SMNULL),SMNULL); } 
+            |  ar_section COLON low_section  
+             { $$ = make_llnd(fi,DDOT,$1,make_llnd(fi,DDOT,$3,LLNULL,SMNULL),SMNULL); } 
+            | ar_section COLON high_section
+             { $$ = make_llnd(fi,DDOT,$1,make_llnd(fi,DDOT,LLNULL,$3,SMNULL),SMNULL); } 
+            | ar_section
+             { $$ = make_llnd(fi,DDOT,$1,LLNULL,SMNULL); }
+            | low_section COLON high_section
+             { $$ = make_llnd(fi,DDOT,LLNULL,make_llnd(fi,DDOT,$1,$3,SMNULL),SMNULL); }
+            | low_section
+             { $$ = make_llnd(fi,DDOT,LLNULL,make_llnd(fi,DDOT,$1,LLNULL,SMNULL),SMNULL); }
+            |  high_section
+             { $$ = make_llnd(fi,DDOT,LLNULL,make_llnd(fi,DDOT,LLNULL,$1,SMNULL),SMNULL); }
+            ;
+
+ar_section: needkeyword SECTION section
+            { $$ = $3;}
+          ;
+
+low_section: needkeyword LOW section
+            { $$ = $3;}
+          ;
+
+high_section: needkeyword HIGH section
+            { $$ = $3;}
+          ;
+
+section:  LEFTPAR funargs RIGHTPAR
+          { $$ = $2;}
+       ;
+
+reduction_spec: COMMA needkeyword REDUCTION LEFTPAR  opt_key_word_r  reduction  no_opt_key_word_r  COMMA reduction_list RIGHTPAR
+                {PTR_LLND q;
+                /* q = set_ll_list($9,$6,EXPR_LIST); */
+                 q = set_ll_list($6,LLNULL,EXPR_LIST); /*podd 11.10.01*/
+                 q = add_to_lowLevelList($9,q);        /*podd 11.10.01*/
+                 $$ = make_llnd(fi,REDUCTION_OP,q,LLNULL,SMNULL);
+                }
+              | COMMA needkeyword REDUCTION LEFTPAR  opt_key_word_r  reduction  no_opt_key_word_r  RIGHTPAR
+                {PTR_LLND q;
+                 q = set_ll_list($6,LLNULL,EXPR_LIST);
+                 $$ = make_llnd(fi,REDUCTION_OP,q,LLNULL,SMNULL);
+                }
+
+              | COMMA needkeyword REDUCTION LEFTPAR opt_key_word_r reduction_group no_opt_key_word_r COLON reduction_list RIGHTPAR
+                {  $$ = make_llnd(fi,REDUCTION_OP,$9,LLNULL,$6); }            
+              ;
+
+opt_key_word_r:
+                  { opt_kwd_r = YES; }
+               ;  
+no_opt_key_word_r:
+                  { opt_kwd_r = NO; }
+               ;  
+
+reduction_group:  name
+                { 
+                  if(($$=$1->id_attr) == SMNULL) {
+                      errstr("'%s' is not declared as reduction group", $1->ident, 69);
+                      $$ = make_local_entity($1,REDUCTION_GROUP_NAME,global_default,LOCAL);
+                  } else {
+                    if($$->variant != REDUCTION_GROUP_NAME)
+                      errstr("'%s' is not declared as reduction group", $1->ident, 69);
+                  }
+                }
+               ;       
+
+
+reduction_list: needkeyword reduction
+               {$$ = set_ll_list($2,LLNULL,EXPR_LIST);}
+              | reduction_list COMMA  needkeyword reduction
+               {$$ = set_ll_list($1,$4,EXPR_LIST);}
+             ;
+
+reduction: reduction_op LEFTPAR lhs RIGHTPAR
+           {$$ = make_llnd(fi,ARRAY_OP,$1,$3,SMNULL);}
+         | loc_op LEFTPAR variable_list COMMA expr RIGHTPAR
+           {$3 = set_ll_list($3,$5,EXPR_LIST);
+            $$ = make_llnd(fi,ARRAY_OP,$1,$3,SMNULL);}
+         ; 
+
+reduction_op: SUM
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "sum";
+              $$->type = global_string;
+             }
+            | PRODUCT
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "product";
+              $$->type = global_string;
+             }
+            | MIN
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "min";
+              $$->type = global_string;
+             }
+            | MAX
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "max";
+              $$->type = global_string;
+             }
+            | OR
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "or";
+              $$->type = global_string;
+             }
+            | AND
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "and";
+              $$->type = global_string;
+             }
+            | EQV
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "eqv";
+              $$->type = global_string;
+             }
+            | NEQV
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "neqv";
+              $$->type = global_string;
+             }
+            | UNKNOWN
+             { err("Illegal reduction operation name", 70);
+               errcnt--;
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "unknown";
+              $$->type = global_string;
+             }
+            ;
+
+loc_op:       MAXLOC
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "maxloc";
+              $$->type = global_string;
+             }
+            | MINLOC
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "minloc";
+              $$->type = global_string;
+             }
+/*
+            | UNKNOWN
+             { err("Illegal reduction operation name", 70);
+               errcnt--; 
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "unknown";
+              $$->type = global_string;
+             }
+*/
+             ;
+
+shadow_spec: COMMA needkeyword SHADOW_RENEW LEFTPAR shadow_list RIGHTPAR
+                { $$ = make_llnd(fi,SHADOW_RENEW_OP,$5,LLNULL,SMNULL);}
+           | COMMA needkeyword SHADOW_START_SPEC shadow_group_name
+/*
+                { PTR_LLND q;
+                  q = make_llnd(fi,VAR_REF,LLNULL,LLNULL,$4);
+                 $$ = make_llnd(fi,SHADOW_START_OP,q,LLNULL,SMNULL);
+                }
+*/
+                { $$ = make_llnd(fi,SHADOW_START_OP,LLNULL,LLNULL,$4);}
+           | COMMA needkeyword SHADOW_WAIT_SPEC  shadow_group_name
+                
+/*              {  PTR_LLND q;
+                  q = make_llnd(fi,VAR_REF,LLNULL,LLNULL,$4);
+                  $$ = make_llnd(fi,SHADOW_WAIT_OP,q,LLNULL,SMNULL);
+                } 
+*/
+                { $$ = make_llnd(fi,SHADOW_WAIT_OP,LLNULL,LLNULL,$4);} 
+           | COMMA needkeyword SHADOW_COMPUTE 
+                { $$ = make_llnd(fi,SHADOW_COMP_OP,LLNULL,LLNULL,SMNULL);}  
+           | COMMA needkeyword SHADOW_COMPUTE LEFTPAR  array_ident LEFTPAR  sh_width_list RIGHTPAR  RIGHTPAR 
+                {  $5-> entry.Template.ll_ptr1 = $7; $$ = make_llnd(fi,SHADOW_COMP_OP,$5,LLNULL,SMNULL);}  
+           ;
+
+shadow_group_name:  name
+       {$$ = make_local_entity($1, SHADOW_GROUP_NAME,global_default,LOCAL);}
+            ;        
+
+shadow_list: shadow
+              { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+           | shadow_list COMMA shadow
+              { $$ = set_ll_list($1,$3,EXPR_LIST);}
+           ;
+
+shadow: array_ident
+        { $$ = $1;} /* $$->variant is ARRAY_REF */
+      | array_ident LEFTPAR opt_corner CORNER  RIGHTPAR
+        { PTR_LLND p;
+          p = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+          p->entry.string_val = (char *) "corner";
+          p->type = global_string;
+          $$ = make_llnd(fi,ARRAY_OP,$1,p,SMNULL);
+         }
+
+      | array_ident LEFTPAR  opt_corner sh_width_list RIGHTPAR
+        { $$ = $1;
+          $$-> entry.Template.ll_ptr1 = $4;  
+        }
+      | array_ident LEFTPAR opt_corner sh_width_list RIGHTPAR LEFTPAR needkeyword CORNER RIGHTPAR
+       { PTR_LLND p;
+          p = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+          p->entry.string_val = (char *) "corner";
+          p->type = global_string;
+          $1-> entry.Template.ll_ptr1 = $4;  
+          $$ = make_llnd(fi,ARRAY_OP,$1,p,SMNULL);
+       }
+
+      ;
+ 
+opt_corner: 
+           { optcorner = YES; }
+          ;
+
+array_ident: ident
+       { PTR_SYMB s;
+         s = $1->entry.Template.symbol;
+         if(s->attr & PROCESSORS_BIT)
+             errstr( "Illegal use of PROCESSORS name %s ", s->ident, 53);
+         else if(s->attr & TASK_BIT)
+             errstr( "Illegal use of task array name %s ", s->ident, 71);
+         else
+           if(s->type->variant != T_ARRAY) 
+             errstr("'%s' isn't array", s->ident, 66);
+           else 
+              if((!(s->attr & DISTRIBUTE_BIT)) && (!(s->attr & ALIGN_BIT)))
+               ; /*errstr("hpf.gram: %s is not distributed array", s->ident);*/
+                
+         $$ = $1;
+        }
+           ;
+
+array_ident_list: array_ident
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | array_ident_list COMMA array_ident
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+dvm_shadow_start: SHADOW_START end_spec shadow_group_name
+         { $$ = get_bfnd(fi,DVM_SHADOW_START_DIR,$3,LLNULL,LLNULL,LLNULL);} 
+                |  SHADOW_START_SPEC end_spec shadow_group_name
+                {errstr("Missing DVM directive prefix", 49);}
+                ;
+
+dvm_shadow_wait: SHADOW_WAIT  end_spec shadow_group_name
+         { $$ = get_bfnd(fi,DVM_SHADOW_WAIT_DIR,$3,LLNULL,LLNULL,LLNULL);}  
+                |  SHADOW_WAIT_SPEC end_spec shadow_group_name
+                {errstr("Missing DVM directive prefix", 49);}
+               ;
+
+dvm_shadow_group: SHADOW_GROUP end_spec shadow_group_name LEFTPAR shadow_list RIGHTPAR
+          { $$ = get_bfnd(fi,DVM_SHADOW_GROUP_DIR,$3,$5,LLNULL,LLNULL);}   
+                ;
+
+dvm_reduction_start: REDUCTION_START end_spec reduction_group
+         { $$ = get_bfnd(fi,DVM_REDUCTION_START_DIR,$3,LLNULL,LLNULL,LLNULL);} 
+                ;
+
+dvm_reduction_wait: REDUCTION_WAIT  end_spec reduction_group
+         { $$ = get_bfnd(fi,DVM_REDUCTION_WAIT_DIR,$3,LLNULL,LLNULL,LLNULL);}  
+               ;
+/*
+dvm_reduction_group: REDUCTION_GROUP  end_spec reduction_group_name LEFTPAR reduction_list RIGHTPAR
+          { $$ = get_bfnd(fi,DVM_REDUCTION_GROUP_DIR,$3,$5,LLNULL,LLNULL);}
+                   ;
+*/
+
+dvm_consistent_start: CONSISTENT_START end_spec consistent_group
+         { $$ = get_bfnd(fi,DVM_CONSISTENT_START_DIR,$3,LLNULL,LLNULL,LLNULL);} 
+                ;
+
+dvm_consistent_wait: CONSISTENT_WAIT  end_spec consistent_group
+         { $$ = get_bfnd(fi,DVM_CONSISTENT_WAIT_DIR,$3,LLNULL,LLNULL,LLNULL);}  
+               ;
+
+dvm_remote_access: REMOTE_ACCESS end_spec LEFTPAR group_name COLON remote_data_list RIGHTPAR 
+         { if(($4->attr & INDIRECT_BIT))
+                errstr("'%s' is not remote group name", $4->ident, 68);
+           $$ = get_bfnd(fi,DVM_REMOTE_ACCESS_DIR,$4,$6,LLNULL,LLNULL);
+         }
+                 | REMOTE_ACCESS  end_spec LEFTPAR remote_data_list RIGHTPAR 
+         { $$ = get_bfnd(fi,DVM_REMOTE_ACCESS_DIR,SMNULL,$4,LLNULL,LLNULL);}
+                 ;
+
+group_name: name
+          {  
+            if(($$=$1->id_attr) == SMNULL){
+                errstr("'%s' is not declared as group", $1->ident, 74);
+                $$ = make_local_entity($1,REF_GROUP_NAME,global_default,LOCAL);
+            } else {
+              if($$->variant != REF_GROUP_NAME)
+                errstr("'%s' is not declared as group", $1->ident, 74);
+            }
+          }
+          ;
+
+remote_data_list: remote_data
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+              | remote_data_list COMMA remote_data
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+remote_data: array_ident LEFTPAR remote_index_list RIGHTPAR
+            {
+              $$ = $1;
+              $$->entry.Template.ll_ptr1 = $3;
+            }
+           | array_ident
+             { $$ = $1;}
+           ;
+
+remote_index_list: remote_index
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                 | remote_index_list COMMA remote_index
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+remote_index: expr
+            { $$ = $1;}
+            | COLON
+            { $$ = make_llnd(fi,DDOT, LLNULL, LLNULL, SMNULL);}
+             ;
+
+dvm_task: TASK in_dcl  task_array
+          {  PTR_LLND q;
+             q = make_llnd(fi,EXPR_LIST, $3, LLNULL, SMNULL);
+             $$ = get_bfnd(fi,DVM_TASK_DIR,SMNULL,q,LLNULL,LLNULL);
+          }
+        | dvm_task COMMA task_array
+          {   PTR_LLND q;
+              q = make_llnd(fi,EXPR_LIST, $3, LLNULL, SMNULL);
+	      add_to_lowLevelList(q, $1->entry.Template.ll_ptr1);
+          }
+        ;
+
+task_array: name dims
+           { 
+             PTR_SYMB s;
+	      s = make_array($1, global_int, $2, ndim, LOCAL);
+              if($2){
+                  s->attr = s->attr | DIMENSION_BIT;
+                  s->type->entry.ar_decl.ranges = $2;
+              }
+              else
+                  err("No dimensions in TASK directive", 75);
+              if(ndim > 1)
+                  errstr("Illegal rank of '%s'", s->ident, 76);
+              if(s->attr & TASK_BIT)
+                errstr( "Multiple declaration of identifier  %s ", s->ident, 73);
+              if((s->attr & ALIGN_BIT) ||(s->attr & DISTRIBUTE_BIT) ||(s->attr & TEMPLATE_BIT) || (s->attr & DYNAMIC_BIT) ||(s->attr & SHADOW_BIT) || (s->attr & PROCESSORS_BIT)  || (s->attr & DVM_POINTER_BIT) || (s->attr & INHERIT_BIT))
+                errstr("Inconsistent declaration of identifier  %s", s->ident, 16);
+              else
+	        s->attr = s->attr | TASK_BIT;
+    
+	      $$ = make_llnd(fi,ARRAY_REF, $2, LLNULL, s);	  
+	    }    
+	;
+
+dvm_task_region: TASK_REGION  end_spec task_name  
+                 {$$ = get_bfnd(fi,DVM_TASK_REGION_DIR,$3,LLNULL,LLNULL,LLNULL);}             
+               | TASK_REGION  end_spec task_name reduction_spec
+                {$$ = get_bfnd(fi,DVM_TASK_REGION_DIR,$3,$4,LLNULL,LLNULL);}
+               | TASK_REGION  end_spec task_name consistent_spec
+                {$$ = get_bfnd(fi,DVM_TASK_REGION_DIR,$3,LLNULL,$4,LLNULL);}
+               | TASK_REGION  end_spec task_name reduction_spec consistent_spec
+                {$$ = get_bfnd(fi,DVM_TASK_REGION_DIR,$3,$4,$5,LLNULL);}              
+               | TASK_REGION  end_spec task_name consistent_spec reduction_spec
+                {$$ = get_bfnd(fi,DVM_TASK_REGION_DIR,$3,$5,$4,LLNULL);}                  
+               ;
+
+task_name:   name
+             { PTR_SYMB s;
+              if((s=$1->id_attr) == SMNULL)
+                s = make_array($1, TYNULL, LLNULL, 0, LOCAL);
+              
+              if(!(s->attr & TASK_BIT))
+                 errstr("'%s' is not task array", s->ident, 77);
+              $$ = s;
+              }
+              ;
+
+dvm_end_task_region:  ENDTASK_REGION  end_spec
+          { $$ = get_bfnd(fi,DVM_END_TASK_REGION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+                   ;
+
+task:  task_name  LEFTPAR expr RIGHTPAR
+           {  PTR_SYMB s;
+              PTR_LLND q;
+             /*
+              s = make_array($1, TYNULL, LLNULL, 0, LOCAL);                           
+	      if((parstate == INEXEC) && !(s->attr & TASK_BIT))
+                 errstr("'%s' is not task array", s->ident, 77);  
+              q =  set_ll_list($3,LLNULL,EXPR_LIST);
+	      $$ = make_llnd(fi,ARRAY_REF, q, LLNULL, s);
+              */
+
+              s = $1;
+              q =  set_ll_list($3,LLNULL,EXPR_LIST);
+	      $$ = make_llnd(fi,ARRAY_REF, q, LLNULL, s);
+	   }
+     | task_name  LEFTPAR triplet RIGHTPAR 
+           {  PTR_LLND q; 
+              q =  set_ll_list($3,LLNULL,EXPR_LIST);
+	      $$ = make_llnd(fi,ARRAY_REF, q, LLNULL, $1);
+	   }
+            ;        
+
+dvm_on: ON_DIR end_spec array_ele_substring_func_ref opt_new_spec
+    {              
+         $$ = get_bfnd(fi,DVM_ON_DIR,SMNULL,$3,$4,LLNULL);
+    } 
+      ;  
+
+opt_new_spec: 
+             {$$ = LLNULL;}
+            | new_spec
+             { $$ = $1;}
+            ;
+
+dvm_end_on: ENDON end_spec
+         {$$ = get_bfnd(fi,DVM_END_ON_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+          ;
+
+dvm_map:  MAP end_spec task  needkeyword ONTO processors_name dims
+      { PTR_LLND q;
+        /* if(!($6->attr & PROCESSORS_BIT))
+           errstr("'%s' is not processor array", $6->ident, 67);
+         */
+        q = make_llnd(fi,ARRAY_REF, $7, LLNULL, $6);
+        $$ = get_bfnd(fi,DVM_MAP_DIR,SMNULL,$3,q,LLNULL);
+      }
+      | MAP end_spec task  needkeyword BY lhs
+       { $$ = get_bfnd(fi,DVM_MAP_DIR,SMNULL,$3,LLNULL,$6); } 
+       ;
+
+dvm_prefetch: PREFETCH end_spec group_name
+              { $$ = get_bfnd(fi,DVM_PREFETCH_DIR,$3,LLNULL,LLNULL,LLNULL);} 
+            ;
+
+dvm_reset: RESET end_spec group_name
+           { $$ = get_bfnd(fi,DVM_RESET_DIR,$3,LLNULL,LLNULL,LLNULL);} 
+         ;
+/*
+dvm_indirect_access: INDIRECT_ACCESS end_spec LEFTPAR opt_group indirect_list RIGHTPAR 
+                    { $$ = get_bfnd(fi,DVM_INDIRECT_ACCESS_DIR,$4,$5,LLNULL,LLNULL);} 
+                   ;
+*/
+dvm_indirect_access: INDIRECT_ACCESS end_spec LEFTPAR group_name COLON indirect_list RIGHTPAR 
+                    { if(!($4->attr & INDIRECT_BIT))
+                         errstr("'%s' is not indirect group name", $4->ident, 313);
+                      $$ = get_bfnd(fi,DVM_INDIRECT_ACCESS_DIR,$4,$6,LLNULL,LLNULL);
+                    }
+                   | INDIRECT_ACCESS end_spec LEFTPAR  indirect_list RIGHTPAR 
+                    { $$ = get_bfnd(fi,DVM_INDIRECT_ACCESS_DIR,SMNULL,$4,LLNULL,LLNULL);} 
+                   ;
+/*
+opt_group:
+               { $$ = SMNULL;}
+         |  group_name COLON 
+               { if(!($1->attr & INDIRECT_BIT))
+                   errstr("'%s' is not indirect group name", $1->ident, 313);
+                 $$ = $1;
+                }
+         ;
+*/
+
+indirect_list: indirect_reference
+	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+            | indirect_list COMMA  indirect_reference 
+	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
+	;
+
+indirect_reference: array_ident
+                    { $$ = $1;} 
+                  | array_ident LEFTPAR subscript_list RIGHTPAR
+                    { $$ = $1; $$->entry.Template.ll_ptr1 = $3;} 
+                  ; 
+/* 
+dvm_own: OWN
+          { $$ = get_bfnd(fi,DVM_OWN_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+       ;
+*/
+  
+hpf_independent: INDEPENDENT end_spec
+                { $$ = get_bfnd(fi,HPF_INDEPENDENT_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}  
+               | INDEPENDENT end_spec new_spec
+                { $$ = get_bfnd(fi,HPF_INDEPENDENT_DIR,SMNULL, $3, LLNULL, LLNULL);}
+               | INDEPENDENT end_spec hpf_reduction_spec
+                { $$ = get_bfnd(fi,HPF_INDEPENDENT_DIR,SMNULL, LLNULL, $3, LLNULL);}
+               | INDEPENDENT end_spec new_spec hpf_reduction_spec
+                { $$ = get_bfnd(fi,HPF_INDEPENDENT_DIR,SMNULL, $3, $4,LLNULL);}
+
+               ;
+ /*
+               | INDEPENDENT end_spec COMMA needkeyword NEW LEFTPAR new_variable_list  RIGHTPAR
+      { PTR_LLND p;
+        p  = make_llnd(fi,NEW_SPEC_OP, $7, LLNULL, SMNULL);
+        $$ = get_bfnd(fi,HPF_INDEPENDENT_DIR,SMNULL, p, LLNULL,LLNULL);
+      }  
+  */      
+
+/*
+new_variable_list: new_variable
+            { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+             | new_variable_list COMMA new_variable
+            { $$ = set_ll_list($1,$3,EXPR_LIST);}
+             ;
+
+new_variable: lhs
+        { PTR_SYMB s;
+          if($1->variant == FUNC_CALL)
+               errstr("illegal function call");
+          s = $1->entry.Template.symbol;
+          if(s->attr & SAVE_BIT)
+               errstr("'%s' has the SAVE attribute", s->ident);  
+          if(s->attr & TARGET_BIT)
+                 errstr("'%s' has the TARGET attribute", s->ident);
+          if(s->attr & DVM_POINTER_BIT)
+                 errstr("'%s' is a pointer", s->ident);
+          if(s->entry.var_decl.local == IO)
+                 errstr("'%s' is a dummy argument", s->ident);
+        }
+           ;
+*/
+
+hpf_reduction_spec: COMMA needkeyword REDUCTION LEFTPAR variable_list RIGHTPAR
+              {$$ = make_llnd(fi,REDUCTION_OP,$5,LLNULL,SMNULL);}
+                  ;
+
+dvm_asynchronous: ASYNCHRONOUS end_spec async
+                { $$ = get_bfnd(fi,DVM_ASYNCHRONOUS_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+                ;
+
+dvm_endasynchronous: ENDASYNCHRONOUS end_spec 
+                { $$ = get_bfnd(fi,DVM_ENDASYNCHRONOUS_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+                ;
+
+dvm_asyncwait: ASYNCWAIT end_spec async
+                { $$ = get_bfnd(fi,DVM_ASYNCWAIT_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+             ;
+
+async_ident: name 
+     {  
+            if(($$=$1->id_attr) == SMNULL) {
+                errstr("'%s' is not declared as ASYNCID", $1->ident, 115);
+                $$ = make_local_entity($1,ASYNC_ID,global_default,LOCAL);
+            } else {
+              if($$->variant != ASYNC_ID)
+                errstr("'%s' is not declared as ASYNCID", $1->ident, 115);
+            }
+     }
+     ;
+
+async: async_ident
+      { $$ = make_llnd(fi,VAR_REF, LLNULL, LLNULL, $1);}
+     | async_ident LEFTPAR subscript_list RIGHTPAR
+       { $$ = make_llnd(fi,ARRAY_REF, $3, LLNULL, $1);} 
+     ;
+
+dvm_f90: F90 end_spec lhs EQUAL lhs
+        { $$ = get_bfnd(fi,DVM_F90_DIR,SMNULL,$3,$5,LLNULL);} 
+       ;
+dvm_debug_dir: DEBUG end_spec fragment_number
+               { $$ = get_bfnd(fi,DVM_DEBUG_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+             |  DEBUG end_spec fragment_number LEFTPAR debparamlist RIGHTPAR 
+               { $$ = get_bfnd(fi,DVM_DEBUG_DIR,SMNULL,$3,$5,LLNULL);} 
+             ;
+
+debparamlist:  in_ioctl debparam
+	    { 
+              $$ = set_ll_list($2, LLNULL, EXPR_LIST);
+              endioctl();
+            }
+	    | debparamlist COMMA in_ioctl debparam
+	    { 
+              $$ = set_ll_list($1, $4, EXPR_LIST);
+              endioctl();
+            }
+	    ;
+
+debparam:  nameeq expr
+           { $$  = make_llnd(fi, KEYWORD_ARG, $1, $2, SMNULL); } /* SPEC_PAIR*/
+        ;
+fragment_number:  INT_CONSTANT
+	        {
+	         $$ = make_llnd(fi,INT_VAL, LLNULL, LLNULL, SMNULL);
+	         $$->entry.ival = atoi(yytext);
+	         $$->type = global_int;
+	        }
+              ;
+
+dvm_enddebug_dir: ENDDEBUG end_spec fragment_number
+       { $$ = get_bfnd(fi,DVM_ENDDEBUG_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+             ;
+
+dvm_interval_dir: INTERVAL end_spec interval_number 
+       { $$ = get_bfnd(fi,DVM_INTERVAL_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+             ;
+
+interval_number:
+                { $$ = LLNULL;}
+
+               |  expr
+                { if($1->type->variant != T_INT)             
+                    err("Illegal interval number", 78);
+                  $$ = $1;
+                 }
+               ;
+
+dvm_exit_interval_dir: EXITINTERVAL end_spec subscript_list 
+                      /* subscript_list - interval number list */ 
+       { $$ = get_bfnd(fi,DVM_EXIT_INTERVAL_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+             ;
+
+dvm_endinterval_dir: ENDINTERVAL end_spec
+            { $$ = get_bfnd(fi,DVM_ENDINTERVAL_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+                   ;
+
+dvm_traceon_dir: TRACEON end_spec
+            { $$ = get_bfnd(fi,DVM_TRACEON_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+               ;
+
+dvm_traceoff_dir: TRACEOFF end_spec
+            { $$ = get_bfnd(fi,DVM_TRACEOFF_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+               ;
+
+dvm_barrier_dir: BARRIER end_spec
+            { $$ = get_bfnd(fi,DVM_BARRIER_DIR,SMNULL,LLNULL,LLNULL,LLNULL);} 
+               ;
+
+dvm_check: CHECK end_spec in_ioctl LEFTPAR callarglist RIGHTPAR end_ioctl opt_double_colon variable_list 
+          { $$ = get_bfnd(fi,DVM_CHECK_DIR,SMNULL,$9,$5,LLNULL); }         
+         ;
+
+dvm_io_mode_dir: IO_MODE end_spec LEFTPAR mode_list RIGHTPAR
+            { $$ = get_bfnd(fi,DVM_IO_MODE_DIR,SMNULL,$4,LLNULL,LLNULL);} 
+               ;
+mode_list:   mode_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+         |   mode_list COMMA mode_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+         ;
+
+mode_spec:  needkeyword ACC_ASYNC
+              { $$ = make_llnd(fi,ACC_ASYNC_OP,LLNULL,LLNULL,SMNULL);}
+         |  needkeyword ACC_LOCAL
+              { $$ = make_llnd(fi,ACC_LOCAL_OP, LLNULL,LLNULL,SMNULL);}
+         |  needkeyword PARALLEL
+              { $$ = make_llnd(fi,PARALLEL_OP, LLNULL,LLNULL,SMNULL);}
+         ;
+
+dvm_shadow_add: SHADOW_ADD end_spec LEFTPAR template_ref EQUAL shadow_id RIGHTPAR opt_key_word opt_include_to 
+              { $$ = get_bfnd(fi,DVM_SHADOW_ADD_DIR,SMNULL,$4,$6,$9); }
+              ;
+
+template_ref:  ident LEFTPAR shadow_axis_list RIGHTPAR
+               {
+                 if($1->type->variant != T_ARRAY) 
+                    errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66);
+                 if(!($1->entry.Template.symbol->attr & TEMPLATE_BIT))
+                    errstr("'%s' isn't TEMPLATE", $1->entry.Template.symbol->ident, 628);
+                 $1->entry.Template.ll_ptr1 = $3;
+                 $$ = $1;
+                 /*$$->type = $1->type->entry.ar_decl.base_type;*/
+               }
+            ;
+
+shadow_axis_list: shadow_axis
+	          { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                | shadow_axis_list COMMA shadow_axis
+	          { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+                ;
+
+shadow_axis: derived_spec
+             { $$ = $1; }
+           | aster_expr
+             { $$ = $1; }
+           ;
+
+opt_include_to: INCLUDE_TO array_ident_list
+                { $$ = $2;}              
+	      |  
+                { $$ = LLNULL; opt_kwd_ = NO;}
+              ;
+ 
+dvm_localize: LOCALIZE end_spec LEFTPAR ident POINT_TO localize_target  RIGHTPAR
+              { $$ = get_bfnd(fi,DVM_LOCALIZE_DIR,SMNULL,$4,$6,LLNULL); }
+            ;
+
+localize_target: ident
+                {
+                 if($1->type->variant != T_ARRAY) 
+                    errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66); 
+                 $$ = $1;
+                }
+               | ident  LEFTPAR target_subscript_list RIGHTPAR
+                {
+                 if($1->type->variant != T_ARRAY) 
+                    errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66); 
+                                 
+                 $1->entry.Template.ll_ptr1 = $3;
+                 $$ = $1;
+                 $$->type = $1->type->entry.ar_decl.base_type;
+                }
+                                                          
+               ;
+
+target_subscript_list: target_subscript
+	               { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+                     | target_subscript_list COMMA target_subscript
+	               { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+                     ;
+
+target_subscript: aster_expr
+                { $$ = $1; }
+                | COLON
+                { $$ = make_llnd(fi,DDOT, LLNULL, LLNULL, SMNULL);}
+                ;
+
+aster_expr: ASTER
+          { 
+            $$ = make_llnd(fi,KEYWORD_VAL, LLNULL, LLNULL, SMNULL);
+            $$->entry.string_val = (char *) "*";
+            $$->type = global_string;
+          }
+          ;
+
+dvm_cp_create: CP_CREATE end_spec expr COMMA needkeyword VARLIST LEFTPAR variable_list RIGHTPAR COMMA needkeyword FILES LEFTPAR subscript_list RIGHTPAR  opt_mode 
+              { 
+                PTR_LLND q;
+                if($16)
+                  q = make_llnd(fi,ARRAY_OP, $14, $16, SMNULL);
+                else
+                  q = $14;                  
+                $$ = get_bfnd(fi,DVM_CP_CREATE_DIR,SMNULL,$3,$8,q); 
+              } 
+             ;
+
+opt_mode:
+              { $$ = LLNULL; }
+            |  COMMA needkeyword PARALLEL
+              { $$ = make_llnd(fi, PARALLEL_OP, LLNULL, LLNULL, SMNULL); }
+            |  COMMA needkeyword ACC_LOCAL 
+              { $$ = make_llnd(fi,ACC_LOCAL_OP, LLNULL, LLNULL, SMNULL); }  
+            ;
+
+dvm_cp_load:   CP_LOAD end_spec expr
+              { $$ = get_bfnd(fi,DVM_CP_LOAD_DIR,SMNULL,$3,LLNULL,LLNULL); } 
+           ;
+
+dvm_cp_save:   CP_SAVE end_spec expr
+              { $$ = get_bfnd(fi,DVM_CP_SAVE_DIR,SMNULL,$3,LLNULL,LLNULL); }              
+           |   CP_SAVE end_spec expr COMMA needkeyword ACC_ASYNC 
+              {
+                PTR_LLND q;
+                q = make_llnd(fi,ACC_ASYNC_OP,LLNULL,LLNULL,SMNULL);
+                $$ = get_bfnd(fi,DVM_CP_SAVE_DIR,SMNULL,$3,q,LLNULL);
+              }
+           ;
+
+dvm_cp_wait:   CP_WAIT end_spec expr COMMA needkeyword STATUS LEFTPAR ident RIGHTPAR
+              { $$ = get_bfnd(fi,DVM_CP_WAIT_DIR,SMNULL,$3,$8,LLNULL); }
+           ;
+
+dvm_template_create: TEMPLATE_CREATE end_spec  LEFTPAR  template_list RIGHTPAR
+                     { $$ = get_bfnd(fi,DVM_TEMPLATE_CREATE_DIR,SMNULL,$4,LLNULL,LLNULL); }
+                   ;
+template_list: array_element
+	       { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	     | template_list COMMA array_element
+               { $$ = set_ll_list($1, $3, EXPR_LIST); }
+             ;
+
+dvm_template_delete: TEMPLATE_DELETE end_spec  LEFTPAR  template_ident_list RIGHTPAR
+                     { $$ = get_bfnd(fi,DVM_TEMPLATE_DELETE_DIR,SMNULL,$4,LLNULL,LLNULL); }
+                   ;
+
+template_ident_list: ident
+	       { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	     | template_ident_list COMMA ident
+               { $$ = set_ll_list($1, $3, EXPR_LIST); }
+             ;

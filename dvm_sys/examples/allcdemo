@@ -1,0 +1,9 @@
+#!/bin/sh
+
+dvmoutfile="democ.1" ./alldemo.uni c
+../bin/dvmdiff democ.1 democ_res.uni
+if [ $? != 0 ] ; then
+    echo "result is different from democ_res.uni"
+    exit 1
+fi
+echo "allcdemo done"

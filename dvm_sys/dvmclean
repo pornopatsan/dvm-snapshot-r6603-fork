@@ -1,0 +1,5 @@
+#!/bin/sh
+
+echo ============== STARTING DVM CLEANING ==============
+make -f makefile.uni  "MAKE=make -f makefile.uni" clean
+echo =============== DONE DVM CLEANING =================

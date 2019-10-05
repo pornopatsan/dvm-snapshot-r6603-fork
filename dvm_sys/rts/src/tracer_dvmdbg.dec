@@ -1,0 +1,29 @@
+#ifndef _TRACER_DVMDBG_DEC_
+#define _TRACER_DVMDBG_DEC_
+/*************************/
+
+
+/* MPI-awareness support functions */
+
+void msg_trc_wrt_proc(byte* pMsg, FILE* fp, char* FileName);
+void do_matching( TABLE* pSendTable, UDvmType send_startidx, UDvmType send_finidx,
+                  TABLE* pRecvTable, UDvmType recv_startidx, UDvmType recv_finidx,
+                                     int req_tag, DvmType req_comm);
+
+DVMUSERFUN
+void __callstd  tracer_dvm_exit_(int  rc);
+DVMUSERFUN
+void __callstd  tracer_clock_res_(double  clock_res);
+DVMUSERFUN
+void __callstd  tracer_send_(int  dest, int  tag, DvmType  comm,
+                             t_tracer_time  tracer_time, int  comp_err);
+DVMUSERFUN
+void __callstd  tracer_recv_(int  source, int  tag, DvmType  comm,
+                             t_tracer_time  tracer_time, int  comp_err);
+DVMUSERFUN
+void __callstd  tracer_proc_term_(t_tracer_time  tracer_time, int  comp_err);
+DVMUSERFUN
+void __callstd  tracer_task_term_(t_tracer_time  tracer_time);
+
+
+#endif  /* _TRACER_DVMDBG_DEC_ */

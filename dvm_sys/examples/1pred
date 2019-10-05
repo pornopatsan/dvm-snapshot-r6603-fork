@@ -1,0 +1,37 @@
+#!/bin/sh
+
+LANG="$1"
+PROG="$2"
+EXTENSION="$3"
+
+cleanup() {
+    rm -f "$PROG.$LANG"
+    rm -f "$PROG"
+    rm -f "$PROG.o"
+    rm -f "$PROG.ptr"
+    rm -f "${PROG}_2_2.log"
+}
+
+bad() {
+    cleanup
+    echo "... to abort type Ctrl+C ..."
+    sleep 1
+    exit 0
+}
+
+./dvm $LANG "$PROG$EXTENSION"
+if [ ! -f "$PROG" ] ; then
+    bad
+fi
+./dvm runpred "$PROG"
+if [ ! -f "$PROG.ptr" ] ; then
+    bad
+fi
+if [ -f "${PROG}_2_2.html" ] ; then
+    rm -f "${PROG}_2_2.html"
+fi
+./dvm pred 2 2 "$PROG"
+if [ ! -f "${PROG}_2_2.html" ] ; then
+    bad
+fi
+cleanup

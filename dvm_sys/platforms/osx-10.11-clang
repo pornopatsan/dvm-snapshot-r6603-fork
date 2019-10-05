@@ -1,0 +1,18 @@
+#For Apple OS X 10.11 El Capitan PLATFORM
+# for DVM tools
+ CC='clang -g -O2'
+ CXX='clang++ -g -O2'
+ LINKER='clang++ -g'
+ LLVMCONFIG=''
+# for parallel programs
+ PCC='mpicc -g -O2'
+ PCXX='mpicxx -g -O2'
+ PFORT='mpif77 -g -O2'
+ PLINKER='mpicxx -g'
+ PFLINKER='mpif77 -g'
+ ADD_LIBS='-lc++'
+if [ -d "/usr/local/cuda" ]; then
+ CUDA_PATH='/usr/local/cuda'
+fi
+# launch settings
+ dvmrun='runmpi'

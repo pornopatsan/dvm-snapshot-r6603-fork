@@ -1,0 +1,51 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# dvm/cdvm/src/makefile.win
+
+OUTDIR = ..\obj
+BINDIR = ..\..\bin
+EXECUTABLES = c_dvm
+
+INCL = 
+LIBS = 
+
+
+# -w don't issue warning now.
+#CFLAGS=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+#	/Fp"$(OUTDIR)/newsrc.pch" /YX /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+	/Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+.c{$(OUTDIR)/}.obj:
+    $(CC) $(CFLAGS) $<
+
+LINK=$(LINKER)
+ 
+LINK_FLAGS=kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib\
+ advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib\
+ odbccp32.lib /nologo /subsystem:console /incremental:no\
+ /pdb:"$(OUTDIR)\$(EXECUTABLES).pdb" /out:"$(BINDIR)\$(EXECUTABLES).exe" 
+
+OBJS = $(OUTDIR)\c_dvm.obj
+
+$(BINDIR)/$(EXECUTABLES).exe: $(OBJS)
+	$(LINK) @<<
+	$(LINK_FLAGS) $(OBJS) $(LIBS)  
+<<
+
+all: $(BINDIR)/$(EXECUTABLES).exe
+    @echo "*** COMPILING $(EXECUTABLES) DONE"
+
+ 
+clean:
+
+cleanall: clean
+
+.PHONY: all clean cleanall
+
+# ***********************************************************
+# must be dependences here

@@ -1,0 +1,166 @@
+/*  PROGRAM TASKS                                 */
+/* rectangular grid is distributed on two blocks  */
+/*                                                */
+/*                     <------- A2,B2 ----->      */
+/*                     0    1   2    ... N2       */
+/*       <--- A1,B1 -------->                     */
+/*       0   1   ...  N1-1  N1  N1+1 ... N1+N2-1  */
+/*------------------------------------------------*/
+/* 0   | .   .         .    .   .    ...  .       */
+/* ... |                                          */
+/* K-1 | .   .         .    .   .    ...  .       */
+/**************************************************/
+#include <stdlib.h>
+#include <math.h>
+
+#define DVM(dvmdir)
+#define DO(v,l,h,s)   for(v=l; v<=h; v+=s)
+#define FOR(v,n)  for(v=0; v<n; v++)
+#define Max(a,b) ((a)>(b)?(a):(b))
+
+#define NUMBER_OF_PROCESSORS() 1
+#define K   8
+
+#define ITMAX 10
+
+#define MAXTASK  2/*16*/
+#define NTASK  2
+int t;
+
+DVM(PROCESSORS)  void * P[NUMBER_OF_PROCESSORS()];
+DVM(TASK)       void * MB[MAXTASK];
+DVM(DISTRIBUTE) float (*At[MAXTASK])[K];
+DVM(ALIGN)      float (*Bt[MAXTASK])[K];
+
+DVM(* DISTRIBUTE) float (*A)[K];
+DVM(* ALIGN) float (*B)[K];
+
+int Nt[MAXTASK]={4,4};
+
+double eps0;
+
+int main(int argn, char** args)
+{
+int i,j, it, ii;
+int NP,NPt;
+
+DVM(DEBUG 1 -d0)
+{
+NP = NUMBER_OF_PROCESSORS();
+NPt=NP/NTASK;
+}
+
+FOR(t,NTASK)
+{
+DVM(DEBUG 1 -d0)
+{
+if(NPt==0)
+    {DVM(MAP MB[t] ONTO P[0:NP-1]);
+    printf("Task %d mapped onto processors %d..%d\n",t,0,NP-1);
+    }
+else {
+    i=NPt*t;
+    j= (t==NTASK-1) ? NP-1 : i+NPt-1;
+    DVM(MAP MB[t] ONTO P[i:j]);
+    printf("Task %d mapped onto processors %d..%d\n",t,i,j);
+    }
+}
+
+At[t]=malloc((Nt[t]+1)*K*sizeof(float));
+DVM(REDISTRIBUTE (At[t])[][BLOCK] ONTO MB[t]);
+Bt[t]=malloc((Nt[t]+1)*K*sizeof(float));
+DVM(REALIGN (Bt[t])[i][j] WITH (At[t])[i][j]);
+}
+
+printf("-------------------------------------\n");
+
+DVM(PARALLEL [t] ON MB[t])
+FOR(t,NTASK)
+{
+/*DVM(* DISTRIBUTE[][]) float (*A)[K];*/
+/*DVM(* DISTRIBUTE[][]) float (*B)[K];*/
+int N=Nt[t], N0=0;
+
+    /* Create */
+A=At[t];
+B=Bt[t];
+    /* Initialize */
+FOR(i,t) N0=N0+Nt[i]-1; /* absolute column index */
+
+DVM(PARALLEL [i][j] ON A[i][j])
+FOR(i,N+1)
+FOR(j,K)
+    {if (j==0 || j==K-1
+        ||  t==0 && i==0 || t==NTASK-1 && i==N)
+            A[i][j] = 0.f;
+    else    A[i][j] = 1.f + i + N0+ j ;
+    B[i][j] = A[i][j];
+    }
+}
+
+DO(it,1,ITMAX,1)
+{
+    eps0 = 0.;
+
+/*     exchange bounds */
+FOR(t,NTASK)
+{
+/*DVM(* DISTRIBUTE[][]) float (*A)[K];*/
+/*DVM(* DISTRIBUTE[][]) float (*B)[K];*/
+int N;
+
+A=At[t];
+if(t!=0)
+    {
+    B=Bt[t-1];
+    N=Nt[t-1];
+    DVM(PARALLEL [j] ON A[0][j]; REMOTE_ACCESS B[N-1][])
+        FOR(j,K) A[0][j] = B[N-1][j];
+    }
+if(t!=NTASK-1)
+    {
+    B=Bt[t+1];
+    N=Nt[t];
+    DVM(PARALLEL [j] ON A[(N)][j]; REMOTE_ACCESS B[1][])
+        FOR(j,K) A[N][j] = B[1][j];
+    }
+}
+
+
+/* Block task region */
+DVM(TASK_REGION MB; REDUCTION MAX(eps0))
+{
+DVM(PARALLEL [t] ON MB[t])
+FOR(t,NTASK)
+{
+/*DVM(* DISTRIBUTE [][]) float (*A)[K];*/
+/*DVM(* DISTRIBUTE [][]) float (*B)[K];*/
+
+double eps=0.; /* private reduction variable */
+int  N=Nt[t];
+
+A=At[t];
+B=Bt[t];
+
+DVM(PARALLEL [i][j] ON B[i][j]; SHADOW_RENEW A[][])
+DO(i,1, N-1, 1)
+DO(j,1, K-2, 1)
+   B[i][j]=(A[i-1][j]+A[i][j-1]+A[i+1][j]+A[i][j+1])/4.f;
+
+DVM(PARALLEL [i][j] ON A[i][j]; REDUCTION MAX(eps))
+DO(i,1,N-1,1)
+DO(j,1,K-2,1)
+        {eps =  Max(fabs(B[i][j]-A[i][j]),eps);
+        A[i][j] = B[i][j];
+        }
+eps0=Max(eps0,eps);
+}
+
+} /* TASK_REGION */
+
+printf("it=%d eps0=%f\n",it,eps0);
+}/* FOR IT */
+return 0;
+}
+
+

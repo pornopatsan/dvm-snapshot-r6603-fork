@@ -1,0 +1,44 @@
+######################################
+### Automated created makefile.win ###
+######################################
+
+OUTDIR=..\obj
+BINDIR=..\..\..\bin
+ZLIB=zlib.lib
+ZLIBDIR=..\..\Zlib\Release
+
+EXECUTABLES = dvmstf
+
+LINK_FLAGS=/nologo /subsystem:console /incremental:no\
+ /pdb:"$(OUTDIR)\$(EXECUTABLES).pdb" /out:"$(BINDIR)\$(EXECUTABLES).exe" 
+
+#COPT=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS"\
+# /I "../../Zlib/Include"\
+# /Fp"$(OUTDIR)\tools.pch" /YX /Fo"$(OUTDIR)\\" /Fd"$(OUTDIR)\\" /c
+COPT=/nologo  /D "WIN32" /D "NDEBUG" /D "_WINDOWS"\
+ /I "../../Zlib/Include"\
+ /Fp"$(OUTDIR)\tools.pch" /Fo"$(OUTDIR)\\" /Fd"$(OUTDIR)\\" /c
+
+.cpp{$(OUTDIR)/}.obj:
+	$(CXX) $(COPT) $<
+
+OBJS=\
+	$(OUTDIR)\potensyn.obj \
+	$(OUTDIR)\inter.obj  \
+	$(OUTDIR)\statfile.obj \
+	$(OUTDIR)\statread.obj  \
+	$(OUTDIR)\treeinter.obj \
+	$(OUTDIR)\statprintf.obj
+	
+$(BINDIR)/$(EXECUTABLES).exe: $(OBJS)
+	$(LINKER) @<<
+	$(LINK_FLAGS) $(OBJS)  $(ZLIBDIR)\$(ZLIB)
+<<
+
+all:  $(BINDIR)/$(EXECUTABLES).exe
+    @echo "*** COMPILING EXECUTABLE $(EXECUTABLES) DONE"
+
+clean:
+
+cleanall:
+

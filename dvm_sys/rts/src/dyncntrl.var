@@ -1,0 +1,89 @@
+#ifndef _DYNCNTRL_VAR_
+#define _DYNCNTRL_VAR_
+/********************/
+
+
+byte DbgInfoPrint=1; /* flag on information messages
+                        of dynamic control system and trace */
+
+byte EnableDynControl = 0; /* is dynamic control allowed or denied */
+
+/* HASH-function used  */
+byte HashMethod = 1;
+byte HashOffsetValue = 3;
+
+struct
+{
+    char            ErrorFile[MaxParFileName+1]; /* name of diagnostics file */
+    int             HashIndexSize;    /* size of HASH-table index */
+    int             HashTableSize;    /* size of structure array
+                                         for HASH-table */
+
+    int             VarTableSize;     /* size of structure array
+                                         for variable table */
+
+    byte            ErrorToScreen;    /* screen output of diagnostics */
+    byte            AppendErrorFile;  /* add messages in existing file */
+    int             MaxErrors;        /* maximal number of detected errors */
+
+    byte            CheckVarInitialization;        /* check initialization
+                                                      of scalar variables */
+    byte            CheckDisArrInitialization;     /* check initialization
+                                                      of distibuted array
+                                                      elements */
+    byte            CheckReductionAccess;          /* check accessing to
+                                                      reduction variables */
+    byte            CheckRemoteBufferAccess;       /* check using of
+                                                      remote buffers */
+    byte            CheckDisArrLimits;             /* check out of
+                                                      bounds access */
+    byte            CheckDataDependence;           /* check data dependence
+                                                      in parallel loop */
+    byte            CheckVarReadOnly;              /* check accessing to
+                                                      read-only variables */
+    byte            CheckDisArrEdgeExchange;       /* check edge exchange
+                                                      of distributed array */
+    byte            CheckDisArrSequentialAccess;   /* check access to
+                                                      distrubuted array
+                                                      in the sequential
+                                                      part */
+    byte            CheckDisArrLocalElm;           /* check accessing to
+                                                      local elements of
+                                                      distributed array */
+}
+
+DebugOptions =
+{
+    "error.dbg",   /* ErrorFile */
+    1001,          /* HashIndexSize */
+    1000,          /* HashTableSize */
+    100,           /* VarTableSize */
+    0,             /* ErrorToScreen */
+    0,             /* AppendErrorFile */
+    1000,          /* MaxErrors */
+    1,             /* CheckVarInitialization */
+    1,             /* CheckDisArrInitialization */
+    1,             /* CheckReductionAccess */
+    1,             /* CheckRemoteBufferAccess */
+    1,             /* CheckDisArrLimits */
+    1,             /* CheckDataDependence */
+    1,             /* CheckVarReadOnly */
+    1,             /* CheckDisArrEdgeExchange */
+    1,             /* CheckDisArrSequentialAccess */
+    1              /* CheckDisArrLocalElm */
+};
+
+/* Variable table for dynamic control */
+
+VAR_TABLE DynVarTable;
+byte DynVarTableInit = 0;
+
+PFN_CALC_HASH_FUNC GlobalHashFunc = NULL;  /* global function
+                                              used for hash */
+DvmType g_lHashStack[2]; /* Internal stack for 2-dimension hash calculation */
+
+TABLE gPreSaveVars;
+
+SysHandle* g_pLastTestedDisArray;
+
+#endif  /* _DYNCNTRL_VAR_ */

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+npp="$1"
+shift
+taskname="$1"
+
+list_nodes=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | wc -w )
+if [ $list_nodes -gt 1 ]; then
+    echo "Error: DVMH_PPN list is too long. Maximum length is 1 (ProcPerNode)."
+    exit 1
+fi
+
+host_procs=$npp
+if [ $list_nodes -gt 0 ]; then
+    host_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $1;}' )
+fi
+
+machine_file="$taskname.machinefile"
+for i in `seq 1 $(( ($npp+$host_procs-1)/$host_procs ))` ; do
+    echo "node$i:$host_procs"
+done >"$machine_file"
+
+rest=
+if [ "$restart" = "1" ]; then
+    rest="-restart"
+fi
+do_cmd /common/runmvs/bin/mpirun -np $npp -resource gpu=4 -machinefile "$machine_file" -maxtime $maxtime $rest "$@"

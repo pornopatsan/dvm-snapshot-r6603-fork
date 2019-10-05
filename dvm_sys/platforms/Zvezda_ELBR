@@ -1,0 +1,18 @@
+#For Zvezda4 - Elbrus PLATFORM
+# for DVM tools
+ CC='cc -g -O2'
+ CXX='c++ -g -O2'
+ LINKER='c++ -g'
+ MPIR_HOME="/usr"
+# LLVMCONFIG='llvm-config'
+# for parallel programs
+ PCC="$MPIR_HOME/bin/mpicc -g -fopenmp -O2"
+ PCXX="$MPIR_HOME/bin/mpic++ -g -fopenmp -O2"
+ PFORT="$MPIR_HOME/bin/mpif77 -g -fopenmp -O2"
+ PLINKER="$MPIR_HOME/bin/mpic++ -fopenmp -g"
+ PFLINKER="$MPIR_HOME/bin/mpic++ -fopenmp -g -lfcc"
+ ADD_LIBS=''
+ CUDA_PATH=''
+ MPIRUN_CMD="$MPIR_HOME/bin/mpiexec -localhost -genvall"
+# launch settings
+ dvmrun='runmpi'

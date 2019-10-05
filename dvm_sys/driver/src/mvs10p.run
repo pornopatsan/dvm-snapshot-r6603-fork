@@ -1,0 +1,70 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+. /etc/profile.d/modules.sh
+slurm=$( module list 2>&1 | grep launcher/slurm | wc -l )
+suppz=$( module list 2>&1 | grep launcher/suppz | wc -l )
+if [ $slurm -eq 1 ]; then
+    module swap launcher/slurm launcher/suppz
+fi
+if [ $suppz -eq 0 ]; then
+    module load launcher/suppz
+fi
+
+npp="$1"
+shift
+taskname="$1"
+
+list_nodes=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | wc -w )
+if [ $list_nodes -gt 3 ]; then
+    echo "Error: DVMH_PPN list is too long. Maximum length is 3 (PPN, MIC_PPN, MIC_PPN)."
+    exit 1
+fi
+
+host_procs=$npp
+mic1_procs=0
+mic2_procs=0
+if [ $list_nodes -gt 0 ]; then
+    host_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $1;}' )
+    if [ $list_nodes -gt 1 ]; then
+        mic1_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $2;}' )
+        if [ $list_nodes -gt 2 ]; then
+            mic2_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $3;}' )
+        fi
+    fi
+fi
+uses_mic=0
+MIC_ARGS=
+if [ $mic1_procs -gt 0 -o $mic2_procs -gt 0 ]; then
+    uses_mic=1
+    if [ ! -e "$taskname.mic" ]; then
+        echo "Error: program $taskname.mic does not exist."
+        exit 1
+    fi
+    MIC_ARGS="-mic"
+fi
+
+# TODO: Add safety check for division of npp by sum of DVMH_PPN elements, maybe
+
+len=${#taskname}
+if [ $len -gt 19 ]; then
+    echo "Error: Too long taskname \"$taskname\". SUPPZ problem!"
+    exit 1
+fi
+
+machine_file="$taskname.machinefile"
+j=1
+total_procs=$(( $host_procs + $mic1_procs + $mic2_procs ))
+for i in `seq 1 $(( ($npp+$total_procs-1)/$total_procs ))` ; do
+    echo node$j:$host_procs
+    if [ $uses_mic -ne 0 ]; then
+        echo node$(( $j+1 )):$mic1_procs
+        echo node$(( $j+2 )):$mic2_procs
+        j=$(( $j+3 ))
+    else
+        j=$(( $j+1 ))
+    fi
+done >"$machine_file"
+
+do_cmd /common/runmvs/local/bin/mpirun -np $npp -maxtime $maxtime -machinefile "$machine_file" $MIC_ARGS "$@"

@@ -1,0 +1,87 @@
+spf_directive: spf_analysis
+             | spf_parallel      
+             | spf_transform
+             | spf_parallel_reg
+             | spf_end_parallel_reg
+	     ;
+
+spf_analysis: SPF_ANALYSIS  LEFTPAR analysis_spec_list RIGHTPAR 
+             {  $$ = get_bfnd(fi,SPF_ANALYSIS_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+spf_parallel: SPF_PARALLEL  LEFTPAR parallel_spec_list RIGHTPAR 
+             {  $$ = get_bfnd(fi,SPF_PARALLEL_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+spf_transform: SPF_TRANSFORM  LEFTPAR transform_spec_list RIGHTPAR 
+             {  $$ = get_bfnd(fi,SPF_TRANSFORM_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+spf_parallel_reg: SPF_PARALLEL_REG region_name
+                { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,LLNULL,LLNULL,LLNULL);}
+                ;
+
+spf_end_parallel_reg: SPF_END_PARALLEL_REG
+                { $$ = get_bfnd(fi,SPF_END_PARALLEL_REG_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
+                ;
+
+analysis_spec_list:  analysis_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | analysis_spec_list COMMA analysis_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+analysis_spec: analysis_reduction_spec
+             | analysis_private_spec     
+             ;
+
+analysis_reduction_spec: needkeyword REDUCTION LEFTPAR reduction_list RIGHTPAR
+               { $$ = make_llnd(fi,REDUCTION_OP,$4,LLNULL,SMNULL); }    
+                       ;
+
+analysis_private_spec: needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
+               { $$ = make_llnd(fi,ACC_PRIVATE_OP,$4,LLNULL,SMNULL);} 
+                     ;
+
+parallel_spec_list:  parallel_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  parallel_spec_list COMMA parallel_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+parallel_spec: parallel_shadow_spec
+             | parallel_across_spec
+             | parallel_remote_access_spec     
+             ;
+
+
+parallel_shadow_spec:  needkeyword SHADOW LEFTPAR shadow_list RIGHTPAR
+                { $$ = make_llnd(fi,SHADOW_OP,$4,LLNULL,SMNULL);}
+                    ;
+
+parallel_across_spec:  needkeyword ACROSS LEFTPAR shadow_list RIGHTPAR
+                { $$ = make_llnd(fi,ACROSS_OP,$4,LLNULL,SMNULL);}
+                    ;
+
+parallel_remote_access_spec: needkeyword REMOTE_ACCESS_SPEC LEFTPAR remote_data_list RIGHTPAR
+                { $$ = make_llnd(fi,REMOTE_ACCESS_OP,$4,LLNULL,SMNULL);}
+                           ;
+
+transform_spec_list:  transform_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  transform_spec_list COMMA transform_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+transform_spec: needkeyword SPF_NOINLINE
+                { $$ = make_llnd(fi,SPF_NOINLINE_OP,LLNULL,LLNULL,SMNULL);}
+              | needkeyword SPF_FISSION LEFTPAR loop_var_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_FISSION_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_PRIVATES_EXPANSION 
+                { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,LLNULL,LLNULL,SMNULL);}
+              | needkeyword SPF_PRIVATES_EXPANSION LEFTPAR loop_var_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,$4,LLNULL,SMNULL);}
+              ;
+region_name: name
+           { $$ = make_parallel_region($1);}
+           ;   

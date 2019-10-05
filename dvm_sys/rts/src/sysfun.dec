@@ -1,0 +1,658 @@
+#ifndef _SYSFUN_DEC_
+#define _SYSFUN_DEC_
+/******************/    /*E0000*/
+
+
+/**************\
+*  initexit.c  *
+\**************/    /*E0001*/
+
+void    dvm_Init(DvmType  InitParam);
+void    CallCoil(int     int1,    int     int2,
+                 DvmType    long1,   DvmType    long2,
+                 float   float1,  float   float2,
+                 double  double1, double  double2,
+                 int    *int3,    int    *int4,    int     *int5,
+                 DvmType   *long3,   DvmType   *long4,   DvmType    *long5,
+                 float  *float3,  float  *float4,  float   *float5,
+                 double *double3, double *double4, double  *double5);
+void    GetProcPower(void);
+void    GetAcrossTimes(void);
+void    StatInit(void);
+void    PrintVers(byte Reg,byte Screen);
+void    dvm_Done(void);
+DVMSYSFUN
+void    dvm_exit(int rc);
+void    WriteStatToFile(DVMFILE  *StatFile);
+
+
+/*************\
+*  distrib.c  *
+\*************/    /*E0002*/
+
+void  CrtVMSForAMS(s_AMVIEW  *AMV, s_BLOCK  **LocBlockPtr,
+                   s_ALIGN  *AlList);
+
+
+/**************\
+*  mapdistr.c  *
+\**************/    /*E0003*/
+
+void   AMVMap_Done(s_AMVIEWMAP   *Map);
+
+
+/**************\
+*  crtdelda.c  *
+\**************/    /*E0004*/
+
+void    DelDA(s_DISARRAY  *DArr);
+void    disarr_Done(s_DISARRAY *DArr);
+
+
+/**************\
+*  rgaccess.c  *
+\**************/    /*E0005*/
+
+void     RegBufGroup_Done(s_REGBUFGROUP *RBG);
+
+
+/**************\
+*  daconsis.c  *
+\**************/    /*E0006*/
+
+void     DAConsistGroup_Done(s_DACONSISTGROUP *DAG);
+
+
+/**************\
+*  idaccess.c  *
+\**************/    /*E0007*/
+
+void     IdBufGroup_Done(s_IDBUFGROUP *IBG);
+void     StartLoadBuffer(s_DISARRAY *BArr);
+void     WaitLoadBuffer(s_DISARRAY *BArr);
+
+
+/***********\
+*  align.c  *
+\***********/    /*E0008*/
+
+void      AppendBounds(s_BLOCK *ABlock, s_DISARRAY *DArr);
+
+/**************\
+*  mapalign.c  *
+\**************/    /*E0009*/
+
+void   ArrMap_Done(s_ARRAYMAP   *Map);
+
+
+/*************\
+*  parloop.c  *
+\*************/    /*E0010*/
+
+void   shd_iter(s_PARLOOP  *PL);
+void   in_iter(s_PARLOOP  *PL);
+void   parloop_Done(s_PARLOOP  *PL);
+byte   dyn_GetLocalBlock(s_BLOCK  *DABlock, s_DISARRAY  *DA,
+                         s_PARLOOP  *PL);
+int    GetPLMapDim(s_PARLOOP *PL, int PLDim);
+void   GetAcrossQNumber(s_PARLOOP  *PL, DvmType  N, byte  *PLAxisArray,
+                        int  *VMAxisArray, s_BOUNDGROUP  *BG);
+
+
+/***********\
+*  stdio.c  *
+\***********/    /*E0011*/
+
+void    rtl_vfprintf(DVMFILE *stream,const char *format,
+                     va_list arglist);
+int     rtl_rc_vfprintf(DVMFILE *stream,const char *format,
+                        va_list arglist);
+
+#ifdef _DVM_ZLIB_
+   int   gzvfprintf(gzFile  file, const char  *format,
+                    va_list  arglist);
+   void  gz_vfprintf(gzFile  file, const char  *format,
+                     va_list  arglist);
+   int   gz_rc_vfprintf(gzFile  file, const char  *format,
+                        va_list  arglist);
+#endif
+
+int     rtl_vfscanf(DVMFILE *stream,const char *format);
+int     dvm_scan1(FILE *stream, char *format1, int *SymNumberPtr,
+                  char *ControlPtr, int FormatPos);
+
+
+/***********\
+*  disio.c  *
+\***********/    /*E0012*/
+
+DvmType         GetIndexArray(SysHandle *ArrayHandlePtr,
+                           DvmType InInitIndexArray[],
+                           DvmType InLastIndexArray[],DvmType InStepArray[],
+                           DvmType OutInitIndexArray[],
+                           DvmType OutLastIndexArray[],DvmType OutStepArray[],
+                           byte Regim);
+DvmType      dvm_ReadArray(DVMFILE *F, s_DISARRAY *Ar, s_BLOCK *FB);
+DvmType      dvm_WriteArray(DVMFILE *F, s_DISARRAY *Ar, s_BLOCK *FB);
+
+
+/*************\
+*  elmcopy.c  *
+\*************/    /*E0013*/
+
+int       GetElm(char *BufferPtr,s_DISARRAY *DArr,DvmType IndexArray[]);
+int       PutElm(char *BufferPtr,s_DISARRAY *DArr,DvmType IndexArray[]);
+int       IOGetElm(char *BufferPtr,s_DISARRAY *DArr,DvmType IndexArray[]);
+int       IOPutElm(char *BufferPtr,s_DISARRAY *DArr,DvmType IndexArray[]);
+int       CopyElm(s_DISARRAY *FromDArr,DvmType FromIndexArray[],
+                  s_DISARRAY *ToDArr,  DvmType ToIndexArray[]);  
+int       GetElmRepl(char *BufferPtr,s_DISARRAY *DArr,
+                     DvmType IndexArray[]);
+int       PutElmRepl(char *BufferPtr,s_DISARRAY *DArr,
+                     DvmType IndexArray[]);
+int       IOGetElmRepl(char *BufferPtr,s_DISARRAY *DArr,
+                       DvmType IndexArray[]);
+int       IOPutElmRepl(char *BufferPtr,s_DISARRAY *DArr,
+                       DvmType IndexArray[]);
+int       CopyElmRepl(s_DISARRAY *FromDArr,DvmType FromIndexArray[],
+                      s_DISARRAY *ToDArr,  DvmType ToIndexArray[]);
+
+
+/**************\
+*  aelmcopy.c  *
+\**************/    /*E0014*/
+
+int    AGetElm(char *BufferPtr, s_DISARRAY *DArr, DvmType IndexArray[],
+               AddrType *CopyFlagPtr);
+int    ACopyElm(s_DISARRAY *FromDArr, DvmType FromIndexArray[],
+                s_DISARRAY *ToDArr, DvmType ToIndexArray[],
+                AddrType *CopyFlagPtr);  
+int    AIOGetElm(char *BufferPtr, s_DISARRAY *DArr, DvmType IndexArray[],
+                 AddrType *CopyFlagPtr);
+int    AIOPutElm(char *BufferPtr, s_DISARRAY *DArr, DvmType IndexArray[],
+                 AddrType *CopyFlagPtr);
+int    AIOPutElmRepl(char *BufferPtr, s_DISARRAY *DArr,
+                     DvmType IndexArray[], AddrType *CopyFlagPtr);
+
+
+/************\
+*  dacopy.c  *
+\************/    /*E0015*/
+
+DvmType GetBlock(char *BufferPtr,s_DISARRAY *DArr,s_BLOCK *ReadBlockPtr);
+DvmType PutBlock(char *BufferPtr,s_DISARRAY *DArr,s_BLOCK *WriteBlockPtr);
+DvmType IOGetBlock(char *BufferPtr,s_DISARRAY *DArr,s_BLOCK *ReadBlockPtr);
+DvmType FillBlock(char *BufferPtr,s_DISARRAY *DArr,s_BLOCK *WriteBlockPtr);
+DvmType IOPutBlock(char *BufferPtr,s_DISARRAY *DArr,
+                s_BLOCK *WriteBlockPtr);
+void  CopyBlock(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr);
+void CopyBlock1(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr);
+DvmType GetBlockRepl(char *Buffer,s_DISARRAY *DArr,s_BLOCK *ReadBlockPtr);
+DvmType PutBlockRepl(char *BufferPtr,s_DISARRAY *DArr,
+                  s_BLOCK *WriteBlockPtr);
+DvmType IOGetBlockRepl(char *BufferPtr,s_DISARRAY *DArr,
+                    s_BLOCK *ReadBlockPtr);
+DvmType IOPutBlockRepl(char *BufferPtr,s_DISARRAY *DArr,
+                    s_BLOCK *WriteBlockPtr);
+void CopyBlockRepl(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                   s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr);
+void CopyBlockRepl1(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                    s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr);
+int   AttemptLocCopy(s_DISARRAY  *FromDArr, s_BLOCK  *ReadBlock,
+                     s_DISARRAY  *ToDArr, s_BLOCK  *WriteBlock);
+int  AttemptLocCopy1(s_DISARRAY  *FromDArr, s_BLOCK  *ReadBlock,
+                     s_DISARRAY  *ToDArr, s_BLOCK  *WriteBlock);
+
+
+/*************\
+*  adacopy.c  *
+\*************/    /*E0016*/
+
+DvmType AGetBlock(char *BufferPtr, s_DISARRAY *DArr,
+               s_BLOCK *ReadBlockPtr, AddrType *CopyFlagPtr);
+DvmType AIOGetBlock(char *BufferPtr, s_DISARRAY *DArr,
+                 s_BLOCK *ReadBlockPtr, AddrType *CopyFlagPtr);
+DvmType AIOPutBlock(char *BufferPtr, s_DISARRAY *DArr,
+                 s_BLOCK *WriteBlockPtr, AddrType *CopyFlagPtr);
+void  ACopyBlock(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                 s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr,
+                 AddrType *CopyFlagPtr);
+void ACopyBlock1(s_DISARRAY  *FromDArr,s_BLOCK  *FromBlockPtr,
+                 s_DISARRAY  *ToDArr,  s_BLOCK  *ToBlockPtr,
+                 AddrType *CopyFlagPtr);
+DvmType AIOPutBlockRepl(char *BufferPtr, s_DISARRAY *DArr,
+                     s_BLOCK *WriteBlockPtr, AddrType *CopyFlagPtr);
+
+
+/**************\
+*  auxilfun.c  *
+\**************/    /*E0017*/
+
+double       DVM_Wtime(void);
+
+void         InsDVMObj(ObjectRef   DVMObj);
+void         DelDVMObj(ObjectRef   DVMObj);
+int          TstDVMObj(ObjectRef  *DVMObjRefPtr);
+SysHandle   *TstDVMArray(void *Buffer); 
+DvmType      GetObjectSize(ObjectRef  ObjRef, int  Axis);
+DvmType      GetObjectLocSize(ObjectRef  ObjRef, int  Axis);
+s_BLOCK     *GetSpaceLB4Proc(DvmType  ProcLI, s_AMVIEW  *AMS,
+                             s_SPACE  *Space, s_ALIGN  *AlignList,
+                             s_BLOCK  *StepBlock, s_BLOCK  *LocalBlock);
+
+
+/**********\
+*  genv.c  *
+\**********/    /*E0018*/
+
+SysHandle       sysh__Build(byte Type, int EnvInd, int CrtEnvInd, DvmType lP, void *pP);
+SysHandle       genv_InsertObject(byte ObjType, void *Obj);
+s_ENVIRONMENT  *genv_GetEnvironment(int EnvInd);
+s_ENVIRONMENT  *env_Init(SysHandle *AMHandlePtr);
+void            env_Done(s_ENVIRONMENT  *Env);
+
+
+/************\
+*  bounds.c  *
+\************/    /*E0019*/
+
+void       CrtShdGrpBuffers(SysHandle  *BGHandlePtr);
+SysHandle *CreateBoundBuffer(DvmType ArrayHeader[],int Count);
+void       bbuf_Send(s_BOUNDBUF *BBuf);
+void       bbuf_Receive(s_BOUNDBUF *BBuf);
+void       bbuf_Sendsa(s_BOUNDBUF  *BBuf);
+void       bbuf_Recvla(s_BOUNDBUF  *BBuf);
+void       bbuf_WSendComplete(s_BOUNDBUF *BBuf);
+void       bbuf_WRecvComplete(s_BOUNDBUF *BBuf);
+void       bbuf_WSendsaComplete(s_BOUNDBUF  *BBuf);
+void       bbuf_WRecvlaComplete(s_BOUNDBUF  *BBuf);
+
+void       InitAcrossRecv(s_PARLOOP  *PL);
+void       WaitAcrossRecv(s_PARLOOP  *PL);
+void       InitAcrossSend(s_PARLOOP  *PL);
+void       WaitAcrossSend(s_PARLOOP  *PL);
+
+void       shd_init(s_SHDWIDTH  *ShdWidth, SysHandle  *BoundBufferPtr);
+void       bgroup_Done(s_BOUNDGROUP *BGPtr);
+void       bbuf_Done(s_BOUNDBUF *BBuf);
+int        GetArMapDim(s_DISARRAY *Ar, int ArDim, int *Dir);
+int        GetDAMapDim(s_DISARRAY *Ar, int ArDim);
+SysHandle *CheckShadowArrayVMS(SysHandle  *BGHandlePtr);
+int        CheckShdEdge(s_BOUNDGROUP  *BG);
+int        CheckBGAMView(s_BOUNDGROUP  *BG, s_AMVIEW  *AMView);
+int        GetBGAxis(s_BOUNDGROUP  *BG, int  *AxisArray, int  *OutDirArray); 
+int        CheckSingleShdEdge(s_BOUNDGROUP  *BG, s_AMVIEW  **BGAMView, int  *OutDir);
+int        shd_Sendnowait(void *buf, int count, int size, int procnum,
+                          int tag, RTL_Request *RTL_ReqPtr,
+                          int MsgPartition);
+int        shd_Recvnowait(void *buf, int count, int size, int procnum,
+                          int tag,RTL_Request *RTL_ReqPtr);
+void       shd_Waitrequest(RTL_Request *RTL_ReqPtr);
+
+
+/************\
+*  objequ.c  *
+\************/    /*E0020*/
+
+int  IsVMSEqu(s_VMS  *VMS1Ptr,s_VMS  *VMS2Ptr);
+int  IsAMViewEqu(s_AMVIEW  *AMV1Ptr, s_AMVIEW  *AMV2Ptr);
+// exteneded by Zakharov D. 18.07.2018
+int  IsArrayEqu(SysHandle *Array1HandlePtr, SysHandle *Array2HandlePtr,
+                byte TLenEqu, byte BaseShdCheck,
+                s_SHDWIDTH *ShdWidth1, s_SHDWIDTH *ShdWidth2);
+
+
+/************\
+*  reduct.c  *
+\************/    /*E0021*/
+
+void     CopyRedVars2Buffer(s_COLLECTION *RedVars,void *Buffer);
+void     CopyBuffer2RedVars(s_COLLECTION *RedVars,void *Buffer);
+void     CalculateRedVars(s_COLLECTION *RedVars, void *Buffer1,
+                          void *Buffer2, int VarInd);
+void     CorrectRedVars(s_COLLECTION *RedVars, void *Buffer);
+void     MPI_CorrectRedVars(s_COLLECTION *RedVars, void *Buffer);
+void     SetRedVars(s_COLLECTION *RedVars);
+void     PrintRedVars(s_COLLECTION  *RedVars, int  VarInd);
+void     RedGroup_Done(s_REDGROUP  *RG);
+void     RedVar_Done(s_REDVAR  *RV);
+int      DoNotMPIRed(s_REDGROUP  *RG);
+int      red_Sendnowait(void  *buf, int  count, int  size, int  procnum,
+                        int  tag, RTL_Request  *RTL_ReqPtr,
+                        int  MsgPartition);
+int      red_Recvnowait(void  *buf, int  count, int  size, int  procnum,
+                        int  tag, RTL_Request  *RTL_ReqPtr);
+void     red_Waitrequest(RTL_Request  *RTL_ReqPtr);
+int      red_Testrequest(RTL_Request  *RTL_ReqPtr);
+
+
+/*********\
+*  ams.c  *
+\*********/    /*E0022*/
+
+void     CrtTaskForAMS(s_AMS  *AMS);
+void     amview_Done(s_AMVIEW *AMV);
+
+
+/***********\
+*  space.c  *
+\***********/    /*E0023*/
+
+DvmType       *spind_Init(byte Rank);
+int           spind_FromBlock(DvmType Index[], s_BLOCK *CurrBlock,
+                              s_BLOCK *InitBlock, byte StepSign);
+void          spind_Done(DvmType **Index);
+
+
+s_SPACE       space_Init(byte Rank, DvmType *SizeList);
+DvmType       space_GetLI(s_SPACE  *Space, DvmType *Index);
+void          space_GetSI(s_SPACE *Space, DvmType LinIndex, DvmType **Index);
+
+
+/* REGULARSET */    /*E0024*/
+
+s_REGULARSET  rset_Build(DvmType Lower,DvmType Upper,DvmType Step);
+
+/* BLOCK */    /*E0025*/
+
+s_BLOCK       block_Init(byte ARank, s_REGULARSET *ASet);
+s_BLOCK       block_InitFromArr(byte  ARank, DvmType  InitArray[],
+                                DvmType LastArray[], DvmType  StepArray[]);
+s_BLOCK       block_ZInit(byte ARank);
+s_BLOCK       block_Copy(s_BLOCK *ABlock);
+s_BLOCK       block_InitFromSpace(s_SPACE *ASpace);
+DvmType          block_GetLI(s_BLOCK *B, DvmType Index[], byte StepSign);
+void          block_GetSI(s_BLOCK *B, DvmType Weight[], DvmType LinIndex,
+                          DvmType Index[], byte StepSign);
+void          block_GetWeight(s_BLOCK *B, DvmType Weight[], byte StepSign);
+s_BLOCK       block_Compress(s_BLOCK  *B);
+byte          GetStepSign(s_BLOCK  *B);
+int           GetOnlyAxis(s_BLOCK  *B);
+void          CopyBlockToMem(char *Mem, s_BLOCK *MemBlock,
+                             s_DISARRAY *DArr, byte StepSign);
+void          CopyBlock2Mem(char *Mem,s_BLOCK *MemBlock,s_ARRBLOCK *B);
+void          CopyMemToBlock(s_DISARRAY *DArr, char *Mem,
+                             s_BLOCK *MemBlock, byte StepSign);
+void          CopyMem2Block(s_ARRBLOCK *B,char *Mem,s_BLOCK *MemBlock);
+void          CopyMemToSubmem(void *SMem, s_BLOCK *SB, void *Mem,
+                              s_BLOCK *MB, int TLen, byte StepSign);
+void          CopyMem2Submem(void *SMem,s_BLOCK *SB,void *Mem,
+                             s_BLOCK *MB,int TLen);
+void          CopySubmemToMem(void *Mem, s_BLOCK *MB, void *SMem,
+                              s_BLOCK *SB, int TLen, byte StepSign);
+void          CopySubmem2Mem(void *Mem,s_BLOCK *MB,void *SMem,
+                             s_BLOCK *SB,int TLen);
+int           block_Intersect(s_BLOCK *ResB, s_BLOCK *B1, s_BLOCK *B2,
+                              s_BLOCK *ComB, byte StepSign);
+int           BlockIntersect(s_BLOCK *ResB, s_BLOCK *B1, s_BLOCK *B2);
+
+
+/*************\
+*  collect.c  *
+\*************/    /*E0026*/
+
+DVMSYSFUN
+s_COLLECTION coll__Init(int Reserv,int CountInc,t_Destructor *RecDestr);
+DVMSYSFUN
+int          coll__AtInsert(s_COLLECTION *Coll, int Index,void *NewRec);
+DVMSYSFUN
+void         coll_AtDelete(s_COLLECTION *Coll, int Index);
+DVMSYSFUN
+int          coll__IndexOf(s_COLLECTION *Coll, void *Record);
+DVMSYSFUN
+void         coll_DeleteAll(s_COLLECTION *Coll);
+DVMSYSFUN
+void         coll_AtFree(s_COLLECTION *Coll, int Index);
+DVMSYSFUN
+void         coll_FreeFrom(s_COLLECTION *Coll, int FromIndex);
+DVMSYSFUN
+void         coll_ObjFreeFrom(s_COLLECTION *Coll, byte ObjType,
+                              int BlockInd);
+DVMSYSFUN
+void         coll__Free(s_COLLECTION *Coll, void *Record);
+DVMSYSFUN
+void         coll_Done(s_COLLECTION *Coll);
+
+
+/*********\
+*  pss.c  *
+\*********/    /*E0027*/
+
+PSRef        CreateVMS(SysHandle *VPDescArray, byte Rank,
+                       DvmType SizeArray[], byte Static);
+s_VMS       *GetCurrentVMS(void);
+DvmType         GetCentralProc(s_VMS *VMS);
+int          IsProcInVMS(DvmType  IntNumberProc, s_VMS  *VMS);
+void         vms_Done(s_VMS *VMS);
+int          GetNextProc(s_VMS  *VMS, int  PSDim);
+int          GetPrevProc(s_VMS  *VMS, int  PSDim);
+
+
+/************\
+*  getpar.c  *
+\************/    /*E0028*/
+
+void      dvm_InpCurrentPar(void);
+void      dvm_InpSysPar(void);
+void      dvm_InpFromDir(char  *Dir);
+void      dvm_InpFromFile(char  *File);
+void      SysParSet(void);
+void      DebugParSet(void);
+void      TraceParSet(void);
+void      EventParSet(void);
+void      DynControlParSet(void);
+void      StatistParSet(void);
+void      dvm_SysInit(void);
+void      GetSysInfoName(int  ProcNumber, char  *OutFileName);
+void      dvm_CorrOut(void);
+void      CheckGrpName(char *FileName);
+
+void      GetCurrentParName(int  argc, char  *argv[]);
+void      GetDeactPar(int  argc, char  *argv[]);
+void      GetActPar(int  argc, char  *argv[]);
+void      GetInitialPS(int  argc, char  *argv[]);
+void      GetFopenCount(int  argc, char  *argv[]);
+void      GetTraceFileName(int  argc, char  *argv[]);
+int       GetDVMPar(int  argc, char  *argv[]);
+
+
+/**************\
+*  inputpar.c  *
+\**************/    /*E0029*/
+
+DVMUSERFUN
+int       InputPar(char  *FileName, s_PARAMETERKEY  s_Key[],
+                   byte  FileOpenErr, byte  ParamErr);
+
+/**************\
+*  allocmem.c  *
+\**************/    /*E0030*/
+
+DVMUSERFUN
+void      *rtl_calloc(uLLng, uLLng, byte noerr);
+DVMUSERFUN
+void      *rtl_malloc(uLLng, byte noerr);
+DVMUSERFUN
+void      *rtl_realloc(void *,uLLng, byte noerr);
+DVMUSERFUN
+void       rtl_free(void **);
+
+void       check_count(DvmType *count1,DvmType *count2);
+int        check_bound(byte *ptr, uLLng n);
+void       check_buf_bound(void);
+void       check_alloc(void *ptr,uLLng size);
+void       check_free(void *ptr);
+void       dvm_CheckPtr(char *,uLLng);
+
+
+/************\
+*  msgpas.c  *
+\************/    /*E0031*/
+
+void     CheckRendezvousInit(void);
+void     trc_PrintBuffer(char  *buffer, DvmType  length, int  EventNumber);
+int      rtl_TstReqColl(int  DoPLSign);
+int      rtl_SendReqColl(double  Coeff);
+void     rtl_FreeChan(int  Chan);
+int      compress_malloc(void  **MsgBuf, int  CompressLen);
+
+#if defined(_DVM_ZLIB_) && defined(_DVM_MPI_)
+  int  dvm_compress(Bytef *dest, uLongf *destLen, const Bytef *source,
+                    uLong sourceLen, int level);
+#endif
+
+
+/*************************************************\
+*  gns_mps.c , mpi_mps.c , emp_mps.c , pvm_mps.c  *
+\*************************************************/    /*E0032*/
+
+int     mps_Send(int  ProcIdent, void  *BufPtr, int  ByteCount);
+int     mps_Recv(int  ProcIdent, void  *BufPtr, int  ByteCount);
+int     mps_Sendnowait(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                       RTL_Request  *RTL_ReqPtr, int  Tag);
+int     mps_Sendnowait1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                        MPS_Request  *ReqPtr, int  Tag);
+int     mps_Recvnowait(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                       RTL_Request  *RTL_ReqPtr, int  Tag);
+int     mps_Recvnowait1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                        MPS_Request  *ReqPtr, int  Tag);
+void    mps_Waitrequest(RTL_Request  *RTL_ReqPtr);
+void    mps_Waitrequest1(MPS_Request  *ReqPtr);
+int     mps_Testrequest(RTL_Request  *RTL_ReqPtr);
+int     mps_Testrequest1(MPS_Request  *ReqPtr);
+int     mps_SendA(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                  int  TAG);
+int     mps_RecvA(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                  int  TAG);
+
+void    mps_exit(int rc);
+void    mps_Bcast(void  *buf, int  count, int  size);
+void    mps_Barrier(void);
+
+
+/***********\
+*  trace.c  *
+\***********/    /*E0033*/
+
+void     dvm_TraceInit(void);
+double   delta_for_dvm_trace(int event_number);
+
+void             dvm_CheckMem(void);
+void             dvm_CodeCheckMem(void);
+unsigned short   dvm_CheckSum(unsigned short *First,
+                              unsigned short *Final);
+
+void     trace_Done(void);
+byte     trace_Dump(int ProcNumber,word  TrcBufCount,int  TrcBufFull);
+byte     DFOpen(char *FileName,int *DumpHandlePtr,FILE **DumpFilePtr);
+void     DFClose(int DumpHandle,FILE *DumpFile);
+byte     DFWrite(char *ArrayPtr,DvmType Count,int DumpHandle,
+                 FILE *DumpFile,char *FileName);
+
+#ifdef _DVM_ZLIB_
+   byte     gzDFOpen(char  *FileName, gzFile  *gzDumpFilePtr);
+   byte     gzDFWrite(char  *ArrayPtr, DvmType  Count, gzFile  gzDumpFile,
+                      char  *FileName);
+#endif
+
+void     EndProgrammCheckSum(void);
+
+int      TstTraceEvent(int EventNumber);
+
+void  systrace_set(int  argc, char  *argv[], int  IntProcNumber);
+void  sysprintf(char  *FileName, int  Line, char  *format, ...);
+void  DVM_Prof_Init1(void);
+void  DVM_Prof_Init2(void);
+
+
+/************\
+*  events.c  *
+\************/    /*E0034*/
+
+void     events(void);
+
+
+/************\
+*  groups.c  *
+\************/    /*E0035*/
+
+void     groups(void);
+
+
+/**************\
+*  intergrp.c  *
+\**************/    /*E0036*/
+
+void     intergrp(void);
+
+
+/**************\
+*  statevnt.c  *
+\**************/    /*E0037*/
+
+void     statevnt(void);
+
+
+/*************\
+*  statist.c  *
+\*************/    /*E0038*/
+
+void  stat_init(void);
+void  stat_event(int  EventNumber);
+void  stat_done(void);
+
+/************\
+*  ioproc.c  *
+\************/    /*E0039*/
+
+#ifdef _DVM_MPI_
+
+void  dvm_ioproc(void);
+void  ioprocess_set(int  argc, char  *argv[]);
+
+int   io_Sendnowait(void *buf, int count, int size, int procnum,
+                    RTL_Request *RTL_ReqPtr);
+int   io_Recvnowait(void *buf, int count, int size, int procnum,
+                    RTL_Request *RTL_ReqPtr);
+void  io_Waitrequest(RTL_Request *RTL_ReqPtr);
+int   io_Testrequest(RTL_Request *RTL_ReqPtr);
+
+int   iom_Sendnowait(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                     RTL_Request  *RTL_ReqPtr, int  tag);
+int   iom_Sendnowait1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                      MPS_Request  *ReqPtr, int  tag);
+int   iom_Sendinit1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                    MPS_Request  *ReqPtr, int  tag);
+int   iom_Recvnowait(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                     RTL_Request  *RTL_ReqPtr, int  tag);
+int   iom_Recvnowait1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                        MPS_Request  *ReqPtr, int  tag);
+int   iom_Recvinit1(int  ProcIdent, void  *BufPtr, int  ByteCount,
+                    MPS_Request  *ReqPtr, int  tag);
+int   iom_Start1(MPS_Request  *ReqPtr);
+int   iom_Recvany1(void  *BufPtr, int  ByteCount, int  tag,
+                   MPI_Status  *StatusPtr);
+int   iom_Recv1(int  ProcIdent, void  *BufPtr, int  ByteCount, int  tag,
+                MPI_Status  *StatusPtr);
+int   iom_Startall1(int  RequestCount, MPS_Request  *ReqArray);
+void  iom_Waitrequest(RTL_Request  *RTL_ReqPtr);
+void  iom_Waitrequest1(MPS_Request  *ReqPtr);
+void  iom_Waitany1(int  RequestCount, MPS_Request  *ReqArray,
+                   int  *IndexPtr, MPI_Status  *StatusPtr);
+void  iom_Waitsome1(int  InRequestCount, MPS_Request  *ReqArray,
+                    int  *OutRequestCountPtr, int  *IndexArray,
+                    MPI_Status  *StatusArray);
+int   iom_Testrequest(RTL_Request  *RTL_ReqPtr);
+int   iom_Testrequest1(MPS_Request  *ReqPtr);
+int   iom_Testany1(int  RequestCount, MPS_Request  *ReqArray,
+                   int  *IndexPtr, int  *rc, MPI_Status  *StatusPtr);
+int   iom_Testsome1(int  InRequestCount, MPS_Request  *ReqArray,
+                    int  *OutRequestCountPtr, int  *IndexArray,
+                    MPI_Status  *StatusArray);
+
+#endif
+
+
+#endif /* _SYSFUN_DEC_ */    /*E0040*/

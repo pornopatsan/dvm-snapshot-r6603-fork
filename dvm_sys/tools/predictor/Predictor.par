@@ -1,0 +1,18 @@
+//     cluster = string
+cluster = mvs;
+
+// search optimal processor set   0=off   1=euristik   2=full_not_bad   3=full_bad   5=compare 1-and-2
+search=0;
+
+// Cluster properties: 
+mvs = {512 x mvsP2};
+mvs.CommType = myrinet (1);
+mvs.TStart = 7;
+mvs.TByte = 0.004;
+
+mvsP2 = {2 x mvsP1};
+mvsP2.CommType = myrinet (1);
+mvsP2.TStart = 1;
+mvsP2.TByte = 0.001;
+
+mvsP1 = 1.00;

@@ -1,0 +1,186 @@
+#ifndef _INPUTPAR_MAC_
+#define _INPUTPAR_MAC_
+/********************/    /*E0000*/
+
+#define INPUTPAR(file_name) InputPar(file_name, _PARAMETERS, 2, 2)
+#define INPUT_PAR(file_name, FileOpenErr, ParamErr)\
+        InputPar(file_name, _PARAMETERS, FileOpenErr, ParamErr)
+
+
+#define MaxParNumber(r)\
+        {  DvmType locr = (r);\
+           if(_PARAMETERS!=NULL)\
+           {  for(i_PARAMETERS=0; i_PARAMETERS < n_PARAMETERS;\
+                  i_PARAMETERS++)\
+                 if(_PARAMETERS[i_PARAMETERS].bsize != 0 &&\
+                    _PARAMETERS[i_PARAMETERS].tsize != 0 &&\
+                    _PARAMETERS[i_PARAMETERS].PtrSign    &&\
+                    _PARAMETERS[i_PARAMETERS].pName != NULL)\
+                 {  mac_free(&_PARAMETERS[i_PARAMETERS].pName);\
+                 }\
+              mac_free(&_PARAMETERS);\
+              _PARAMETERS=NULL;\
+           }\
+           if(locr != 0)\
+           {  mac_calloc(_PARAMETERS,s_PARAMETERKEY *,(r+1),\
+                         sizeof(s_PARAMETERKEY),1);\
+              if(_PARAMETERS==NULL)\
+                  eprintf(__FILE__,__LINE__,\
+                          "*** RTS fatal err 010.000: no memory for "\
+                          "parameter struct\n");\
+              n_PARAMETERS=r;j_PARAMETERS=0;\
+              for(i_PARAMETERS=0; i_PARAMETERS < r+1; i_PARAMETERS++)\
+              {  _PARAMETERS[i_PARAMETERS].pName=NULL;\
+                 _PARAMETERS[i_PARAMETERS].PtrSign=0;\
+                 _PARAMETERS[i_PARAMETERS].pValue=(void *)NULL;\
+                 _PARAMETERS[i_PARAMETERS].pType='\x00';\
+                 _PARAMETERS[i_PARAMETERS].bsize=0;\
+                 _PARAMETERS[i_PARAMETERS].tsize=0;\
+              }\
+           }\
+        }
+
+
+#define ipParameter(name,type,init,size)\
+        {  if(j_PARAMETERS > n_PARAMETERS-1)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                 "*** RTS fatal err 010.001: too many parameters\n");\
+           _PARAMETERS[j_PARAMETERS].pName=#name;\
+           mac_calloc(name,type *,(size),sizeof(type),1);\
+           if(name==NULL)\
+              eprintf(__FILE__,__LINE__,\
+                "*** RTS fatal err 010.002: no memory for "\
+                "parameter %s\n",\
+                _PARAMETERS[j_PARAMETERS].pName);\
+           SYSTEM_RET(i_PARAMETERS,strlen,\
+                      (_PARAMETERS[j_PARAMETERS].pName))\
+           if(i_PARAMETERS < MinParSym)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                 "*** RTS fatal err 010.003: length of "\
+                 "parameter name %s < %d\n",\
+              _PARAMETERS[j_PARAMETERS].pName,MinParSym);\
+           _PARAMETERS[j_PARAMETERS].NameLen=i_PARAMETERS;\
+           _PARAMETERS[j_PARAMETERS].PtrSign=0;\
+           _PARAMETERS[j_PARAMETERS].pValue=(void *)name;\
+           _PARAMETERS[j_PARAMETERS].pType=#type[0];\
+           _PARAMETERS[j_PARAMETERS].bsize=size*sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].tsize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].esize=size;\
+           _PARAMETERS[j_PARAMETERS].isize=size;\
+           k_PARAMETERS = (int)size;\
+           for(i_PARAMETERS=0;\
+               i_PARAMETERS < k_PARAMETERS;\
+               i_PARAMETERS++)\
+           name[i_PARAMETERS]=(type)(init);\
+           j_PARAMETERS++;\
+        }
+
+
+#define iParameter(name,type,init)\
+        {  if(j_PARAMETERS > n_PARAMETERS-1)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                  "*** RTS fatal err 010.001: too many parameters\n");\
+           _PARAMETERS[j_PARAMETERS].pName=#name;\
+           SYSTEM_RET(i_PARAMETERS,strlen,\
+                      (_PARAMETERS[j_PARAMETERS].pName))\
+           if(i_PARAMETERS < MinParSym)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                "*** RTS fatal err 010.003: length of parameter "\
+                "name %s < %d\n",\
+              _PARAMETERS[j_PARAMETERS].pName,MinParSym);\
+           _PARAMETERS[j_PARAMETERS].NameLen=i_PARAMETERS;\
+           _PARAMETERS[j_PARAMETERS].PtrSign=0;\
+           _PARAMETERS[j_PARAMETERS].pValue=(void *)&name;\
+           _PARAMETERS[j_PARAMETERS].pType=#type[0];\
+           _PARAMETERS[j_PARAMETERS].bsize=sizeof(name);\
+           _PARAMETERS[j_PARAMETERS].tsize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].esize=sizeof(name)/sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].isize=sizeof(name)/sizeof(type);\
+           k_PARAMETERS = (int)_PARAMETERS[j_PARAMETERS].esize;\
+           for(i_PARAMETERS=0;\
+               i_PARAMETERS < k_PARAMETERS;\
+               i_PARAMETERS++)\
+               ((type *)&name)[i_PARAMETERS]=(type)(init);\
+           j_PARAMETERS++;\
+        }
+
+
+#define pParameter(name,type,size)\
+        {  if(j_PARAMETERS > n_PARAMETERS-1)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                 "*** RTS fatal err 010.001: too many parameters\n");\
+           _PARAMETERS[j_PARAMETERS].pName=#name;\
+           mac_calloc(name,type *,(size),sizeof(type),1);\
+           if(name==NULL)\
+              eprintf(__FILE__,__LINE__,\
+                 "*** RTS fatal err 010.002: no memory for "\
+                 "parameter %s\n",\
+                 _PARAMETERS[j_PARAMETERS].pName);\
+           SYSTEM_RET(i_PARAMETERS,strlen,\
+                      (_PARAMETERS[j_PARAMETERS].pName))\
+           if(i_PARAMETERS < MinParSym)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                "*** RTS fatal err 010.003: length of "\
+                "parameter name %s < %d\n",\
+                _PARAMETERS[j_PARAMETERS].pName,MinParSym);\
+           _PARAMETERS[j_PARAMETERS].NameLen=i_PARAMETERS;\
+           _PARAMETERS[j_PARAMETERS].PtrSign=0;\
+           _PARAMETERS[j_PARAMETERS].pValue=(void *)name;\
+           _PARAMETERS[j_PARAMETERS].pType=#type[0];\
+           _PARAMETERS[j_PARAMETERS].bsize=size*sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].tsize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].esize=size;\
+           _PARAMETERS[j_PARAMETERS].isize=size;\
+           j_PARAMETERS++;\
+        }
+
+
+#define Parameter(name,type)\
+        {  if(j_PARAMETERS > n_PARAMETERS-1)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                  "*** RTS fatal err 010.001: too many parameters\n");\
+           _PARAMETERS[j_PARAMETERS].pName=#name;\
+           SYSTEM_RET(i_PARAMETERS,strlen,\
+                      (_PARAMETERS[j_PARAMETERS].pName))\
+           if(i_PARAMETERS < MinParSym)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                "*** RTS fatal err 010.003: length of "\
+                "parameter name %s < %d\n",\
+                _PARAMETERS[j_PARAMETERS].pName,MinParSym);\
+           _PARAMETERS[j_PARAMETERS].NameLen=i_PARAMETERS;\
+           _PARAMETERS[j_PARAMETERS].PtrSign=0;\
+           _PARAMETERS[j_PARAMETERS].pValue=(void *)&name;\
+           _PARAMETERS[j_PARAMETERS].pType=#type[0];\
+           _PARAMETERS[j_PARAMETERS].bsize=sizeof(name);\
+           _PARAMETERS[j_PARAMETERS].tsize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].esize=sizeof(name)/sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].isize=sizeof(name)/sizeof(type);\
+           j_PARAMETERS++;\
+        }
+
+
+#define aParameter(name,type)\
+        {  if(j_PARAMETERS > n_PARAMETERS-1)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                 "*** RTS fatal err 010.001: too many parameters\n");\
+           _PARAMETERS[j_PARAMETERS].pName=#name;\
+           SYSTEM_RET(i_PARAMETERS,strlen,\
+                      (_PARAMETERS[j_PARAMETERS].pName))\
+           if(i_PARAMETERS < MinParSym)\
+              epprintf(MultiProcErrReg1,__FILE__,__LINE__,\
+                "*** RTS fatal err 010.003: length of "\
+                "parameter name %s < %d\n",\
+                _PARAMETERS[j_PARAMETERS].pName,MinParSym);\
+           _PARAMETERS[j_PARAMETERS].NameLen=i_PARAMETERS;\
+           _PARAMETERS[j_PARAMETERS].PtrSign=0;\
+           _PARAMETERS[j_PARAMETERS].pValue=(void *)&name;\
+           _PARAMETERS[j_PARAMETERS].pType=#type[0];\
+           _PARAMETERS[j_PARAMETERS].bsize=sizeof(name);\
+           _PARAMETERS[j_PARAMETERS].tsize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].esize=sizeof(type);\
+           _PARAMETERS[j_PARAMETERS].isize=sizeof(name)/sizeof(type);\
+           j_PARAMETERS++;\
+        }
+
+
+#endif /* _INPUTPAR_MAC_ */    /*E0001*/

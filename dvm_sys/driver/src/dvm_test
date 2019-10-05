@@ -1,0 +1,81 @@
+#!/bin/sh
+
+# Uses variables: dvmsave
+
+. dvm_utils.sh
+
+error() {
+    if [ -n "$1" ]; then
+        printf '%s\n' "$1"
+    fi
+    echo "... !!!ERROR!!! of test : $prname ..."
+    exit 1
+}
+
+rm -f was.err dvm.err
+
+[ "$SRC_LANG" = "c" -o "$SRC_LANG" = "f" ] || error "Invalid language specified"
+
+matr=
+while [ $# -gt 1 ]; do
+    arg="$1"
+    if is_number "$arg"; then
+        matr="$matr $arg"
+        shift
+    else
+        break
+    fi
+done
+prname="$1"
+exename="$( remove_exts "$prname" $SRC_EXTS )"
+shift
+
+echo "... Begin of $SRC_LANG-dvm test : $prname ..."
+
+echo "... $prname creating sequential DVM-program ..."
+dvm_drv ${SRC_LANG}sdeb "$prname" || error
+
+echo "... $prname creating parallel DVM-program ..."
+dvm_drv ${SRC_LANG}pdeb "$prname" || error
+
+echo "... $prname dynamic control running ..."
+rm -f "$exename.edb"
+dvm_drv err "$exename" "$@"
+if [ -e error.dbg ]; then 
+    mv error.dbg "$exename.edb"
+    echo "!!! error dvm_err !!!" >>was.err
+fi
+if [ -e dvm.err ]; then error; fi
+
+echo "... $prname comparing sequential result with parallel result on single process running ..."
+rm -f 0.trd
+dvm_drv trc "$exename" "$@"
+if [ ! -e 0.trd ]; then
+    echo "!!! error dvm_trc !!!" >dvm.err
+fi
+if [ -e dvm.err ]; then error; fi
+rm -f dvm.err
+rm -f "$exename.et1"
+dvm_drv red "$exename" "$@"
+if [ -e error.trd ]; then
+    mv error.trd "$exename.et1"
+    echo "!!! error dvm_red !!!" >>was.err
+fi
+if [ -e dvm.err ]; then error; fi
+
+if [ "$matr" = "" ]; then matr="2 1"; fi
+echo "... $prname comparing sequential result with parallel result on [$matr] processes running ..."
+rm -f "$exename.et2"
+dvm_drv dif $matr "$exename" "$@"
+if [ -e error.trd ]; then
+    mv error.trd "$exename.et2"
+    echo "!!! error dvm_dif !!!" >>was.err
+fi
+if [ -e dvm.err ]; then error; fi
+if [ -e was.err ]; then error; fi
+
+if [ "$dvmsave" != "1" ]; then
+    rm -f "$exename" "${exename}_s" "${exename}_p"
+fi
+echo "... End of $SRC_LANG-dvm test : $prname ..."
+exit 0

@@ -1,0 +1,293 @@
+#ifndef _GLOBAL1_EXT_
+#define _GLOBAL1_EXT_
+/*******************/    /*E0000*/
+
+
+extern DVMUSERVAR byte FortranFlag; /* support system was initialized
+                                       from Fortran */    /*E0001*/
+extern DVMUSERVAR
+       int dvm_OneProcSign;        /* */    /*E0002*/
+extern int dvm_OneProcNum;         /* */    /*E0003*/
+extern int dvm_OneProcCount;       /* */    /*E0004*/
+extern double TracerClockRes;      /* */    /*E0005*/
+extern MPI_Comm MPI_COMM_WORLD_1;  /* */    /*E0006*/
+
+extern int DVM_VERS;          /* runtime system version number */    /*E0007*/
+
+extern int SYSTEM_VERS_MIN;   /* min. possible version number of syspar file */    /*E0008*/
+extern int DEBUG_VERS_MIN;    /* min. possible version number of sysdebug file */    /*E0009*/
+extern int SYSTRACE_VERS_MIN; /* min. possible version number of systrace file */    /*E0010*/
+extern int TRCEVENT_VERS_MIN; /* min. possible version number of trcevent file */    /*E0011*/
+extern int CMPTRACE_VERS_MIN; /* min. possible version number of usrdebug file */    /*E0012*/
+extern int STATIST_VERS_MIN;  /* min. possible version number of statist file */    /*E0013*/
+
+extern int SYSTEM_VERS;   /* inputted version number of syspar file */    /*E0014*/
+extern int DEBUG_VERS;    /* inputted version number of sysdebug file */    /*E0015*/
+extern int SYSTRACE_VERS; /* inputted version number of systrace file */    /*E0016*/
+extern int TRCEVENT_VERS; /* inputted version number of trcevent file */    /*E0017*/
+extern int CMPTRACE_VERS; /* inputted version number of usrdebug file */    /*E0018*/
+extern int STATIST_VERS;  /* inputted version number of statist file */    /*E0019*/
+
+/* Checksums of parameter files */    /*E0020*/
+
+extern uLLng SystemCheckSum;
+extern uLLng SysTraceCheckSum;
+extern uLLng DebugCheckSum;
+extern uLLng TrcEventCheckSum;
+extern uLLng TrcDynControlCheckSum;
+extern uLLng StatistCheckSum;
+
+extern uLLng InputParCheckSum; /* checksum, calculated by
+                                 InputPar program */    /*E0021*/
+
+extern byte InitSysTrace;     /* flag: initial system trace is on */    /*E0022*/
+
+extern int  DeactBaseDir;     /* flag of swiching off (input is blocked)
+                                 base parameter set */    /*E0023*/
+extern int  DeactUserPar;     /* flag of swiching off (input is blocked)
+                                 directories and files with parameters
+                                 for correction */    /*E0024*/
+extern int  DeactCurrentPar;  /* file current.par is off */    /*E0025*/
+
+extern char CurrentParName[256]; /* name of file with
+                                    initial start parameters */    /*E0026*/
+extern char DVM_String[256]; /* */    /*E0027*/
+
+/* Array of initial parameters, specified in command line, in text mode */    /*E0028*/
+
+extern char CurrentPar[CurrentParNumber+1][MaxParFileName+1];
+
+extern byte StdStart;       /* standard run */    /*E0029*/
+extern byte FileOpenErrReg; /* byte of reaction on failed opening
+                               file with parameters */    /*E0030*/
+extern byte ParamErrReg;    /* byte of reaction on errors
+                               in file with parameters */    /*E0031*/
+extern char *FirstParDir;   /* pointer to the first
+                               directory with parameters  */    /*E0032*/
+extern char FirstCheckSumFile[MaxParFileName+1]; /* name of the first file
+                                                    checksum.par */    /*E0033*/
+extern char *ParFileExt;    /* pointer to extension of files
+                               with parameters */    /*E0034*/
+
+extern DVMUSERVAR double ProcWeightArray[MaxProcNumber+1];/* list of processor performance
+                                                             weights: internal number -> weight */    /*E0035*/
+extern double ProcPowerArray[MaxProcNumber+1]; /* list of processor performance:
+                                                internal number -> performance */    /*E0036*/
+extern double MeanProcPower; /* average processor performance */    /*E0037*/
+
+extern double CoordWeightList[MaxProcNumber+1+MAXARRAYDIM];/* list of processor coordinate
+                                                            weights */    /*E0038*/
+
+extern byte ExitFlag; /* flag of entering dvm_exit */    /*E0039*/
+
+extern DvmType    dvm_InitParam;
+extern int     dvm_argc;
+extern char  **dvm_argv;
+
+extern DvmType  MPS_TYPE;      /* MPS type */    /*E0040*/
+
+extern byte IsInit;         /* flag that MPS was initialized */    /*E0041*/
+
+extern DVMUSERVAR
+int dvm_init_thread;        /* */    /*E0042*/
+extern DVMUSERVAR
+int dvm_required;           /* */    /*E0043*/
+extern DVMUSERVAR
+int dvm_provided;           /* */    /*E0044*/
+
+extern byte IsSlaveRun;        /* flag that subordinate subtasks were launched */    /*E0045*/
+extern byte IsTraceInit;       /* flag that tracing was initialized */    /*E0046*/
+extern byte IsDVMInit;         /* flag that DVM LIB was initialized */    /*E0047*/
+extern DVMUSERVAR
+int  MPS_CurrentProcIdent;     /* */    /*E0048*/
+extern DvmType CurrentProcIdent;  /* current processor identifier */    /*E0049*/
+extern int  MasterProcIdent;   /* main processor identifier */    /*E0050*/
+extern int  CurrentProcNumber; /* external number of current processor */    /*E0051*/
+extern int  MPS_CurrentProc;   /* internal number of current processor */    /*E0052*/
+extern int  MPS_MasterProc;    /* internal number of main processor */    /*E0053*/
+extern int  MPS_IOProc;        /* internal number of input/output processor */    /*E0054*/
+extern int  MPS_CentralProc;   /* internal number of central processor */    /*E0055*/
+extern int  DVM_MasterProc;    /* internal number of main processor
+                                  in the current processor system */    /*E0056*/
+extern int  DVM_IOProc;        /* internal number of  input/output processor
+                                  in the current processor system */    /*E0057*/
+extern int  DVM_CentralProc;   /* internal number of central processor
+                                  in current processor system  */    /*E0058*/
+extern s_VMS *MPS_VMS;         /* initial processor system */    /*E0059*/
+extern DVMUSERVAR
+s_VMS *DVM_VMS;                /* current processor system */    /*E0060*/
+extern byte VMSRank;           /* rank of initial processor system */    /*E0061*/
+extern DvmType VMSSize[MaxVMRank+1]; /* array of sizes of initial
+                                     processor system */    /*E0062*/
+extern DvmType ProcCount;         /* a number of processors in solving field */    /*E0063*/
+extern DvmType DVM_ProcCount;     /* number of processors in the
+                                  current processor system */    /*E0064*/
+extern DvmType OldEnvProcCount;   /* the number of processors which executed
+                                  current thread  */    /*E0065*/
+extern DvmType CurrEnvProcCount;  /* the number of processors which are executing
+                                  current thread  */    /*E0066*/
+extern double d1_CurrEnvProcCount;
+extern double CurrEnvProcCount_m1;
+extern DvmType NewEnvProcCount;   /* the number of processors which will execute
+                                  current thread  */    /*E0067*/
+extern int  ProcIdentList[MaxProcNumber+1]; /* array of processor identifiers */    /*E0068*/
+
+extern ObjectRef DVMObjRef[]; /* array of pointers to created DVM-objects */    /*E0069*/
+extern int       DVMObjCount; /* current number of created DVM-objects */    /*E0070*/
+
+extern DVMUSERVAR DvmType *DAHeaderAddr[]; /* array of header addresses of created
+                                           distributed arrays */    /*E0071*/
+extern DVMUSERVAR int   DACount;        /* current number of created arrays */    /*E0072*/
+
+extern FILE *SysInfo;         /* file for information messages */    /*E0073*/
+extern DVMFILE DVMSysInfo;    /*  DVM-file for information messages */    /*E0074*/
+extern char InfoFileName[140];/* file name for information messages */    /*E0075*/
+extern byte StdOutFile;       /* direct user output (stdout)
+                                 in file */    /*E0076*/
+extern byte StdErrFile;       /* direct stderr stream
+                                 in file */    /*E0077*/
+extern byte IsStdOutFile;     /* user output (stdout) -> into a file
+                                 defining in current.par */    /*E0078*/
+extern byte IsStdErrFile;     /* stderr -> into a file
+                                 defining in current.par */    /*E0079*/
+extern byte NoBlStdErr;       /* enable output of error messages
+                                 into the stderr stream */    /*E0080*/
+
+extern byte _SysInfoPrint;    /* result flag: support system information
+                                 message output */    /*E0081*/
+
+extern byte SaveSysInfoPrint; /* saved after input of SysInfoPrint  */    /*E0082*/
+extern byte InpSysInfoPrint;  /* flag: SysInfoPrint parameter
+                                 has been input */    /*E0083*/
+
+extern byte _SysInfoStdOut;   /* result flag on output of
+                                 information messages into stdout*/    /*E0084*/
+extern byte _SysInfoStdErr;   /* result flag on output of
+                                 information messages into stderr */    /*E0085*/
+extern byte _SysInfoFile;     /* result flag on output of
+                                 information messages in file */    /*E0086*/
+extern char CurrStdOutFileName[128]; /* file name for stdout */    /*E0087*/
+extern char CurrStdErrFileName[128]; /* file name for stderr */    /*E0088*/
+
+extern DVMUSERVAR
+byte MultiProcErrReg1;        /* output mode of error messages
+                                 on multiprocessor system */    /*E0089*/
+extern DVMUSERVAR
+byte MultiProcErrReg2;
+
+extern DvmType FilesCount;        /* a number of successful file openings */    /*E0090*/
+
+#ifdef _DVM_ZLIB_
+   extern DvmType ScanFilesCount; /* */    /*E0091*/
+#endif
+
+extern va_list arg_list_scan1; /* */    /*E0092*/
+
+extern DVMUSERVAR
+DVMFILE *DVMSTDIN;      /* standard input stream */    /*E0093*/
+extern DVMUSERVAR
+DVMFILE *DVMSTDOUT;     /* standard output stream */    /*E0094*/
+extern DVMUSERVAR
+DVMFILE *DVMSTDERR;     /* standard error stream */    /*E0095*/
+extern DVMUSERVAR
+DVMFILE *DVMSTDAUX;     /* standard serial port */    /*E0096*/
+extern DVMUSERVAR
+DVMFILE *DVMSTDPRN;     /* standard printer */    /*E0097*/
+
+#ifdef _UNIX_
+  extern int TRACE_FILE_HANDLE; /* */    /*E0098*/
+#endif
+
+extern RTL_Request **SendRendezvousArray; /* array of flag addresses for CheckRendezvous=1 mode for sending */    /*E0099*/
+extern RTL_Request **RecvRendezvousArray; /* array of flag addresses for CheckRendezvous=1 mode for receiving */    /*E0100*/
+
+extern int            DelObjFlag;    /* flag that function delob_ is executed */    /*E0101*/
+
+extern SysHandle      InitAMSHandle;   /* initial abstract
+                                        machine */    /*E0102*/
+extern SysHandle     *OldAMHandlePtr;  /* previous abstract
+                                          machine */    /*E0103*/
+extern SysHandle     *CurrAMHandlePtr; /* current abstract
+                                          machine */    /*E0104*/
+extern SysHandle     *NewAMHandlePtr;  /* next abstract
+                                          machine */    /*E0105*/
+extern s_AMS          InitAMS;
+extern SysHandle     *gInitialVMS;
+extern SysHandle     *gVirtProcs;
+extern double        *CoordWeight1; /* array of unit processor coordinate
+                                       weights for setpsw_ */    /*E0106*/
+
+extern DVMUSERVAR s_COLLECTION  *gEnvColl;
+extern s_COLLECTION  *gRedGroupColl;
+
+extern int    NoWaitCount;         /* */    /*E0107*/
+extern s_COLLECTION   SendReqColl; /* */    /*E0108*/
+extern int    InitMaxMsgSendNumber;/* */    /*E0109*/
+extern int   *ChanMsgSendNumber;   /* */    /*E0110*/
+extern RTL_Request **ChanRTL_ReqPtr; /* */    /*E0111*/
+extern int   *PlanChanList;        /* */    /*E0112*/
+extern int   *MsgChanList;         /* */    /*E0113*/
+extern int    FreeChanNumber;      /* */    /*E0114*/
+extern int    NewMsgNumber;        /* */    /*E0115*/
+extern int    DeactChan;           /* */    /*E0116*/
+
+extern int            MessageCount[33]; /* MessageCount[16] is count of
+                                           coming events */    /*E0117*/
+extern DVMUSERVAR
+int                   SizeDelta[4];     /* array of supplements to the message lengths */    /*E0118*/
+
+extern RTL_Request  **RequestBuffer; /* buffer to save exchange flag pointers
+                                        if dopl_MPI_Test=1 */    /*E0119*/
+extern MPS_Request  **MPS_RequestBuffer; /* */    /*E0120*/
+extern int            RequestCount;  /* number of busy elements in
+                                        RequestBuffer buffer */    /*E0121*/
+extern int            MPS_RequestCount; /* */    /*E0122*/
+extern double Tm;     /* average time of passing one byte
+                         to the neighbouring processor */    /*E0123*/
+extern double Tirecv; /* time of message receiving initialization */    /*E0124*/
+extern double Twrecv; /* time of waiting of the message which has already been received */    /*E0125*/
+
+extern int    TcCount;          /* counter of busy elements in
+                                   TcFile, TcLine and TcTime arrays */    /*E0126*/
+extern char  *TcFile[TcNumber]; /* array of pointers to names of files containing
+                                   loops with measured time of
+                                   one iteration execution  */    /*E0127*/
+extern uLLng   TcLine[TcNumber]; /* array of numbers of lines containing
+                                   loops with measured time of
+                                   one iteration execution */    /*E0128*/
+extern double TcTime[TcNumber]; /* array of measured times of execution of
+                                   one parallel loop iteration  */    /*E0129*/
+
+extern int   ShgCount;           /* */    /*E0130*/
+extern char *ShgFile[ShgNumber]; /* */    /*E0131*/
+extern uLLng  ShgLine[ShgNumber]; /* */    /*E0132*/
+extern uLLng  ShgRef[ShgNumber];  /* */    /*E0133*/
+
+extern int   RgCount;            /* */    /*E0134*/
+extern char *RgFile[RgNumber];   /* */    /*E0135*/
+extern uLLng  RgLine[RgNumber];   /* */    /*E0136*/
+extern uLLng  RgRef[RgNumber];    /* */    /*E0137*/
+
+extern int    RvCount;           /* */    /*E0138*/
+extern char  *RvFile[RvNumber];  /* */    /*E0139*/
+extern uLLng   RvLine[RvNumber];  /* */    /*E0140*/
+extern uLLng   RvRef[RvNumber];   /* */    /*E0141*/
+
+extern int AlignAddition; /* */    /*E0142*/
+extern int AlignCount;    /* */    /*E0143*/
+
+extern DvmType AlltoallMem;     /* */    /*E0144*/
+
+/* */    /*E0145*/
+
+extern DVMUSERVAR
+DvmType     GlobalLong;
+extern DVMUSERVAR
+double   GlobalDouble;
+extern DVMUSERVAR
+void    *GlobalBasePtr;
+
+/* ------------------------------------------------------------------- */    /*E0146*/
+
+
+#endif  /* _GLOBAL1_EXT_ */    /*E0147*/

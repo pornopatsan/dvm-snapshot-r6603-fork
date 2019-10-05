@@ -1,0 +1,27 @@
+#For Angara PLATFORM
+# for DVM tools
+ CC='gcc -g -O2'
+ CXX='g++ -g -O2'
+ LINKER='g++ -g'
+ LLVMCONFIG='/home/dvmuser/CLANG/bin/llvm-config'
+# for parallel programs
+ PCC='mpicc -g -O2 -fopenmp'
+ PCXX='mpicxx -g -O2 -fopenmp'
+ PFORT='mpif77 -g -O2 -fopenmp'
+ PLINKER='mpicxx -g -fopenmp'
+ PFLINKER='mpif77 -g -fopenmp'
+ ADD_LIBS=''
+# CUDA_PATH='/usr/local/cuda'
+ MPIRUN_CMD='--wrap'
+# launch settings
+ dvmcopy=1
+ dvmrun="slurm.run"
+ maxtime=30
+ queuemode=all
+# DVMH options for default preset
+ DVMH_PPN=6
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=0

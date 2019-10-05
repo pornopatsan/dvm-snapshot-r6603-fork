@@ -1,0 +1,47 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+. /etc/profile.d/modules.sh
+mcuda=$( module list 2>&1 | grep cuda/6 | wc -l )
+mintel=$( module list 2>&1 | grep intel/15 | wc -l )
+mimpi=$( module list 2>&1 | grep impi/5 | wc -l )
+mslurm=$( module list 2>&1 | grep slurm/2 | wc -l )
+if [ $mcuda -eq 0 ]; then
+    module load cuda/6.5.14 >& /dev/null
+fi
+if [ $mintel -eq 0 ]; then
+    module load intel/15.0.090 >& /dev/null 
+fi
+if [ $mimpi -eq 0 ]; then
+    module load impi/5.0.1 >& /dev/null
+fi
+if [ $mslurm -eq 0 ]; then
+    module load slurm/2.5.6 >& /dev/null
+fi
+
+npp="$1"
+shift
+taskname="$1"
+
+list_nodes=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | wc -w )
+if [ $list_nodes -gt 1 ]; then
+    echo "Error: DVMH_PPN list is too long. Maximum length is 1 (ProcPerNode)."
+    exit 1
+fi
+
+host_procs=$npp
+if [ $list_nodes -gt 0 ]; then
+    host_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $1;}' )
+fi
+
+mkdir "$taskname.1"
+touch "$taskname.1/output"
+touch "$taskname.1/error"
+echo "Task $taskname.1"
+
+if [ "$MPIRUN_CMD" != "--wrap" ]; then
+    do_cmd sbatch -n $npp --ntasks-per-node=$host_procs -p "$queuemode" -t $maxtime -o "$taskname.1/output" -e "$taskname.1/error" "$MPIRUN_CMD" "$@"
+else
+    do_cmd sbatch -n $npp --ntasks-per-node=$host_procs -p "$queuemode" -t $maxtime -o "$taskname.1/output" -e "$taskname.1/error" "$MPIRUN_CMD" "srun $*"
+fi

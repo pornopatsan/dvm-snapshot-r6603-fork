@@ -1,0 +1,107 @@
+ /***********************************************************
+  *
+  * History:
+  *
+  * $Log: dyncntrl.mac,v $
+  * Revision 1.1  2006/03/26 18:54:30  atsign
+  * Strict Compare changes, dbgtron/dbgtroff addition
+  *
+  * Revision 1.3  2004/10/02 08:18:53  Maxim V. Kudryavtsev
+  * log message added to the top of file
+  *
+  *
+  ************************************************************/
+
+#ifndef _DYNCNTRL_MAC_
+#define _DYNCNTRL_MAC_
+/********************/
+
+#ifndef MAXLONG
+    #ifdef LONG_MAX
+        #define MAXLONG    DVMTYPE_MAX
+    #else
+        #define MAXLONG    0x7fffffffl
+    #endif
+#endif
+
+#define INT_CMP(type,Var,pVoid) ((Var) == *((type *)(pVoid)))
+
+#define REAL_ABS_VAL(type,Var,pVoid) (dvm_abs((Var) - *((type *)(pVoid))))
+#define REAL_REL_VAL(type,Var,pVoid) (dvm_abs(((Var) - *((type *)(pVoid))) / dvm_max(TraceOptions.RelCompareMin, dvm_max (dvm_abs(Var), dvm_abs(*((type *)(pVoid)))))))
+
+#define PT_INT(p)    *((int *)(p))
+#define PT_LONG(p)   *((long *)(p))
+#define PT_LLONG(p)  *((long long*)(p))
+#define PT_SHORT(p)  *((short *)(p))
+#define PT_CHAR(p)   *((char *)(p))
+#define PT_FLOAT(p)  *((float *)(p))
+#define PT_DOUBLE(p) *((double *)(p))
+
+#define table_Init(tb,TableSize,ElemSize,Destruct) \
+    table__Init(tb,TableSize,ElemSize,(PFN_TABLE_ELEMDESTRUCTOR)Destruct )
+
+#define table_At( type, table, no ) \
+    ((type *)table__At( table, no ))
+
+#define table_GetBack( type, table ) \
+    (type *)table__GetBack( table )
+
+#define table_Put( tb, str ) \
+    table__Put( tb, (void *)str )
+
+#define table_Iterator(tb,Proc,Param1,Param2) \
+    table__Iterator(tb,(PFN_TABLEITERATION)Proc,(void *)Param1,(void *)Param2)
+
+#define table_GetNew(type,tb) \
+    (type *)table__GetNew(tb)
+
+
+#define hash1_Init(pHashTable, nIndexSize, nTableSize, pfnHash) \
+    hash_Init(pHashTable, 1, nIndexSize, nTableSize, pfnHash)
+
+#define hash1_Find(pHashTable, lKey) \
+    hash_Find(pHashTable, (DvmType*)&lKey)
+
+#define hash1_Insert(pHashTable, lKey, lValue) \
+    hash_Insert(pHashTable, (DvmType*)&lKey, (DvmType)lValue)
+
+#define hash1_Change(pHashTable, lKey, lValue) \
+    hash_Change(pHashTable, (DvmType*)&lKey, (DvmType)lValue)
+
+#define hash1_Remove(pHashTable, lKey) \
+    hash_Remove(pHashTable, (DvmType*)&lKey)
+
+/*
+#define hash1_Find(pHashTable, lKey) \
+    (g_lHashStack[0] = (DvmType)lKey, hash_Find(pHashTable, g_lHashStack))
+
+#define hash1_Insert(pHashTable, lKey, lValue) \
+    (g_lHashStack[0] = (DvmType)lKey, hash_Insert(pHashTable, g_lHashStack, (DvmType)lValue))
+
+#define hash1_Change(pHashTable, lKey, lValue) \
+    (g_lHashStack[0] = (DvmType)lKey, hash_Change(pHashTable, g_lHashStack, (DvmType)lValue))
+
+#define hash1_Remove(pHashTable, lKey) \
+    (g_lHashStack[0] = (DvmType)lKey, hash_Remove(pHashTable, g_lHashStack))
+*/
+
+#define hash2_Init(pHashTable, nIndexSize, nTableSize, pfnHash) \
+    hash_Init(pHashTable, 2, nIndexSize, nTableSize, pfnHash)
+
+#define hash2_Find(pHashTable, lKey1, lKey2) \
+    (g_lHashStack[0] = (DvmType)lKey1, g_lHashStack[1] = (DvmType)lKey2, hash_Find(pHashTable, g_lHashStack))
+
+#define hash2_Insert(pHashTable, lKey1, lKey2, lValue) \
+    (g_lHashStack[0] = (DvmType)lKey1, g_lHashStack[1] = (DvmType)lKey2, hash_Insert(pHashTable, g_lHashStack, (DvmType)lValue))
+
+#define hash2_Change(pHashTable, lKey1, lKey2, lValue) \
+    (g_lHashStack[0] = (DvmType)lKey1, g_lHashStack[1] = (DvmType)lKey2, hash_Change(pHashTable, g_lHashStack, (DvmType)lValue))
+
+#define hash2_Remove(pHashTable, lKey1, lKey2, lValue) \
+    (g_lHashStack[0] = (DvmType)lKey1, g_lHashStack[1] = (DvmType)lKey2, hash_Remove(pHashTable, g_lHashStack))
+
+
+#define DYN_ARR_OFFSET(type,Addr,Beg,Size) (type)(((char*)(Addr)-(char*)(Beg))/(Size))
+
+
+#endif  /* _DYNCNTRL_MAC_ */

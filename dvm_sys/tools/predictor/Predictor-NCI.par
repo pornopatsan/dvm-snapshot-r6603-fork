@@ -1,0 +1,13 @@
+//     cluster = string
+cluster = NCI;
+
+// search optimal processor set   0=off   1=euristik   2=full_not_bad   3=full_bad   5=compare 1-and-2
+search=0;
+
+// Cluster properties: 
+NCI = {512 x NCIP1};
+NCI.CommType = myrinet (1);
+NCI.TStart = 9;
+NCI.TByte = 0.0125;
+
+NCIP1 = 1.00;

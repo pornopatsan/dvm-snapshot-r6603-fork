@@ -1,0 +1,59 @@
+#ifndef _DYNLIMIT_MAC_
+#define _DYNLIMIT_MAC_
+/******************/
+
+#ifndef _DYNDEBUG_NOMEMCHECK_
+#define  dynmem_malloc(ptr, type, n)\
+    ptr = (type)dynmem__malloc((n))
+
+#define dynmem_calloc(ptr, type, n, size)\
+    ptr = (type)dynmem__calloc((n), (size))
+
+#define  dynmem_free(ptr, size)\
+    dynmem__free((void **)(ptr), size)
+
+#define dynmem_AllocStruct(Type, Struct)\
+    dynmem_malloc(Struct, Type*, sizeof(Type))
+
+#define dynmem_CallocStruct(Type, Struct)\
+    dynmem_calloc(Struct, Type*, 1, sizeof(Type));
+
+#define dynmem_AllocArray(Type, Size, Array)\
+    dynmem_malloc(Array, Type*, (Size) * sizeof(Type))
+
+#define dynmem_CallocArray(Type, Size, Array)\
+    dynmem_calloc(Array, Type*, (Size), sizeof(Type));
+
+#define dynmem_printstatistics() dynmem__printstatistics()
+
+#else /*_DYNDEBUG_NOMEMCHECK_*/
+
+#define dynmem_calloc(ptr, type, n, size)\
+    mac_calloc(ptr, type, n, size, 0)
+
+#define  dynmem_malloc(ptr, type, n)\
+    mac_malloc(ptr, type, n, 0)
+
+#define  dynmem_free(ptr, size)\
+    mac_free(ptr)
+
+#define dynmem_AllocStruct      dvm_AllocStruct
+#define dynmem_CallocStruct     dvm_CallocStruct
+#define dynmem_AllocArray       dvm_AllocArray
+#define dynmem_CallocArray      dvm_CallocArray
+
+#define dynmem_printstatistics()
+
+#endif /*_DYNDEBUG_NOMEMCHECK_*/
+
+#ifndef _DYNDEBUG_NOTIMECHECK_
+
+#define dyntime_Check() dyntime__check()
+
+#else /*_DYNDEBUG_NOTIMECHECK_*/
+
+#define dyntime_Check()
+
+#endif /*_DYNDEBUG_NOTIMECHECK_*/
+
+#endif  /* _DYNLIMIT_MAC_ */

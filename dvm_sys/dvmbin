@@ -1,0 +1,16 @@
+cd ..
+mkdir dvm_bin
+cd dvm_bin
+mkdir bin
+mkdir lib
+mkdir par
+mkdir include
+mkdir examples
+cp ../dvm_sys/bin/* bin
+cp ../dvm_sys/lib/* lib
+cp ../dvm_sys/par/* par
+cp ../dvm_sys/include/* include
+cp ../dvm_sys/examples/* examples
+cp ../dvm_sys/dvminstall .
+cp ../dvm_sys/dvmvers.h .
+cd ../dvm_sys

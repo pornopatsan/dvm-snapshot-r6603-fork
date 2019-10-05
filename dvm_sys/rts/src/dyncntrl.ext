@@ -1,0 +1,64 @@
+#ifndef _DYNCNTRL_EXT_
+#define _DYNCNTRL_EXT_
+/********************/
+
+extern byte DbgInfoPrint; /* flag on information messages of 
+                             dynamic control system
+                             and trace*/
+
+/* Is dynamic control allowed or denied */
+extern byte EnableDynControl;
+extern byte HashMethod;
+extern byte HashOffsetValue;
+
+extern struct
+{
+    char            ErrorFile[MaxParFileName+1]; /* diagnostics file name */
+    int             HashIndexSize;    /* HASH-table index size */
+    int             HashTableSize;    /* size of structure array
+                                         for HASH-tables */
+
+    int             VarTableSize;     /* size of structure array
+                                         for variable table */
+
+    byte            ErrorToScreen;    /* diagnostics output to the screen */
+    byte            AppendErrorFile;  /* add messages in existing file */
+    int             MaxErrors;        /* maximal number of detected errors */
+
+    byte            CheckVarInitialization;        /* check initialization
+                                                      of scalar variables */
+    byte            CheckDisArrInitialization;     /* check initialization of
+                                                      distibuted array elements */
+    byte            CheckReductionAccess;          /* check accessing to
+                                                      reduction variables */
+    byte            CheckRemoteBufferAccess;       /* check using of remote
+                                                      buffers */
+    byte            CheckDisArrLimits;             /* check out of bounds
+                                                      access */
+    byte            CheckDataDependence;           /* check data dependence in
+                                                      parallel loop */
+    byte            CheckVarReadOnly;              /* check accessing to
+                                                      read-only variables */
+    byte            CheckDisArrEdgeExchange;       /* check edge exchange of
+                                                      distributed array */
+    byte            CheckDisArrSequentialAccess;   /* check access to
+                                                      distrubuted array in
+                                                      the sequential part */
+    byte            CheckDisArrLocalElm;           /* check accessing to local
+                                                      elements of distributed
+                                                      array */
+}
+DebugOptions;
+
+
+extern VAR_TABLE DynVarTable;
+extern byte DynVarTableInit;
+
+extern PFN_CALC_HASH_FUNC GlobalHashFunc;
+extern DvmType g_lHashStack[2];
+
+extern TABLE gPreSaveVars;
+
+extern SysHandle* g_pLastTestedDisArray;
+
+#endif  /* _DYNCNTRL_EXT_ */

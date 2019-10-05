@@ -1,0 +1,18 @@
+#ifndef _CHECKSUM_EXT_
+#define _CHECKSUM_EXT_
+/********************/    /*E0000*/
+
+/***************************************\
+* Checksums of standard parameter files *
+\***************************************/    /*E0001*/
+
+extern byte ParFileCheckSum;     /* flag CRC for parameter
+                                    files is on */    /*E0002*/
+extern uLLng SystemStdCheckSum;
+extern uLLng SysTraceStdCheckSum;
+extern uLLng DebugStdCheckSum;
+extern uLLng TrcEventStdCheckSum;
+extern uLLng TrcDynControlStdCheckSum;
+extern uLLng StatistStdCheckSum;
+
+#endif   /*  _CHECKSUM_EXT_  */    /*E0003*/

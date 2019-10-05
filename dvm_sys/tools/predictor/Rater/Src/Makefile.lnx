@@ -1,0 +1,68 @@
+.KEEP_STATE:
+#############################################################################
+#                                                                           #
+#                                   RATER                                   #
+#                                                                           #
+#############################################################################
+
+LIB	    = librater.a
+
+INC_DIR = -I../Include -I../../Presage/Include
+# -I../../STLport/stlport
+ 
+#ROUTDIR  = ../Release
+ROUTDIR  = ../Debug
+
+##################### for GNU ####################
+
+COPT    = -g -w $(INC_DIR) -DP_DEBUG
+CC      = g++
+LINK	= ar r 
+cc	= gcc
+
+#################### for SUN ####################
+
+#COPT    =  +w2 -O4 $(INC_DIR)
+#CC      = /export/ws/SUNWspro/bin/CC
+#CC 	= CC
+#cc	= cc
+#LINK	= $(CC) -xar -o 
+
+release : $(ROUTDIR)/$(LIB)
+
+debug   : $(ROUTDIR)/$(LIB)
+
+SRCFILES  = \
+	AMView.cpp		DimBound.cpp	RedGroup.cpp \
+	AlignAxis.cpp	DistAxis.cpp	RedVar.cpp \
+	BGroup.cpp		Space.cpp \
+	Block.cpp		Ls.cpp		Vm.cpp \
+	CommCost.cpp	ParLoop.cpp 	DArray.cpp \
+	Protocol.cpp	
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp 
+
+MODULES   = $(SRCFILES:%.cpp=$(ROUTDIR)/%.o) 
+
+$(ROUTDIR)/%.o:%.cpp
+	$(CC) -c $(COPT) -o $(ROUTDIR)/$*.o $*.cpp
+ 	
+	
+
+################################## RATER ##################################
+
+$(ROUTDIR)/$(LIB): $(MODULES) 
+	$(LINK) $(ROUTDIR)/$(LIB) $(MODULES)
+
+############################################################################
+	
+clean:
+	rm -f $(ROUTDIR)/*.o $(ROUTDIR)/$(LIB) $(DOUTDIR)/*.o $(DOUTDIR)/$(LIB)\
+		tags *% ../Include/*%
+	rm -f -r Templates.DB
+tags:
+	rm -f tags
+	ectags -f tags $(SRCFILES)   
+
+################################## END #####################################

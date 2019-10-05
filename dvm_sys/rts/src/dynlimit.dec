@@ -1,0 +1,11 @@
+#ifndef _DYNLIMIT_DEC_
+#define _DYNLIMIT_DEC_
+/******************/
+
+void* dynmem__malloc(size_t nSize);
+void* dynmem__calloc(size_t nSize, size_t nElements);
+void dynmem__free(void** ppPtr, size_t nSize);
+void dynmem__printstatistics(void);
+void dyntime__check(void);
+
+#endif  /* _DYNLIMIT_DEC_ */
