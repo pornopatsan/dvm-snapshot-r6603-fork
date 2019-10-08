@@ -64,7 +64,7 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
     return std::make_pair(size, nmemb);
 }
 
-ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist, 
+ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist,
                            ControlPoint::String filename, int nfiles, ControlPoint::DvmhCpMode mode) {
     this->name = name;
     this->varDescList = varlist;
@@ -203,7 +203,7 @@ bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
     if (nvars != vlist.size()) {
         return false;
     }
-    
+
     printf("TRUE2!\n");
 
     size_t sizeList[nvars], nmembList[nvars];
@@ -236,7 +236,7 @@ bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
     }
 
     printf("TRUE5!\n");
-    
+
     size_t fnameSize = 0;
     dvmh_void_fread(&fnameSize, sizeof(fnameSize), 1, header);
     char fname[fnameSize];
@@ -293,12 +293,12 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
     // // TODO: what if cp already exists?
     checkOrCreateCpDirectory(cp->directory);
     saveControlPointHeader(cp);
-    
+
     // printf("%s\n", (cp->directory + "/Header_" + "%d" + ".txt").c_str());
     FILE *hdr = dvmh_fopen(cp->getHeaderFilename().c_str(), "rbp");
     printf("%s\n", checkVarlistFitsHeader(cp->varDescList, hdr) ? "True" : "False");
     dvmh_fclose(hdr);
-    
+
     // for (int i = 0; i < 64; ++i) {
     //     if (i % 8 == 0) { printf("\n"); }
     //     printf("%0.16lx  ", dvmDesc[0][i]);
@@ -354,7 +354,7 @@ extern "C" void dvmh_smart_void_write(DvmType dvmDesc[], FILE *astream) {
 
     size_t size = data->getTypeSize();
     const Interval *spc = data->getSpace();
-    size_t nmemb = 1; 
+    size_t nmemb = 1;
     for (int i = 0; i < data->getRank(); ++i) {
         nmemb *= spc[i].size();
     }
