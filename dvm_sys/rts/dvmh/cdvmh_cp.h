@@ -8,12 +8,9 @@
 // #include "dvmh_stdio.cpp" // TODO: do not include this
 namespace libdvmh {
 enum RWKind { rwkRead, rwkWrite }; // TODO: get original from cdmh_stdio.cpp
+enum DvmhCpMode {LOCAL, PARALLEL};
 
 class ControlPoint {
-  public:
-    enum class DvmhCpMode {
-        LOCAL, PARALLEL
-    };
 
   public:
     //    typedef std::vector Vector;
@@ -47,7 +44,7 @@ class ControlPoint {
     ControlPoint() {}
 
     // ControlPoint(String name, VectorDesc varlist, String filename, int nfiles);
-    ControlPoint(String name, VectorDesc varlist, String filename, int nfiles, DvmhCpMode mode=ControlPoint::DvmhCpMode::LOCAL);
+    ControlPoint(String name, VectorDesc varlist, String filename, int nfiles, DvmhCpMode mode=LOCAL);
     ControlPoint(String name, VectorDesc varlist);
 
   public:
@@ -60,9 +57,9 @@ class ControlPoint {
     void decFileQueue() { nextfile = (nextfile - 1) % nfiles; }
 
     String getNextFilename() const {
-        if (this->mode == DvmhCpMode::LOCAL) {
+        if (this->mode == LOCAL) {
             return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + "_" + "%d" + ".txt";
-        } else if (this->mode == DvmhCpMode::PARALLEL){
+        } else if (this->mode == PARALLEL){
             return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + ".txt";
         } else {
             // TODO: error
@@ -71,9 +68,9 @@ class ControlPoint {
     }
 
     String getLastFilename() const {
-        if (this->mode == DvmhCpMode::LOCAL) {
+        if (this->mode == LOCAL) {
             return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
-        } else if (this->mode == DvmhCpMode::PARALLEL){
+        } else if (this->mode == PARALLEL){
             return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + ".txt";
         } else {
             // TODO: error
@@ -87,9 +84,9 @@ class ControlPoint {
         String res = rw;
         if (binary) { res += "b"; }
         if (async) { res += "s"; }
-        if (this->mode == DvmhCpMode::LOCAL) {
+        if (this->mode == LOCAL) {
             res += "l";
-        } else if (this->mode == DvmhCpMode::PARALLEL){
+        } else if (this->mode == PARALLEL){
             res += "p";
         } else {
             // error
@@ -99,8 +96,6 @@ class ControlPoint {
 
 }; // class ControlPoint
 
-const std::string ControlPoint::DIRNAME = "./Control Points";
+const std::string ControlPoint::DIRNAME = "./control_points";
 
 }; // namespace libdvmh
-
-// std::vector<ControlPoint> My_Non_Dublicate_Control_Points;

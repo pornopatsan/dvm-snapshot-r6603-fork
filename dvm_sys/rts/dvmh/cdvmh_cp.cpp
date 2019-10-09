@@ -65,7 +65,7 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
 }
 
 ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist,
-                           ControlPoint::String filename, int nfiles, ControlPoint::DvmhCpMode mode) {
+                           ControlPoint::String filename, int nfiles, DvmhCpMode mode) {
     this->name = name;
     this->varDescList = varlist;
     this->fname = filename;
@@ -131,7 +131,7 @@ void saveControlPointHeader(const ControlPoint *cp)
     // TODO: Pack data to write only once
     // TODO: Save many other params
     // TODO: (?) MainHeader
-    dvmh_void_fwrite(&cp->mode, sizeof(ControlPoint::DvmhCpMode), 1, header);
+    dvmh_void_fwrite(&cp->mode, sizeof(DvmhCpMode), 1, header);
     dvmh_void_fwrite(&cp->nextfile, sizeof(int), 1, header);
     dvmh_void_fwrite(&cp->nfiles, sizeof(int), 1, header);
 
@@ -160,7 +160,7 @@ void loadControlPointFromHeader(ControlPoint *cp)
 {
     FILE *header = dvmh_fopen((cp->directory + "/Header" + ".txt").c_str(), "rbp");
     // TODO: Pack data to write only once
-    dvmh_void_fread(&cp->mode, sizeof(ControlPoint::DvmhCpMode), 1, header);
+    dvmh_void_fread(&cp->mode, sizeof(DvmhCpMode), 1, header);
     dvmh_void_fread(&cp->nextfile, sizeof(int), 1, header);
     dvmh_void_fread(&cp->nfiles, sizeof(int), 1, header);
     // cp->decFileQueue();
@@ -191,7 +191,7 @@ void loadControlPointFromHeader(ControlPoint *cp)
 bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
 {
     int buf;
-    dvmh_void_fread(&buf, sizeof(ControlPoint::DvmhCpMode), 1, header);
+    dvmh_void_fread(&buf, sizeof(DvmhCpMode), 1, header);
     dvmh_void_fread(&buf, sizeof(buf), 1, header);
     dvmh_void_fread(&buf, sizeof(buf), 1, header);
 
@@ -286,7 +286,7 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
         varlist.push_back(dvmDesc[i]);
     }
 
-    ControlPoint *cp = new ControlPoint(cpName, varlist, filename, nfiles, static_cast<ControlPoint::DvmhCpMode>(mode));
+    ControlPoint *cp = new ControlPoint(cpName, varlist, filename, nfiles, static_cast<DvmhCpMode>(mode));
     ActiveControlPoints.insert(std::make_pair(cpName, cp));
     printf("%d\n", cp->axesNum);
 
