@@ -3,7 +3,7 @@
  CC='clang -g -O2'
  CXX='clang++ -g -O2'
  LINKER='clang++ -g'
- LLVMCONFIG=''
+ LLVMCONFIG='llvm-config'
 # for parallel programs
  PCC='mpicc -g -O2'
  PCXX='mpicxx -g -O2'

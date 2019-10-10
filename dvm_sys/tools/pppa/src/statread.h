@@ -3,6 +3,7 @@
 #include "potensyn.h"
 #include "inter.h"
 #include "treeinter.h"
+#include "statinter.h"
 #define Fic_index 2000000000 //interval.h
 #define PREC 4
 #define DIGTIME 6+PREC
@@ -119,6 +120,8 @@ public:
 	BOOL Valid(int *warn);
 	void TextErr(char *t);
 	short ReadTitle(char * p);
+	void ReadIdent(ident *idp);
+	void ReadProcS(struct ProcTimes * pt);
 	BOOL ReadProc(typeprint t,unsigned long *pnumb,int qnumb,short fmt,double sum,char *str);
 	void MinMaxSum(typeprint t,double *min,unsigned long *nprocmin,
 						  double*max,unsigned long *nprocmax,

@@ -1,0 +1,27 @@
+#!/bin/sh
+
+dvmdir='/Users/penek/dvm/dvm_sys'
+export dvmbuild='Version 5.0, revision 6603, platform osx-10.11-clang, build 7'
+
+#--------------- One can customize compiler options:
+# export PCC='mpicc -g -O2' # C compiler
+# export PCXX='mpicxx -g -O2' # C++ compiler
+# export PFORT='mpif77 -g -O2' # Fortran compiler
+
+#--------------- One can add libraries (additional linker flags):
+# export USER_LIBS=''
+
+#--------------- One can set launch options:
+# export dvmwait=0 # Wait for task completion
+# export DVMH_PPN='' # Number of processes per node
+# export DVMH_STACKSIZE='' # Stack size to set for the task
+# export DVMH_NUM_THREADS='' # Number of CPU threads per process
+
+#--------------- Debugging options:
+# export DVMH_LOGLEVEL=1 # Levels of debugging: 1 - errors only, 2 - warning, 3 - info, 4 - debug, 5 - trace
+# export DVMH_LOGFILE='dvmh_%d.log' # Log file name for each process
+# export DVMH_COMPARE_DEBUG=0 # An alternative way to turn comparative debugging mode on
+# export dvmsave=0 # Save convertation results
+# export dvmshow=0 # Show commands executed by the DVM driver
+
+exec "$dvmdir/bin/dvm_drv" "$@"

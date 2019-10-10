@@ -1,6 +1,6 @@
-BINDIR=../../../bin
+BINDIR=../../../testing
 
-EXECUTABLES = dvmstf
+EXECUTABLES = st
 COPT=-c -I../../Zlib/include
 ZLIB	= zlib
 ZLIBDIR	= ../../Zlib/Release
@@ -8,7 +8,6 @@ ZLIBDIR	= ../../Zlib/Release
 OBJS=\
 	inter.o  \
 	potensyn.o  \
-	statfile.o \
 	statread.o  \
 	treeinter.o \
 	statprintf.o \
@@ -16,9 +15,10 @@ OBJS=\
     statinter.o \
     interface.o \
     stat.o \
+    Source.o \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
-	$(LINKER) -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
+	clang++ -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
 
 all:  $(BINDIR)/$(EXECUTABLES)
 	@echo "*** COMPILING EXECUTABLE $(EXECUTABLES) DONE"
@@ -32,8 +32,6 @@ potensyn.o:
 	$(CXX) $(COPT) potensyn.cpp
 inter.o:
 	$(CXX) $(COPT) inter.cpp
-statfile.o:
-	$(CXX) $(COPT) statfile.cpp
 statread.o:
 	$(CXX) $(COPT) statread.cpp
 treeinter.o:
@@ -48,3 +46,5 @@ interface.o:
 	$(CXX) $(COPT) interface.cpp -fdeclspec
 stat.o:
 	$(CXX) $(COPT) stat.cpp
+Source.o:
+	$(CXX) $(COPT) ../../../testing/Source.cpp

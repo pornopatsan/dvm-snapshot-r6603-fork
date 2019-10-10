@@ -26,7 +26,7 @@ class BlankPragmaHandler: public PragmaHandler {
 public:
     explicit BlankPragmaHandler(CompilerInstance &aComp): PragmaHandler("dvm"), comp(aComp) {}
 public:
-    void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer, Token &FirstToken);
+    void HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken);
 public:
     PragmaHandlerStub *getPragmaAtLine(int line) {
         if (pragmas.find(line) != pragmas.end())

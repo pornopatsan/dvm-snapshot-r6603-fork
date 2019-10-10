@@ -4,14 +4,14 @@
 
 namespace cdvmh {
 
-DebugASTVisitor::DebugASTVisitor(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &R): 
+DebugASTVisitor::DebugASTVisitor(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &R):
     fileCtx(aFileCtx),
-    projectCtx(fileCtx.getProjectCtx()), 
-    opts(projectCtx.getOptions()), 
-    comp(aComp), 
-    rewr(R), 
-    srcMgr(rewr.getSourceMgr()), 
-    langOpts(rewr.getLangOpts()) 
+    projectCtx(fileCtx.getProjectCtx()),
+    opts(projectCtx.getOptions()),
+    comp(aComp),
+    rewr(R),
+    srcMgr(rewr.getSourceMgr()),
+    langOpts(rewr.getLangOpts())
 {
     inFunction = false;
     inVarDecl = false;
@@ -31,7 +31,7 @@ bool DebugASTVisitor::VisitExpr(Expr *e) {
 }
 
 bool DebugASTVisitor::VisitStmt(Stmt *s) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+    SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
     std::pair<Stmt*, std::string> loopStackInfo;
@@ -72,7 +72,7 @@ bool DebugASTVisitor::TraverseStmt(Stmt *s) {
     bool res = base::TraverseStmt(s);
     if (!s) return res;
 
-    SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+    SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
 
@@ -191,8 +191,8 @@ bool DebugASTVisitor::HandleExpr(Expr *e) {
 
                     bool isTraceNeeded = opts.dvmDebugLvl & dlWriteVariables;
                     if (!varState.isArray && isTraceNeeded) {
-                        SourceLocation startLoc = op->getLocStart();
-                        SourceLocation endLoc = getNormalEndLoc(op->getLocEnd());
+                        SourceLocation startLoc = op->getBeginLoc();
+                        SourceLocation endLoc = getNormalEndLoc(op->getEndLoc());
                         std::string startInsert = genDvmWriteVar(startLoc, varState);
                         std::string endInsert = ") /*" + convertToString(e) + "*/";
 
@@ -202,7 +202,7 @@ bool DebugASTVisitor::HandleExpr(Expr *e) {
                         //if (!startLoc.isMacroID() && !endLoc.isMacroID()) {
                             rewr.InsertTextBefore(getRealLoc(startLoc), startInsert);
                             rewr.InsertTextAfter(getRealLoc(endLoc), endInsert);
-                        //} 
+                        //}
                     }
                 }
             }
@@ -230,8 +230,8 @@ bool DebugASTVisitor::HandleExpr(Expr *e) {
                         if (varState.isArray && isTraceNeeded) {
                             std::string startInsert = genDvmWriteVarArray(baseArrRef->getLocation(), varState, convertToString(arrAcc));
                             std::string endInsert = ")";
-                            SourceLocation startLoc = op->getLocStart();
-                            SourceLocation endLoc = getNormalEndLoc(op->getLocEnd());
+                            SourceLocation startLoc = op->getBeginLoc();
+                            SourceLocation endLoc = getNormalEndLoc(op->getEndLoc());
 
                             if (!startLoc.isMacroID() && !endLoc.isMacroID()) {
                                 rewr.InsertTextBefore(getRealLoc(startLoc), startInsert);
@@ -415,7 +415,7 @@ SourceLocation DebugASTVisitor::getNormalEndLoc(SourceLocation loc) {
 }
 
 SourceLocation DebugASTVisitor::getNormalStmtEndLoc(Stmt *s) {
-    SourceLocation endLoc = getNormalEndLoc(s->getLocEnd());
+    SourceLocation endLoc = getNormalEndLoc(s->getEndLoc());
     Token token;
 
     Lexer::getRawToken(endLoc.getLocWithOffset(0), token, srcMgr, rewr.getLangOpts());
@@ -436,7 +436,7 @@ SourceLocation DebugASTVisitor::getRealLoc(SourceLocation loc) {
 
 bool DebugASTVisitor::isLoopVar(const std::string &name) const {
     for (int i = 0; i < (int)loopVarsStack.size(); ++i) {
-        if (name == loopVarsStack[i].second) 
+        if (name == loopVarsStack[i].second)
             return true;
     }
     return false;
@@ -454,7 +454,7 @@ unsigned DebugASTVisitor::getLineFromLoc(const SourceLocation &loc) {
 }
 
 std::string DebugASTVisitor::getStmtIndent(Stmt *s) {
-    SourceLocation loc = s->getLocStart();
+    SourceLocation loc = s->getBeginLoc();
     SourceLocation fileLoc = srcMgr.getFileLoc(loc);
     FileID fileID = srcMgr.getFileID(fileLoc);
     unsigned line = getLineFromLoc(loc);
@@ -469,7 +469,7 @@ bool DebugASTVisitor::forLoopIsParallel(ForStmt *curLoop) {
 }
 
 DvmPragma* DebugASTVisitor::forLoopParallelPragma(ForStmt *curLoop) {
-    int line = getLineFromLoc(curLoop->getLocStart());
+    int line = getLineFromLoc(curLoop->getBeginLoc());
     if (parallelPragmas.find(line) != parallelPragmas.end()) {
         return parallelPragmas.find(line)->second;
     } else {
@@ -630,13 +630,13 @@ std::string DebugASTVisitor::genDvmWriteVarArray(SourceLocation loc, const VarSt
     std::string toInsert = "DVMH_DBG_WRITE_VAR(" + fileName + ", " + line + ", " + varName + ", " + base + ", " + varType + ", ";
     return toInsert;
 }
- 
+
 void DebugASTVisitor::genSeqLoopCalls(ForStmt *curLoop, int curLoopNumber) {
-    SourceLocation startLoc = curLoop->getLocStart();
+    SourceLocation startLoc = curLoop->getBeginLoc();
     SourceLocation endLoc = getNormalStmtEndLoc(curLoop);
 
-    std::string file = "\"" + getFileName(curLoop->getLocStart()) + "\"";
-    std::string line = toStr(getLineFromLoc(curLoop->getLocStart()));
+    std::string file = "\"" + getFileName(curLoop->getBeginLoc()) + "\"";
+    std::string line = toStr(getLineFromLoc(curLoop->getBeginLoc()));
     std::string loopNum = toStr(curLoopNumber);
 
     std::string startLoopCall = "DVMH_DBG_LOOP_SEQ_START(" + file + ", " + line + ", " + loopNum + ");";
@@ -654,11 +654,11 @@ void DebugASTVisitor::genSeqLoopIter(ForStmt *curLoop) {
         VarState state = fillVarState(vd);
 
         Stmt *loopBody = curLoop->getBody();
-        SourceLocation startLocIter = loopBody->getLocStart();
+        SourceLocation startLocIter = loopBody->getBeginLoc();
         SourceLocation endLocIter = getNormalStmtEndLoc(loopBody);
 
-        std::string fileName = "\"" + getFileName(curLoop->getLocStart()) + "\"";
-        std::string line = toStr(getLineFromLoc(curLoop->getLocStart()));
+        std::string fileName = "\"" + getFileName(curLoop->getBeginLoc()) + "\"";
+        std::string line = toStr(getLineFromLoc(curLoop->getBeginLoc()));
         std::string rank = "1";
         std::string varType = "(DvmType)&" + state.name + ", " + genRtType(state.baseTypeStr);
         std::string iterCall = "DVMH_DBG_LOOP_ITER(" + fileName + ", " + line + ", (" + rank + ", " + varType + "));";
@@ -670,8 +670,8 @@ void DebugASTVisitor::genSeqLoopIter(ForStmt *curLoop) {
     }
 }
 
-void DebugASTVisitor::genParLoopCalls(ForStmt *curLoop, int curLoopNumber) {    
-    SourceLocation loopLoc = curLoop->getLocStart();
+void DebugASTVisitor::genParLoopCalls(ForStmt *curLoop, int curLoopNumber) {
+    SourceLocation loopLoc = curLoop->getBeginLoc();
     int line = getLineFromLoc(loopLoc);
 
     // Get location before "parallel" pragma
@@ -726,11 +726,11 @@ void DebugASTVisitor::genParLoopIter(ForStmt *curLoop) {
     std::string varNameTypes = deleteTrailingComma(varNames + varTypes);
 
     Stmt *innerLoopBody = curStmt;
-    SourceLocation startLoc = innerLoopBody->getLocStart();
+    SourceLocation startLoc = innerLoopBody->getBeginLoc();
     SourceLocation endLoc = getNormalStmtEndLoc(innerLoopBody);
 
-    std::string file = "\"" + getFileName(curLoop->getLocStart()) + "\"";
-    std::string line = toStr(getLineFromLoc(curLoop->getLocStart()));
+    std::string file = "\"" + getFileName(curLoop->getBeginLoc()) + "\"";
+    std::string line = toStr(getLineFromLoc(curLoop->getBeginLoc()));
     std::string rank = toStr(loopRank);
 
     std::string iterCall = "DVMH_DBG_LOOP_ITER(" + file + ", " + line + ", (" + rank + ", " + varNameTypes + "));";

@@ -575,7 +575,7 @@ std::string ConverterASTVisitor::genAlignCall(std::string varName, DvmPragma *cu
 }
 
 void ConverterASTVisitor::handleDeclGroup(Decl *head) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(head->getLocEnd());
+    SourceLocation fileLoc = srcMgr.getFileLoc(head->getEndLoc());
     std::string fileName = srcMgr.getFilename(fileLoc);
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -760,7 +760,7 @@ void ConverterASTVisitor::handleDeclGroup(Decl *head) {
             }
             if (!projectCtx.hasInputFile(fileName))
                 cdvmhLog(DEBUG, curPragmaTmp->fileName, curPragmaTmp->line, 418, MSG(418));
-            rewr.ReplaceText(escapeMacro(SourceRange(head->getLocStart(), vec.back()->getLocEnd())), substText);
+            rewr.ReplaceText(escapeMacro(SourceRange(head->getBeginLoc(), vec.back()->getEndLoc())), substText);
         }
     }
     declGroups.erase(head);
@@ -835,7 +835,7 @@ bool ConverterASTVisitor::VisitVarDecl(VarDecl *vd) {
 }
 
 bool ConverterASTVisitor::VisitFunctionDecl(FunctionDecl *f) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(f->getLocStart());
+    SourceLocation fileLoc = srcMgr.getFileLoc(f->getBeginLoc());
     std::string fileName = srcMgr.getFilename(fileLoc);
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -895,7 +895,7 @@ bool ConverterASTVisitor::VisitFunctionDecl(FunctionDecl *f) {
             if (nparams == 0) {
                 argcName = "dvmh_argc";
                 argvName = "dvmh_argv";
-                rewr.ReplaceText(escapeMacro(SourceRange(f->getLocStart(), f->getBody()->getLocStart().getLocWithOffset(-1))),
+                rewr.ReplaceText(escapeMacro(SourceRange(f->getBeginLoc(), f->getBody()->getBeginLoc().getLocWithOffset(-1))),
                         "int main(int dvmh_argc, char **dvmh_argv) ");
             } else {
                 checkUserErrN(nparams >= 2, fileName, line, 59);
@@ -971,7 +971,7 @@ bool ConverterASTVisitor::TraverseFunctionTemplateDecl(FunctionTemplateDecl *f) 
 }
 
 bool ConverterASTVisitor::VisitStmt(Stmt *s) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+    SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
     std::string fileName = srcMgr.getFilename(fileLoc);
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -2330,13 +2330,13 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
 
     if (isa<IfStmt>(s) || isa<ForStmt>(s) || isa<WhileStmt>(s) || isa<CXXCatchStmt>(s))
     {
-        checkIntervalBalance(srcMgr.getFileLoc(s->getLocEnd()));
+        checkIntervalBalance(srcMgr.getFileLoc(s->getEndLoc()));
         leaveDeclContext();
     }
 
     if (!inParLoop && (opts.perfDbgLvl == 4 || opts.perfDbgLvl == 1 || opts.perfDbgLvl == 3))
         if (isa<ForStmt>(s) || isa<WhileStmt>(s) || isa<DoStmt>(s)) {
-            SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+            SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
             std::string fileName = srcMgr.getFilename(fileLoc);
             FileID fileID = srcMgr.getFileID(fileLoc);
             int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -2362,10 +2362,10 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
                 if (needBoundaries)
                     startInsert += "do {\n";
 
-                startInsert += indent + genDvmLine(s->getLocStart()) + '\n';
+                startInsert += indent + genDvmLine(s->getBeginLoc()) + '\n';
                 startInsert += indent + "dvmh_seq_interval_start_C();\n";
                 startInsert += indent;
-                rewr.InsertTextBefore(s->getLocStart(), startInsert);
+                rewr.InsertTextBefore(s->getBeginLoc(), startInsert);
 
                 endInsert += "\n" + indent + genDvmLine(endLoc) + '\n';
                 endInsert += indent + "dvmh_sp_interval_end_();\n";
@@ -2380,7 +2380,7 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
         // Finish parallel loop
         if (curParallelPragma)
             checkIntErrN(isa<ForStmt>(s), 93);
-        SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+        SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
         std::string fileName = srcMgr.getFilename(fileLoc);
         FileID fileID = srcMgr.getFileID(fileLoc);
         int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -2414,7 +2414,7 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
         if (!isSequentialPart)
             toInsert += indent + genDvmLine(curPragma) + "\n";
         else
-            toInsert += genDvmLine(s->getLocStart()) + "\n";
+            toInsert += genDvmLine(s->getBeginLoc()) + "\n";
 
         if (!inRegion && opts.perfDbgLvl != 0 && opts.perfDbgLvl != 2) {
             toInsert += indent + "dvmh_par_interval_start_C();\n";
@@ -2588,7 +2588,9 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
                 checkDirErrN(incrExpr, 4421);
                 checkDirErrN(loopVar == convertToString(incrExpr->getLHS()), 4422);
                 llvm::APSInt stepConstVal;
-                constStep = incrExpr->getRHS()->EvaluateAsInt(stepConstVal, comp.getASTContext());
+                clang::Expr::EvalResult stepConstValResult;
+                constStep = incrExpr->getRHS()->EvaluateAsInt(stepConstValResult, comp.getASTContext());
+                stepConstVal = stepConstValResult.Val.getInt();
                 bool negate = incrExpr->getOpcode() == BO_SubAssign;
                 checkDirErrN(incrExpr->getOpcode() == BO_AddAssign || incrExpr->getOpcode() == BO_SubAssign, 4421);
                 if (constStep) {
@@ -2811,7 +2813,7 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
         toInsert += "\n";
 
         if (!opts.lessDvmLines)
-            toInsert += indent + genDvmLine(s->getLocStart()) + "\n";
+            toInsert += indent + genDvmLine(s->getBeginLoc()) + "\n";
         if (opts.dvmDebugLvl > 0) {
             std::string loopNumber = toStr(fileCtx.loopNumbersByLine[curPragma->line]);
             toInsert += indent + "dvmh_dbg_loop_par_start_C(" + loopNumber + ", " + toStr(loopRank);
@@ -2828,7 +2830,7 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
             }
             // Exit automatic interval
             if (opts.perfDbgLvl != 0 && opts.perfDbgLvl != 2) {
-                toInsert += indent + genDvmLine(s->getLocEnd()) + '\n';
+                toInsert += indent + genDvmLine(s->getEndLoc()) + '\n';
                 toInsert += indent + "dvmh_sp_interval_end_();\n";
             }
         }
@@ -2848,7 +2850,7 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
     if (inRegion && regionStmt == s) {
         // Finish region
         checkIntErrN(isa<CompoundStmt>(s), 911);
-        SourceLocation fileLoc = srcMgr.getFileLoc(s->getLocStart());
+        SourceLocation fileLoc = srcMgr.getFileLoc(s->getBeginLoc());
         std::string fileName = srcMgr.getFilename(fileLoc);
         FileID fileID = srcMgr.getFileID(fileLoc);
         int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -2995,7 +2997,7 @@ bool ConverterASTVisitor::TraverseCompoundStmt(CompoundStmt *s) {
     truncLevels(funcLevels);
     truncLevels(loopLevels);
     truncLevels(switchLevels);
-    checkIntervalBalance(srcMgr.getFileLoc(s->getLocEnd()));
+    checkIntervalBalance(srcMgr.getFileLoc(s->getEndLoc()));
     leaveDeclContext();
     return res;
 }
@@ -3207,11 +3209,11 @@ bool ConverterASTVisitor::VisitExpr(Expr *e) {
                             toInsert2 += ") : ((void)0))";
                             rewr.ReplaceText(escapeMacro(lhs->getSourceRange()), subst);
                             dontSubstitute.insert(dre);
-                            rewr.InsertText(escapeMacroBegin(e->getLocStart()), toInsert1, true, false);
+                            rewr.InsertText(escapeMacroBegin(e->getBeginLoc()), toInsert1, true, false);
                             SourceLocation lastLoc = e->getSourceRange().getEnd();
                             rewr.InsertText(Lexer::getLocForEndOfToken(escapeMacroEnd(lastLoc), 0, srcMgr, langOpts), toInsert2, true, false);
                         } else {
-                            SourceLocation fileLoc = srcMgr.getFileLoc(e->getLocStart());
+                            SourceLocation fileLoc = srcMgr.getFileLoc(e->getBeginLoc());
                             std::string fileName = srcMgr.getFilename(fileLoc);
                             FileID fileID = srcMgr.getFileID(fileLoc);
                             int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -3257,9 +3259,9 @@ bool ConverterASTVisitor::VisitExpr(Expr *e) {
                             } else
                                 removeLastSemicolon(toInsert2);
                             removeFirstIndent(toInsert1);
-                            rewr.ReplaceText(SourceRange(escapeMacroBegin(e->getLocStart()),
-                                    escapeMacroEnd(ce->getCallee()->getLocEnd())), toInsert1);
-                            rewr.InsertTextAfterToken(e->getLocEnd(), toInsert2);
+                            rewr.ReplaceText(SourceRange(escapeMacroBegin(e->getBeginLoc()),
+                                    escapeMacroEnd(ce->getCallee()->getEndLoc())), toInsert1);
+                            rewr.InsertTextAfterToken(e->getEndLoc(), toInsert2);
                         }
                     }
                 }
@@ -3336,12 +3338,12 @@ bool ConverterASTVisitor::VisitExpr(Expr *e) {
                             SourceLocation lastLoc;
                             bool replaceFlag = i > 0;
                             if (i == 0) {
-                                firstLoc = dre->getLocStart();
-                                lastLoc = dre->getLocEnd();
+                                firstLoc = dre->getBeginLoc();
+                                lastLoc = dre->getEndLoc();
                                 toInsert1 = "(*(" + varState->baseTypeStr + " *)dvmh_get_element_addr_C(";
                                 toInsert2 += ", " + toStr(rank);
                             } else {
-                                firstLoc = escapeMacroEnd(subscripts[i - 1]->getLHS()->getLocEnd());
+                                firstLoc = escapeMacroEnd(subscripts[i - 1]->getLHS()->getEndLoc());
                                 firstLoc = Lexer::findLocationAfterToken(firstLoc, tok::l_square, srcMgr, langOpts, false);
                                 firstLoc = firstLoc.getLocWithOffset(-1);
                                 lastLoc = subscripts[i - 1]->getRBracketLoc();
@@ -3440,7 +3442,7 @@ bool ConverterASTVisitor::VisitCallExpr(CallExpr *e) {
                     checkIntErrN(varStates.find(vd) != varStates.end(), 92, vd->getNameAsString().c_str());
                     VarState *varState = &varStates[vd];
                     if (varState->isDvmArray) {
-                        SourceLocation fileLoc = srcMgr.getFileLoc(e->getLocStart());
+                        SourceLocation fileLoc = srcMgr.getFileLoc(e->getBeginLoc());
                         std::string fileName = srcMgr.getFilename(fileLoc);
                         FileID fileID = srcMgr.getFileID(fileLoc);
                         int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -3630,7 +3632,7 @@ bool ConverterASTVisitor::VisitCXXNewExpr(CXXNewExpr *e) {
             }
             if (inUserFile && !newInUserFile && !opts.seqOutput) {
                 Token Tok;
-                if (!Lexer::getRawToken(e->getStartLoc(), Tok, srcMgr, langOpts, true)) {
+                if (!Lexer::getRawToken(e->getBeginLoc(), Tok, srcMgr, langOpts, true)) {
                     std::string s = comp.getPreprocessor().getSpelling(Tok);
                     if (s == "::") {
                         Lexer::getRawToken(Tok.getLocation().getLocWithOffset(Tok.getLength()), Tok, srcMgr, langOpts, true);
@@ -3671,9 +3673,9 @@ bool ConverterASTVisitor::VisitCXXDeleteExpr(CXXDeleteExpr *e) {
             deleteInUserFile = srcMgr.isInMainFile(deleteFileLoc) || fileCtx.isUserInclude(deleteFileID.getHashValue());
         }
         if (inUserFile && !deleteInUserFile && !opts.seqOutput) {
-            SourceRange r1(e->getLocStart(), e->getArgument()->getLocStart().getLocWithOffset(-1));
+            SourceRange r1(e->getBeginLoc(), e->getArgument()->getBeginLoc().getLocWithOffset(-1));
             Token Tok;
-            Lexer::getRawToken(e->getArgument()->getLocEnd(), Tok, srcMgr, langOpts, true);
+            Lexer::getRawToken(e->getArgument()->getEndLoc(), Tok, srcMgr, langOpts, true);
             SourceLocation loc2(Tok.getLocation().getLocWithOffset(Tok.getLength()));
             std::string fileName = srcMgr.getFilename(exprFileLoc);
             int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(exprFileLoc));
