@@ -1,0 +1,8 @@
+/* WITHOUT DYNAMICAL CHECK AND WITH COMPARE AUTO REDUCTION PERFOMANCE RESULTS */
+
+EnableDynControl=0;        /* turn on/off dynamical check */
+EnableTrace=1;             /* trace on/off */
+TraceOptions.TraceMode=3;  /* trace mode */
+ManualReductCalc=0;        /* mode of manual reduction calculations */
+DelUsrTrace=0;             /* delete trace files */
+Is_DVM_STAT=0;             /* statistics on/off */ 

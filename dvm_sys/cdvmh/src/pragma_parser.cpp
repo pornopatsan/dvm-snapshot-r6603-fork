@@ -10,7 +10,7 @@ namespace cdvmh {
 
 #define COLUMN (int)comp.getSourceManager().getColumnNumber(fileID, comp.getSourceManager().getFileOffset(Tok.getLocation()))
 
-void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer, Token &FirstToken) {
+void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken) {
     SourceLocation loc = FirstToken.getLocation();
     loc = rewr.getSourceMgr().getFileLoc(loc);
     std::string srcFileName = comp.getSourceManager().getFilename(loc);
@@ -211,7 +211,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducerKind Intro
         PragmaInterval *curPragma = new PragmaInterval();
         curPragma->copyCommonInfo(this->curPragma);
         curPragma->userID = readExpr(PP, Tok);
-        if (curPragma->userID.empty()) 
+        if (curPragma->userID.empty())
             curPragma->userID.append("0");
         checkDirErrN(Tok.is(tok::eod), 306, COLUMN);
         fileCtx.addPragma(fileID.getHashValue(), curPragma);

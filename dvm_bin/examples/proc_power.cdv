@@ -1,0 +1,285 @@
+#include <stdio.h>
+#include <math.h>
+#define DVM(dvmdir)
+#define DO(v,l,h,s)   for(v=l; (s>0)&&(v<=h)||(s<0)&&(v>=h); v+=s)
+
+#define K 1000
+#define N 1000000
+
+double start[64], elapsed[64];
+
+/*****************************************************************/
+/******            T  I  M  E  R  _  C  L  E  A  R          ******/
+/*****************************************************************/
+void timer_clear( int n )
+{
+    elapsed[n] = 0.0;
+}
+
+
+/*****************************************************************/
+/******            T  I  M  E  R  _  S  T  A  R  T          ******/
+/*****************************************************************/
+void timer_start( int n )
+{
+    start[n] = dvtime_();
+//    start[n] = dvm_time();
+//    start[n] = MPI_Wtime();
+}
+
+
+/*****************************************************************/
+/******            T  I  M  E  R  _  S  T  O  P             ******/
+/*****************************************************************/
+double timer_stop( int n )
+{
+    double t, now;
+
+    now = dvtime_();
+//    now = dvm_time();
+//    now = MPI_Wtime();
+    t = now - start[n];
+    elapsed[n] += t;
+
+    if(t<0.0000000001) return 0.0000000001;
+    return t;
+
+}
+
+
+/*****************************************************************/
+/******            T  I  M  E  R  _  R  E  A  D             ******/
+/*****************************************************************/
+double timer_read( int n )
+{
+    return( elapsed[n] );
+}
+
+
+
+
+
+int main(int argn, char **args)
+{
+  int ITER=5;
+  double KK=1000.0, time;
+  {
+    DVM(DISTRIBUTE [BLOCK][BLOCK]) int A[K][K];
+    DVM(ALIGN [x][y] WITH A[x][y]) long B[K][K];
+    DVM(ALIGN [x][y] WITH A[x][y]) double C[K][K];
+
+    DVM(DISTRIBUTE [BLOCK]) int D[N];
+    DVM(ALIGN [x] WITH D[x]) double E[N];
+
+    double eps,s,w=0.5, KK2=KK+2;
+    int i,j,it, ww=2, K2=K+2;
+
+    FILE *f;
+f=fopen("proc_power.txt","a");
+
+timer_start(0);
+    DVM(INTERVAL 5)
+    { DO(it,1,ITER,1)
+      {	DVM(PARALLEL [i] ON D[i])
+        DO(i,0,N-1,1)
+        { 
+          D[i]=1000;//(7777*i)%10000+1;
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  = const  int  )\n",ITER*N/(time*1000000) );
+    
+timer_start(0);
+    DVM(INTERVAL 6)
+    { DO(it,1,ITER,1)
+      {	DVM(PARALLEL [i] ON E[i])
+        DO(i,0,N-1,1)
+        { 
+          E[i]=1000.1234;//i+1;
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = const double)\n",ITER*N/(time*1000000) );
+    
+
+timer_start(0);
+    DVM(INTERVAL 1)
+    {
+      DO(it,1,ITER,1)
+      {
+	DVM(PARALLEL [i][j] ON A[i][j])
+        DO(i,0,K-1,1)
+        DO(j,0,K-1,1)
+        { 
+          if(i==j) A[i][j]=K2;
+          else A[i][j]=-1;
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =  int  )\n",ITER*K*K/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 2)
+    {
+      DO(it,1,ITER,1)
+      {
+        DVM(PARALLEL [i][j] ON B[i][j])
+        DO(i,0,K-1,1)
+        DO(j,0,K-1,1)
+        { 
+          if(i==j) B[i][j]=K2;
+          else B[i][j]=-1;
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   ( long  =  long )\n",ITER*K*K/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 3)
+    {
+      DO(it,1,ITER,1)
+      {
+        DVM(PARALLEL [i][j] ON C[i][j])
+        DO(i,0,K-1,1)
+        DO(j,0,K-1,1)
+        { 
+          if(i==j) C[i][j]=KK2;
+          else C[i][j]=-1.0;
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double)\n",ITER*K*K/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 4)
+    {
+      DO(it,1,ITER,1)
+      {
+        DO(i,0,K-1,1)
+        DO(j,0,K-1,1)
+        { 
+        }
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (empty loop)\n",ITER*K*K/(time*1000000) );
+  
+
+time=timer_stop(0);
+    DVM(INTERVAL 50)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON D[i])
+	DO(i,4,N-5,1)
+	{ D[i]=D[i]*D[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =   int  *  int  )\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 51)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON E[i])
+	DO(i,4,N-5,1)
+	{ E[i]=E[i]*E[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double * double)\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 52)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON D[i])
+	DO(i,4,N-5,1)
+	{ D[i]=D[i]*D[i]*D[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =   int  *  int   * ... (2 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 53)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON E[i])
+	DO(i,4,N-5,1)
+	{ E[i]=E[i]*E[i]*E[i];
+	}
+      }
+    }    
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double * double * ... (2 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 54)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON D[i])
+	DO(i,4,N-5,1)
+	{ D[i]=D[i]*D[i]*D[i]*D[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =   int  *  int   * ... (3 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 55)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON E[i])
+	DO(i,4,N-5,1)
+	{ E[i]=E[i]*E[i]*E[i]*E[i];
+	}
+      }
+    }    
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double * double * ... (3 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 56)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON D[i])
+	DO(i,4,N-5,1)
+	{ D[i]=D[i]*D[i]*D[i]*D[i]*D[i]*D[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =   int  *  int   * ... (5 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 57)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON E[i])
+	DO(i,4,N-5,1)
+	{ E[i]=E[i]*E[i]*E[i]*E[i]*E[i]*E[i];
+	}
+      }
+    }    
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double * double * ... (5 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 58)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON D[i])
+	DO(i,4,N-5,1)
+	{ D[i]=D[i]*D[i]*D[i]*D[i]*D[i]*D[i]*D[i]*D[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (  int  =   int  *  int   * ... (7 times))\n",ITER*(N-8)/(time*1000000) );
+timer_start(0);
+    DVM(INTERVAL 59)
+    { DO(it,1,ITER,1)
+      { DVM(PARALLEL [i] ON E[i])
+	DO(i,4,N-5,1)
+	{ E[i]=E[i]*E[i]*E[i]*E[i]*E[i]*E[i]*E[i]*E[i];
+	}
+      }
+    }
+time=timer_stop(0);
+fprintf(f,"%10.4f Mops   (double = double * double * ... (7 times))\n",ITER*(N-8)/(time*1000000) );
+
+fprintf(f,"\n");
+fclose(f);
+    return 0;
+  }/* End of distribute data */
+}

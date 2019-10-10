@@ -1,0 +1,191 @@
+#ifndef _USER_MAC_
+#define _USER_MAC_
+/****************/    /*E0000*/
+
+/*****************************************************\
+*  Access to local parts of distributed arrays        *
+\*****************************************************/    /*E0001*/
+
+#define DAElm1(H, Type, I)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I)+(H)[1]]
+
+#define DAElm2(H, Type, I1, I2)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I2)+(H)[1]*(I1)+(H)[2]]
+
+#define DAElm3(H, Type, I1, I2, I3)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I3)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]]
+
+#define DAElm4(H, Type, I1, I2, I3, I4)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I4)+(H)[1]*(I1)+(H)[2]*(I2)+\
+(H)[3]*(I3)+(H)[4]]
+
+#define DAElm5(H, Type, I1, I2, I3, I4, I5)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I5)+(H)[1]*(I1)+(H)[2]*(I2)+\
+(H)[3]*(I3)+(H)[4]*(I4)+(H)[5]]
+
+#define DAElm6(H, Type, I1, I2, I3, I4, I5, I6)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I6)+(H)[1]*(I1)+(H)[2]*(I2)+\
+(H)[3]*(I3)+(H)[4]*(I4)+(H)[5]*(I5)+(H)[6]]
+
+#define DAElm7(H, Type, I1, I2, I3, I4, I5, I6, I7)\
+( (Type*)(((SysHandle *)(H)[0])->BasePtr) )[(I7)+(H)[1]*(I1)+(H)[2]*(I2)+\
+(H)[3]*(I3)+(H)[4]*(I4)+(H)[5]*(I5)+(H)[6]*(I6)+(H)[7]]
+
+
+
+/*
+#define DVMda1(H, Type, I)\
+    ( (Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I)+DVM_##H##_1]
+
+#define DVMda2(H, Type, I1, I2)\
+    ( (Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I2)+DVM_##H##_1*(I1)+DVM_##H##_2]
+
+#define DVMda3(H, Type, I1, I2, I3)\
+    ((Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I3)+DVM_##H##_1*(I1)\
+    +DVM_##H##_2*(I2)+DVM_##H##_3]
+
+#define DVMda4(H, Type, I1, I2, I3, I4)\
+    ( (Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I4)+ DVM_##H##_1*(I1)\
+    + DVM_##H##_2*(I2)+ DVM_##H##_3*(I3)+DVM_##H##_4]
+
+#define DVMda5(H, Type, I1, I2, I3, I4, I5)\
+  ( (Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I5)+ DVM_##H##_1*(I1)\
+  + DVM_##H##_2*(I2)+ DVM_##H##_3*(I3)+ DVM_##H##_4*(I4)+DVM_##H##_5]
+
+#define DVMda6(H, Type, I1, I2, I3, I4, I5, I6)\
+    ( (Type*) (((SysHandle *)(H)[0])->BasePtr) )[(I6)+ DVM_##H##_1*(I1)\
+    + DVM_##H##_2*(I2)+ DVM_##H##_3*(I3)+ DVM_##H##_4*(I4)\
+    + DVM_##H##_5*(I5)+DVM_##H##_6]
+*/    /*E0002*/
+
+
+
+/*
+#define DAElm1(H, Type, I)\
+( (Type*)GlobalBasePtr )[(I)+(H)[1]]
+
+#define DAElm2(H, Type, I1, I2)\
+( (Type*)GlobalBasePtr )[(I2)+(H)[1]*(I1)+(H)[2]]
+
+#define DAElm3(H, Type, I1, I2, I3)\
+( (Type*)GlobalBasePtr )[(I3)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]]
+
+#define DAElm4(H, Type, I1, I2, I3, I4)\
+( (Type*)GlobalBasePtr )[(I4)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+(H)[4]]
+
+#define DAElm5(H, Type, I1, I2, I3, I4, I5)\
+( (Type*)GlobalBasePtr )[(I5)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+\
+(H)[4]*(I4)+(H)[5]]
+
+#define DAElm6(H, Type, I1, I2, I3, I4, I5, I6)\
+( (Type*)GlobalBasePtr )[(I6)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+\
+(H)[4]*(I4)+(H)[5]*(I5)+(H)[6]]
+
+#define DAElm7(H, Type, I1, I2, I3, I4, I5, I6, I7)\
+( (Type*)GlobalBasePtr )[(I7)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+\
+(H)[4]*(I4)+(H)[5]*(I5)+(H)[6]*(I6)+(H)[7]]
+*/    /*E0003*/
+
+
+/*
+#define DAElm1(H, Type, I)\
+( (Type*)(H)[1] )[(I)]
+
+#define DAElm2(H, Type, I1, I2)\
+( (Type*)(H)[2] )[(I2)+(H)[1]*(I1)]
+
+#define DAElm3(H, Type, I1, I2, I3)\
+( (Type*)(H)[3] )[(I3)+(H)[1]*(I1)+(H)[2]*(I2)]
+
+#define DAElm4(H, Type, I1, I2, I3, I4)\
+( (Type*)(H)[4] )[(I4)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)]
+
+#define DAElm5(H, Type, I1, I2, I3, I4, I5)\
+( (Type*)(H)[5] )[(I5)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+(H)[4]*(I4)]
+
+#define DAElm6(H, Type, I1, I2, I3, I4, I5, I6)\
+( (Type*)(H)[6] )[(I6)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+(H)[4]*(I4)+\
+(H)[5]*(I5)]
+
+#define DAElm7(H, Type, I1, I2, I3, I4, I5, I6, I7)\
+( (Type*)(H)[7] )[(I7)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3)+(H)[4]*(I4)+\
+(H)[5]*(I5)+(H)[6]*(I6)]
+*/    /*E0004*/
+
+
+/* Macros for access to remote buffer elements */    /*E0005*/
+
+#define RBElm1(H, Type, I)\
+DAElm1(H, Type, (I)-(H)[3])
+
+#define RBElm2(H, Type, I1, I2)\
+DAElm2(H, Type, (I1)-(H)[4], (I2)-(H)[5])
+
+#define RBElm3(H, Type, I1, I2, I3)\
+DAElm3(H, Type, (I1)-(H)[5], (I2)-(H)[6], (I3)-(H)[7])
+
+#define RBElm4(H, Type, I1, I2, I3, I4)\
+DAElm4(H, Type, (I1)-(H)[6], (I2)-(H)[7], (I3)-(H)[8], (I4)-(H)[9])
+
+#define RBElm5(H, Type, I1, I2, I3, I4, I5)\
+DAElm5(H, Type, (I1)-(H)[7], (I2)-(H)[8], (I3)-(H)[9], (I4)-(H)[10],\
+                (I5)-(H)[11])
+
+#define RBElm6(H, Type, I1, I2, I3, I4, I5, I6)\
+DAElm6(H, Type, (I1)-(H)[8], (I2)-(H)[9], (I3)-(H)[10], (I4)-(H)[11],\
+                (I5)-(H)[12], (I6)-(H)[13])
+
+
+#define RBElm7(H, Type, I1, I2, I3, I4, I5, I6, I7)\
+DAElm7(H, Type, (I1)-(H)[9], (I2)-(H)[10], (I3)-(H)[11], (I4)-(H)[12],\
+                (I5)-(H)[13], (I6)-(H)[14], (I7)-(H)[15])
+
+
+/*
+#define DAElm1(H, Type, I)\
+*( (Type*)((char *)(H)[1]+\
+( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+(I)) )
+
+#define DAElm2(H, Type, I1, I2)\
+*( (Type*)((char *)(H)[2]+\
+( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+((I2)+(H)[1]*(I1))) )
+
+#define DAElm3(H, Type, I1, I2, I3)\
+*( (Type*)((char *)(H)[3]+\
+( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+((I3)+(H)[1]*(I1)+(H)[2]*(I2))) )
+
+#define DAElm4(H, Type, I1, I2, I3, I4)\
+*( (Type*)((char *)(H)[4]+\
+( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+((I4)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3))) )
+*/    /*E0006*/
+
+
+
+/*
+#define DAElm1(H, Type, I)\
+*( (Type*)((char *)((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->BasePtr+\
+           ( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+           ((H)[1]+(I))) )
+
+#define DAElm2(H, Type, I1, I2)\
+*( (Type*)((char *)((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->BasePtr+\
+           ( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+           ((H)[2]+(I2)+(H)[1]*(I1))) )
+
+#define DAElm3(H, Type, I1, I2, I3)\
+*( (Type*)((char *)((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->BasePtr+\
+           ( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+           ((H)[3]+(I3)+(H)[1]*(I1)+(H)[2]*(I2))) )
+
+#define DAElm4(H, Type, I1, I2, I3, I4)\
+*( (Type*)((char *)((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->BasePtr+\
+           ( ((s_DISARRAY *)((SysHandle *)(H)[0])->pP)->TLen )*\
+           ((H)[4]+(I4)+(H)[1]*(I1)+(H)[2]*(I2)+(H)[3]*(I3))) )
+*/    /*E0007*/
+
+
+#endif /* _USER_MAC_ */    /*E0008*/

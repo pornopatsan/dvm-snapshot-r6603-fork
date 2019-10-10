@@ -37,7 +37,7 @@ public:
 
 protected:
     bool HandleExpr(Expr *e);
-    VarState fillVarState(VarDecl *vd); 
+    VarState fillVarState(VarDecl *vd);
     SourceLocation escapeMacroBegin(SourceLocation loc);
     SourceLocation escapeMacroEnd(SourceLocation loc);
     SourceLocation getNormalEndLoc(SourceLocation end);
@@ -102,7 +102,7 @@ protected:
     std::vector<std::pair<Stmt*, std::string> > loopVarsStack;
     std::map<int, DvmPragma*> parallelPragmas;
     std::map<ForStmt*, int> loopNumbers;
-    
+
 protected:
     SourceFileContext &fileCtx;
     ProjectContext &projectCtx;

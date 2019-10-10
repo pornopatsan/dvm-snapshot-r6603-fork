@@ -11,7 +11,7 @@
 
 namespace cdvmh {
 
-void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer, Token &FirstToken) {
+void BlankPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken) {
     SourceLocation loc = FirstToken.getLocation();
     loc = comp.getSourceManager().getFileLoc(loc);
     FileID fileID = comp.getSourceManager().getFileID(loc);
@@ -184,8 +184,8 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducerKind Int
 }
 
 bool Blank2HostVisitor::VisitFunctionDecl(FunctionDecl *f) {
-    FileID fileID = srcMgr.getFileID(f->getLocStart());
-    int pragmaLine = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(f->getLocStart())) - 1;
+    FileID fileID = srcMgr.getFileID(f->getBeginLoc());
+    int pragmaLine = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(f->getBeginLoc())) - 1;
     PragmaHandlerStub *curPragma = ph->getPragmaAtLine(pragmaLine);
     std::string funcName = f->getName();
     bool toConvert = reqs.find(funcName) != reqs.end();
@@ -205,7 +205,7 @@ bool Blank2HostVisitor::VisitFunctionDecl(FunctionDecl *f) {
     } else {
         if (isHandler) {
             // Cut it
-            SourceRange sr(srcMgr.translateLineCol(fileID, pragmaLine, 1), f->getLocEnd());
+            SourceRange sr(srcMgr.translateLineCol(fileID, pragmaLine, 1), f->getEndLoc());
             rewr.RemoveText(sr);
         }
     }

@@ -1,0 +1,169 @@
+	PROGRAM    TASKST
+C	rectangular grid is distributed on two blocks
+C
+C	
+	PARAMETER    (K=8,  N1 = 4,  ITMAX=20, N2 = K - N1 )
+CDVM$	PROCESSORS    P(NUMBER_OF_PROCESSORS( ))
+	REAL     A1(N1+1,K), A2(N2+1,K), B1(N1+1,K), B2(N2+1,K) 
+        REAL A(K,K), B(K,K)
+        INTEGER LP(2),HP(2)
+CDVM$	TASK  MB( 2 )
+CDVM$	DISTRIBUTE   A(*,BLOCK) ONTO P
+CDVM$	ALIGN   B( I, J )  WITH  A( I, J )
+CDVM$	ALIGN   B1( I, J )  WITH  A1( I, J ) 
+CDVM$	ALIGN   B2( I, J )  WITH  A2( I, J ) 
+CDVM$	DISTRIBUTE  ::  A1, A2 
+CDVM$	REMOTE_GROUP  BOUND
+        PRINT *,  '**********  TEST_TASKS_T  **********'
+        CALL DPT(LP,HP,2)
+CDVM$	MAP  MB( 1 )  ONTO  P( LP(1) : HP(1) )
+CDVM$	REDISTRIBUTE  A1( *, BLOCK )  ONTO  MB( 1 )
+CDVM$	MAP  MB( 2 )   ONTO  P( LP(2) : HP(2) )
+CDVM$	REDISTRIBUTE  A2( *, BLOCK )  ONTO  MB( 2 )
+C		Initialization
+CDVM$	PARALLEL    ( J, I )   ON   A1(I, J)
+	DO  10   J  =  1, K
+	DO  10   I  =  1, N1
+		IF(I.EQ.1 .OR. J.EQ.1 .OR. J.EQ.K) THEN
+			A1(I, J) = 0.
+			B1(I, J) = 0.
+		ELSE
+			B1(I, J)  = 1. + I + J 
+			A1(I, J) = B1(I, J)
+		ENDIF
+10	CONTINUE
+CDVM$	PARALLEL    ( J, I )   ON   A2(I, J)
+	DO  20   J  =  1, K
+	DO  20   I  =  2, N2+1
+		IF(I.EQ.N2+1 .OR. J.EQ.1 .OR. J.EQ.K) THEN
+			A2(I, J) = 0.
+			B2(I, J) = 0.
+		ELSE
+			B2(I, J)  = 1. + (I+N1-1) + J 
+			A2(I, J) = B2(I, J)
+		ENDIF
+20	CONTINUE
+      
+	DO  2   IT  =  1, ITMAX
+CDVM$	PREFETCH   BOUND
+C		exchange bounds
+CDVM$	PARALLEL    ( J )   ON   A1(N1+1, J),
+CDVM$*  REMOTE_ACCESS  (BOUND : B2( 2, J ) )
+	DO  30   J  =  1, K
+30		A1(N1+1, J) = B2(2, J)
+CDVM$	PARALLEL    ( J )   ON   A2( 1, J),
+CDVM$*  REMOTE_ACCESS  (BOUND : B1( N1, J ) )
+	DO  40   J  =  1, K
+40		A2(1, J) = B1(N1, J)
+CDVM$	TASK_REGION MB
+CDVM$	ON   MB( 1 )
+CDVM$	PARALLEL    ( J, I )   ON   B1(I, J),
+CDVM$*  SHADOW_RENEW ( A1 )
+	DO  50   J  =  2, K-1
+	DO  50   I  =  2, N1
+50	B1(I, J)=(A1(I-1, J) + A1(I,J-1) + A1(I+1,J) + A1(I,J+1))/4
+CDVM$	PARALLEL    ( J, I )   ON   A1(I, J)
+	DO  60   J  =  2, K-1
+	DO  60   I  =  2, N1
+60		A1(I, J) =  B1( I, J )
+CDVM$	END ON
+CDVM$	ON   MB( 2 )
+CDVM$	PARALLEL    ( J, I )   ON   B2(I, J),
+CDVM$*  SHADOW_RENEW ( A2 )
+	DO  70   J  =  2, K-1
+	DO  70   I  =  2, N2
+70	B2(I,J) = (A2(I-1,J) + A2(I,J-1) + A2(I+1,J) + A2(I,J+1))/4
+CDVM$	PARALLEL    ( J, I )   ON   A2(I, J)
+	DO  80   J  =  2, K-1
+	DO  80   I  =  2, N2
+80		A2(I, J) =  B2( I, J )
+CDVM$	END ON
+CDVM$	END  TASK_REGION
+2	CONTINUE
+  
+C 1-task JACOBI       
+CDVM$   PARALLEL    (J,I)   ON   A(I, J)
+C		nest of two parallel loops, iteration (i,j) will be executed on 
+C		processor, which is owner of element A(i,j) 
+            DO  1   J  =  1, K
+            DO  1   I  =  1, K
+                A(I,  J)  =  0.
+                IF(I.EQ.1 .OR. J.EQ.1 .OR. I.EQ.K .OR. J.EQ.K) THEN
+                      B(I,  J) = 0.
+                ELSE
+                      B(I,  J)  = ( 1. + I + J )
+                ENDIF
+    1       CONTINUE
+        DO  3   IT  =  1,  ITMAX
+CDVM$   PARALLEL  (J,  I)   ON  A(I,  J)
+C		variable EPS is used for calculation of maximum value
+                  DO  21  J  =  2, K-1
+                  DO  21  I  =  2, K-1
+                         A(I, J)  =  B(I, J)
+   21             CONTINUE
+CDVM$   PARALLEL  (J,  I)   ON  B(I,  J),   SHADOW_RENEW   (A)
+C		Copying shadow elements of array A from 
+C		neighbouring processors before loop execution
+                  DO  22  J = 2,  K-1
+                  DO  22  I = 2,  K-1
+        B(I, J) =  (A( I-1, J ) + A( I, J-1 ) + A( I+1, J)+
+     *                        A( I, J+1 )) / 4
+   22             CONTINUE
+ 
+    3   CONTINUE 
+C   compare 2-task JACOBI with 1-task JACOBI
+CDVM$ PARALLEL (I,J)  ON B1(I,J),REMOTE_ACCESS (B(I,J))
+      DO 11  I = 2,N1
+      DO 11  J = 2, K-1
+      IF(B1(I,J).NE.B(I,J)) THEN
+         PRINT *, 'error B1(',I,',',J,')'
+         STOP
+      ENDIF 
+  11  CONTINUE 
+CDVM$ PARALLEL (I,J)  ON B2(I,J),REMOTE_ACCESS (B(I+(N1-1),J))
+      DO 12  I = 2,N2
+      DO 12  J = 2, K-1
+      IF(B2(I,J).NE.B(I+(N1-1),J)) THEN
+         PRINT *, 'error B2(',I,',',J,')','B(',I+N1-1,',',J,')'
+         STOP
+      ENDIF 
+  12  CONTINUE 
+      PRINT *, '--- DONE ---'
+	END
+
+      SUBROUTINE DPT(LP,HP,NT)
+C     distributing processors for NT tasks (NT = 2)      
+      INTEGER LP(2), HP(2)
+      NUMBER_OF_PROCESSORS() = 1
+CDVM$ DEBUG 1 (D = 0)
+      NP = NUMBER_OF_PROCESSORS()
+      NTP = NP/NT
+      IF(NP.EQ.1) THEN
+         LP(1) = 1
+         HP(1) = 1
+         LP(2) = 1
+         HP(2) = 1
+      ELSE
+         LP(1) = 1
+         HP(1) = NTP
+         LP(2) = NTP+1
+         HP(2) = NP
+      END IF
+CDVM$ ENDDEBUG 1
+      END
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

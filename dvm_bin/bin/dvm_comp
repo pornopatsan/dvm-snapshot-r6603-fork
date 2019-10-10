@@ -1,0 +1,476 @@
+#!/bin/bash
+
+# Uses variables: SRC_LANG, CONVERTATION_ONLY, NO_CONVERTATION, optcconv, optfconv, PCC, PCXX, PFORT, NVFORT, PGI_PATH, NVCC, grep, sort, sed, Pld, dvmdir, dvmshow, dvmsave, WIN32
+
+. dvm_utils.sh
+
+errcc() {
+    if [ -n "$1" ]; then
+        printf '%s\n' "$1" >>dvm.err
+        printf '%s\n' "$1"
+    fi
+    echo "!!! error $ERR_CMD !!! : $prog" >>dvm.err
+    echo "!!! error $ERR_CMD !!! : $prog"
+    exit 1
+}
+
+eval optcconv_exp=($optcconv)
+eval optfconv_exp=($optfconv)
+eval PCC_exp=($PCC)
+eval PCXX_exp=($PCXX)
+eval PFORT_exp=($PFORT)
+eval NVFORT_exp=($NVFORT)
+eval NVCC_exp=($NVCC)
+
+rm -f dvm.err
+
+DO_CONV=1
+DO_COMP=1
+DO_LINK=1
+ERR_CMD="compile"
+
+if [ "$CONVERTATION_ONLY" = "1" ]; then
+    ERR_CMD="convert"
+    DO_COMP=0
+    DO_LINK=0
+elif [ "$NO_CONVERTATION" = "1" ]; then
+    DO_CONV=0
+    ERR_CMD="comp"
+fi
+
+if [ -z "$Pld" ]; then
+    Pld=ld
+fi
+
+CONV_OPTS=()
+COMP_OPTS=()
+GEN_COMP_OPTS=()
+NVCC_COMP_OPTS=()
+LINK_OPTS=()
+LINK_LIBS=()
+OUTPUT=
+M_INFO=0
+M_MIC=0
+M_RTC=0
+SHARED_DVM=0
+INPUTS=()
+
+while [ $# -gt 0 ]; do
+    if [ "$1" = "-o" ]; then
+        shift
+        OUTPUT="$1"
+    elif [ "$1" = "-c" ]; then
+        DO_LINK=0
+    elif [ "$1" = "-Minfo" ]; then
+        M_INFO=1
+    elif [ "$1" = "-shared-dvm" ]; then
+        SHARED_DVM=1
+    elif [ "$1" = "-shared" ]; then
+        LINK_OPTS+=("-shared")
+    elif [ "$1" = "-fPIC" -o "$1" = "-fpic" -o "$1" = "-fPIE" -o "$1" = "-fpie" ]; then
+        COMP_OPTS+=("$1")
+        GEN_COMP_OPTS+=("$1")
+        NVCC_COMP_OPTS+=("-Xcompiler" "$1")
+    elif [ "$1" = "-rtc" ]; then
+        M_RTC=1
+        CONV_OPTS+=("-rtc")
+    elif [ "$1" = "-mmic" ]; then
+        M_MIC=1
+        CONV_OPTS+=("-noCuda")
+        COMP_OPTS+=("-mmic")
+        GEN_COMP_OPTS+=("-mmic")
+    elif [ "$1" = "-I" -o "$1" = "-D" -o "$1" = "-U" ]; then
+        CONV_OPTS+=("$1" "$2")
+        COMP_OPTS+=("$1" "$2")
+        shift
+    elif [ "$1" = "-L" -o "$1" = "-l" ]; then
+        LINK_LIBS+=("$1" "$2")
+        shift
+    elif [ "$1" = "-rdynamic" ]; then
+        LINK_OPTS+=("$1")
+    elif [ "$1" = "-dvm-entry" ]; then
+        CONV_OPTS+=("$1" "$2")
+        shift
+    elif [ -n "$( printf '%s' "$1" | $sed 's/^[^-].*//g' )" ]; then
+        if [ -n "$( printf '%s' "$1" | $sed 's/^[-][^IDU].*//g' )" ]; then
+            CONV_OPTS+=("$1")
+            COMP_OPTS+=("$1")
+        elif [ -n "$( printf '%s' "$1" | $sed 's/^[-][^Ll].*//g' )" ]; then
+            LINK_LIBS+=("$1")
+        elif [ $DO_CONV -ne 0 ]; then
+            CONV_OPTS+=("$1")
+        else
+            COMP_OPTS+=("$1")
+        fi
+    else
+        INPUTS+=("$1")
+    fi
+    shift
+done
+
+[ ${#INPUTS[@]} -gt 0 ] || errcc "No input files supplied"
+[ $DO_LINK -ne 0 -o -z "$OUTPUT" -o ${#INPUTS[@]} -eq 1 ] || errcc "It is not allowed to specify output file for multifile compilation without linking"
+
+FNS=()
+DVMPRS=()
+CONVPRS=()
+CONVEXTS=()
+LANGS=()
+HAVE_C=0
+HAVE_CXX=0
+HAVE_FORT=0
+for f in "${INPUTS[@]}"; do
+    prog="$f"
+    lang=$SRC_LANG
+    if [ -z "$lang" ]; then
+        lang=$( guess_language "$f" )
+    fi
+    if [ $DO_LINK -ne 0 ] && [ -z "$lang" -o -n "$SRC_LANG" ] && has_ext "$f" $OBJ_EXT $LIB_EXT ; then
+        lang=obj
+    fi
+    [ "$lang" = "c" -o "$lang" = "cxx" -o "$lang" = "f" -o "$lang" = "obj" ] || errcc "Can not guess input language or unsupported language specified"
+    if [ "$lang" = "obj" ]; then
+        FN="$f"
+        dvmpr="$( remove_exts "$FN" )"
+        convpr="$dvmpr"
+        convext=
+    else
+        if [ "$lang" = "c" ]; then
+            HAVE_C=1
+            FN="$( add_ext "$f" cdv $C_EXTS )"
+            if has_ext "$FN" h; then
+                convext=h
+            else
+                convext=c
+            fi
+        elif [ "$lang" = "cxx" ]; then
+            HAVE_CXX=1
+            FN="$f"
+            if has_ext "$FN" h hpp; then
+                convext=hpp
+            else
+                convext=cpp
+            fi
+        elif [ "$lang" = "f" ]; then
+            HAVE_FORT=1
+            FN="$( add_ext "$f" fdv $FDV_EXTS )"
+            convext="f"
+        fi
+        dvmpr="$( remove_exts "$FN" )"
+        if [ $DO_COMP -eq 0 -a -n "$OUTPUT" ]; then
+            convpr="$( remove_exts "$OUTPUT" $convext )"
+            [ "$convpr.$convext" = "$OUTPUT" ] || errcc "Specified output file name '$OUTPUT' must have an appropriate extension '$convext'"
+            [ "$convpr" != "$dvmpr" ] || errcc "Specified output file name '$OUTPUT' conflicts with input file name"
+        elif [ $DO_CONV -ne 0 -a $DO_COMP -ne 0 -a $DO_LINK -eq 0 -a -n "$OUTPUT" ]; then
+            convpr="$OUTPUT.DVMH"
+        else
+            convpr="$( basename "$dvmpr" ).DVMH"
+        fi
+        if [ $M_MIC -ne 0 ]; then
+            convpr="$convpr.mic"
+        fi
+        IS_DVM=0
+        if [ $DO_CONV -ne 0 ]; then
+            IS_DVM=1
+        elif [ ! -e "$f" ]; then
+            IS_DVM=1
+        elif has_ext "$FN" cdv fdv hpf h hpp; then
+            IS_DVM=1
+        elif [ -e "$convpr.$convext" ]; then
+            IS_DVM=1
+        fi
+        if [ $IS_DVM -eq 0 ]; then
+            FN="$f"
+            convpr="$( remove_exts "$FN" )"
+            dvmpr="$convpr"
+            basefn="$( basename "$FN" )"
+            convext="${basefn##*.}"
+            [ "$FN" = "$convpr.$convext" ] || errcc "Specified input file name '$FN' must have an extension"
+        fi
+    fi
+    FNS+=("$FN")
+    DVMPRS+=("$dvmpr")
+    CONVPRS+=("$convpr")
+    CONVEXTS+=("$convext")
+    LANGS+=("$lang")
+done
+
+if [ $DO_CONV -ne 0 ]; then
+    ERR_CMD="convert"
+
+    CDVMH_DELAYED=()
+    for i in ${!FNS[@]}; do
+        FN=${FNS[$i]}
+        convpr=${CONVPRS[$i]}
+        convext=${CONVEXTS[$i]}
+        lang=${LANGS[$i]}
+        prog="$FN"
+        if [ "$lang" = "f" ]; then
+            ADD_OPTS=
+            if has_ext "$FN" $F90_EXTS ; then
+                ADD_OPTS="-f90"
+            fi
+            rm -f "$convpr.$convext" "${convpr}_cuda_kernels.cuf" "${convpr}_cuda_handlers.cu" "${convpr}_cuda.cu" "${convpr}_cuda_info.c"
+            PROJ_FN="$convpr.$convext.proj"
+            do_cmd parse $ADD_OPTS -a "$PROJ_FN" -o "$convpr.$convext" "${optfconv_exp[@]}" "${CONV_OPTS[@]}" "$FN" && \
+            do_cmd f_dvm -a "$PROJ_FN" -o "$convpr.$convext" "${optfconv_exp[@]}" "${CONV_OPTS[@]}" "$FN" || \
+            { rm -f "$PROJ_FN"; errcc; }
+            cat "$PROJ_FN" | xargs rm -f
+            rm -f "$PROJ_FN"
+        elif [ "$lang" = "c" ]; then
+            TRIGGER_LINE='^#define DVM(dvmdir)$'
+            if has_ext "$FN" cdv && [ -e "$FN" ] && [ $( $grep -e "$TRIGGER_LINE" "$FN" | wc -l ) -gt 0 ]; then
+                rm -f "$convpr.$convext"
+                do_cmd c_dvm -o "$convpr.$convext" "${optcconv_exp[@]}" "${CONV_OPTS[@]}" "$FN" || errcc
+            else
+                CDVMH_DELAYED+=($i)
+            fi
+        elif [ "$lang" = "cxx" ]; then
+            CDVMH_DELAYED+=($i)
+        fi
+    done
+
+    CDVMH_CMDLINE=()
+    prog=
+    for i in ${CDVMH_DELAYED[@]}; do
+        FN=${FNS[$i]}
+        convpr=${CONVPRS[$i]}
+        convext=${CONVEXTS[$i]}
+        lang=${LANGS[$i]}
+        prog="$prog $FN"
+        CDVMH_CMDLINE+=("-x" "$lang" "-o" "$convpr.$convext" "$FN")
+        rm -f "$convpr.$convext"
+        if [ "$convext" != "h" -a "$convext" != "hpp" ]; then
+            rm -f "${convpr}_cxx.cpp" "${convpr}_host.$convext" "${convpr}_cuda.cu" "${convpr}_cuda_info.c"
+        fi
+    done
+    if [ ${#CDVMH_DELAYED[@]} -gt 0 ]; then
+        do_cmd c_dvmh "${optcconv_exp[@]}" "${CONV_OPTS[@]}" "${CDVMH_CMDLINE[@]}" || errcc
+    fi
+
+    ERR_CMD="compile"
+fi
+
+if [ $DO_COMP -ne 0 ]; then
+    CAN_DELETE=$DO_CONV
+    if [ "$dvmsave" = "1" ]; then
+        CAN_DELETE=0
+    fi
+    if [ "$WIN32" != "1" ]; then
+        # Use -isystem to suppress warnings
+        LIBDVM_OPTS=("-isystem" "$dvmdir/include" "-D_DVMH=1")
+    else
+        LIBDVM_OPTS=("-I" "$dvmdir/include" "-D_DVMH=1")
+    fi
+    OBJS=()
+    TO_DELETE=()
+    for i in ${!FNS[@]}; do
+        FN=${FNS[$i]}
+        dvmpr=${DVMPRS[$i]}
+        convpr=${CONVPRS[$i]}
+        convext=${CONVEXTS[$i]}
+        lang=${LANGS[$i]}
+        prog="$FN"
+        if [ "$lang" = "obj" -o "$convext" = "h" -o "$convext" = "hpp" ]; then
+            TO_COMPILE=0
+        else
+            TO_COMPILE=1
+        fi
+        bdvmpr="$( basename "$dvmpr" )"
+        bconvpr="$( basename "$convpr" )"
+        if [ "$lang" != "obj" -a "$FN" != "$convpr.$convext" ]; then
+            IS_DVM=1
+        else
+            IS_DVM=0
+        fi
+
+        if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+            TO_DELETE+=("$convpr.$convext")
+        fi
+        if [ $TO_COMPILE -eq 0 ]; then
+            if [ "$lang" = "obj" ]; then
+                OBJS+=("$FN")
+            fi
+            continue
+        fi
+
+        if [ $DO_LINK -eq 0 -a -n "$OUTPUT" ]; then
+            OUT_FN="$OUTPUT"
+        elif [ $M_MIC -ne 0 ]; then
+            OUT_FN="$bdvmpr.mic.$OBJ_EXT"
+        else
+            OUT_FN="$bdvmpr.$OBJ_EXT"
+        fi
+        OBJS+=("$OUT_FN")
+        if [ $DO_LINK -ne 0 ]; then
+            TO_DELETE+=("$OUT_FN")
+        fi
+
+        if [ "$lang" = "c" ]; then
+            do_cmd "${PCC_exp[@]}" "${LIBDVM_OPTS[@]}" -std=c99 -c -o "$OUT_FN" "${COMP_OPTS[@]}" "$convpr.$convext" || errcc "Can not compile $convpr.$convext"
+        elif [ "$lang" = "cxx" ]; then
+            do_cmd "${PCXX_exp[@]}" "${LIBDVM_OPTS[@]}" -c -o "$OUT_FN" "${COMP_OPTS[@]}" "$convpr.$convext" || errcc "Can not compile $convpr.$convext"
+        elif [ "$lang" = "f" ]; then
+            do_cmd "${PFORT_exp[@]}" -c -o "$OUT_FN" "${COMP_OPTS[@]}" "$convpr.$convext" || errcc "Can not compile $convpr.$convext"
+        else
+            errcc "Internal error"
+        fi
+
+        ADD_OBJS=()
+
+        if [ -f "${convpr}_cxx.cpp" ]; then
+            do_cmd "${PCXX_exp[@]}" "${LIBDVM_OPTS[@]}" -c -o "${convpr}_cxx.$OBJ_EXT" "${GEN_COMP_OPTS[@]}" "${convpr}_cxx.cpp" || errcc "Can not compile ${convpr}_cxx.cpp"
+            ADD_OBJS+=("${convpr}_cxx.$OBJ_EXT")
+            if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+                TO_DELETE+=("${convpr}_cxx.cpp")
+            fi
+        fi
+
+        if [ -f "${convpr}_host.$convext" ]; then
+            if [ "$lang" = "c" ]; then
+                do_cmd "${PCC_exp[@]}" "${LIBDVM_OPTS[@]}" -std=c99 -c -o "${convpr}_host.$OBJ_EXT" "${COMP_OPTS[@]}" "${convpr}_host.$convext" || errcc "Can not compile ${convpr}_host.$convext"
+            elif [ "$lang" = "cxx" ]; then
+                do_cmd "${PCXX_exp[@]}" "${LIBDVM_OPTS[@]}" -c -o "${convpr}_host.$OBJ_EXT" "${COMP_OPTS[@]}" "${convpr}_host.$convext" || errcc "Can not compile ${convpr}_host.$convext"
+            elif [ "$lang" = "f" ]; then
+                do_cmd "${PFORT_exp[@]}" -c -o "${convpr}_host.$OBJ_EXT" "${COMP_OPTS[@]}" "${convpr}_host.$convext" || errcc "Can not compile ${convpr}_host.$convext"
+            else
+                errcc "Internal error"
+            fi
+            ADD_OBJS+=("${convpr}_host.$OBJ_EXT")
+            if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+                TO_DELETE+=("${convpr}_host.$convext")
+            fi
+        fi
+
+        # If Fortran-CUDA
+        if [ -f "${convpr}_cuda_kernels.cuf" -a -f "${convpr}_cuda_handlers.cu" ]; then
+            do_cmd "${NVFORT_exp[@]}" -c -o "${bconvpr}_cuda_kernels.$OBJ_EXT" "${convpr}_cuda_kernels.cuf" || errcc "Can not compile ${convpr}_cuda_kernels.cuf"
+            rm -f "${bconvpr}_cuda_kernels.$OBJ_EXT" "${bconvpr}_cuda_kernels.001.h" "${bconvpr}_cuda_kernels.n001.h"
+            bdvmpr_lower=`printf '%s' "$bdvmpr" | tr '[:upper:]' '[:lower:]'`
+            rm -f "dvm_gpu_${bdvmpr_lower}.mod"
+            if [ -f "${bconvpr}_cuda_kernels.001.gpu" ]; then
+                PGI_OUT="${bconvpr}_cuda_kernels.001.gpu"
+                DO_SED=0
+            elif [ -f "${bconvpr}_cuda_kernels.n001.gpu" ]; then
+                PGI_OUT="${bconvpr}_cuda_kernels.n001.gpu"
+                DO_SED=1
+            else
+                errcc "Unexpected output of PGI CUDA-Fortran compiler"
+            fi
+            if [ $M_RTC -ne 0 ]; then
+                dvmh_conv_include "${bconvpr}_cuda_info.c" "${bconvpr}" <"$PGI_OUT" >"${convpr}_cuda.cu"
+            else
+                echo "#include \"$PGI_PATH/include_acc/pgi_cuda_runtime.h\"" >"${convpr}_cuda.cu"
+                $grep -v "#include " <"$PGI_OUT" >>"${convpr}_cuda.cu"
+                echo >>"${convpr}_cuda.cu"
+            fi
+            echo "#include \"${bconvpr}_cuda_handlers.cu\"" >>"${convpr}_cuda.cu"
+            if [ $DO_SED -ne 0 ]; then
+                $sed -i 's/dvm_gpu_'${bdvmpr}'_\([^(]*\)_(/\1(/gi' "${convpr}_cuda.cu"
+            fi
+            rm -f "$PGI_OUT"
+            if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+                TO_DELETE+=("${convpr}_cuda_kernels.cuf" "${convpr}_cuda_handlers.cu")
+            fi
+        fi
+
+        # Common part for both Fortran-CUDA and C-CUDA and even CDVMH
+        if [ -f "${convpr}_cuda.cu" ]; then
+            TMPFN=`mktemp`
+            do_cmd -out-to $TMPFN "${NVCC_exp[@]}" "${LIBDVM_OPTS[@]}" -Xptxas -v -c -o "${convpr}_cuda.$OBJ_EXT" "${NVCC_COMP_OPTS[@]}" "${convpr}_cuda.cu"
+            if [ $? -ne 0 ]; then
+                cat $TMPFN 1>& 2
+                rm $TMPFN
+                errcc "Can not compile ${convpr}_cuda.cu"
+            fi
+            if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+                TO_DELETE+=("${convpr}_cuda.cu")
+            fi
+            cat $TMPFN | $grep -E -v "ptxas info|bytes spill stores" 1>& 2
+            if [ $M_INFO -ne 0 ]; then
+                cat $TMPFN | $grep -E "ptxas info|bytes spill stores" | analyzePtxasCuda "$bdvmpr"
+            fi
+            VARNAMES=`mktemp`
+            cat $TMPFN | $grep "ptxas info" | $grep "Function properties for " | awk '{print $7;}' | c++filt | $sed -s 's/[(]/ /g' | awk '{print toupper($1) "_REGS";}' >$VARNAMES
+            VARVALUES=`mktemp`
+            cat $TMPFN | $grep "ptxas info" | $grep " registers, " | awk '{print $5;}' >$VARVALUES
+            rm $TMPFN
+            DEFS=`mktemp`
+            if [ `wc -l <$VARNAMES` -eq `wc -l <$VARVALUES` ]; then
+                i=1
+                for vn in `cat $VARNAMES`; do
+                    printf '%s\n' $vn | $grep "^LOOP_" >/dev/null
+                    if [ $? -eq 0 ]; then
+                        vv=`cat $VARVALUES | head -$i | tail -1`
+                        echo "#define $vn $vv" >>$DEFS
+                    fi
+                    i=$(( i + 1 ))
+                done
+            fi
+            rm $VARNAMES
+            rm $VARVALUES
+            TMPFN=`mktemp`
+            cat $DEFS | LC_ALL=C $sort | LC_ALL=C $sort -s -r -n -k 3 >$TMPFN
+            rm $DEFS
+            if [ -f "${convpr}_cuda_info.c" ]; then
+                cat "${convpr}_cuda_info.c" | $grep -v "#define " >>$TMPFN
+            fi
+            mv $TMPFN "${convpr}_cuda_info.c"
+            do_cmd "${PCC_exp[@]}" "${LIBDVM_OPTS[@]}" -c -o "${convpr}_cuda_info.$OBJ_EXT" "${GEN_COMP_OPTS[@]}" "${convpr}_cuda_info.c" || errcc "Can not compile ${convpr}_cuda_info.c"
+            if [ $CAN_DELETE -ne 0 -a $IS_DVM -ne 0 ]; then
+                TO_DELETE+=("${convpr}_cuda_info.c")
+            fi
+            ADD_OBJS+=("${convpr}_cuda.$OBJ_EXT" "${convpr}_cuda_info.$OBJ_EXT")
+        fi
+
+        if [ ${#ADD_OBJS[@]} -gt 0 ]; then
+            TMPFN=`mktemp -u`.$OBJ_EXT
+            mv "$OUT_FN" $TMPFN
+            do_cmd -out-to /dev/null $Pld -r $TMPFN "${ADD_OBJS[@]}" -o "$OUT_FN"
+            if [ $? -eq 0 ]; then
+                rm -f $TMPFN "${ADD_OBJS[@]}"
+            else
+                mv $TMPFN "$OUT_FN"
+                OBJS+=("${ADD_OBJS[@]}")
+                if [ $DO_LINK -ne 0 ]; then
+                    TO_DELETE+=("${ADD_OBJS[@]}")
+                fi
+            fi
+        fi
+    done
+fi
+
+if [ $DO_LINK -ne 0 ]; then
+    if [ -z "$OUTPUT" ]; then
+        if [ ${#FNS[@]} -le 1 -a "$( basename "$dvmpr" )" != "$FN" ]; then
+            OUTPUT="$( basename "$dvmpr" )$EXE_SUFFIX"
+        else
+            OUTPUT=$DEFAULT_EXENAME
+        fi
+    fi
+    prog="${OBJS[*]}"
+    if [ -z "$SRC_LANG" -a $HAVE_CXX -eq 0 -a $HAVE_FORT -eq 0 ]; then
+        lang=c
+    elif [ -z "$SRC_LANG" -a $HAVE_FORT -eq 0 ]; then
+        lang=cxx
+    elif [ -z "$SRC_LANG" ]; then
+        lang=f
+    else
+        lang="$SRC_LANG"
+    fi
+    PRE_OPTS=()
+    if [ $SHARED_DVM -ne 0 ]; then
+        PRE_OPTS+=("-shared-dvm")
+    fi
+    if [ $M_MIC -ne 0 ]; then
+        PRE_OPTS+=("-mmic")
+        OUTPUT="$OUTPUT.mic"
+    fi
+    SRC_LANG="$lang" dvm_link "${PRE_OPTS[@]}" "${LINK_OPTS[@]}" -o "$OUTPUT" "${OBJS[@]}" "${LINK_LIBS[@]}" || errcc "Can not link"
+fi
+
+if [ $DO_COMP -ne 0 ]; then
+    if [ ${#TO_DELETE[@]} -gt 0 ]; then
+        rm "${TO_DELETE[@]}"
+    fi
+fi

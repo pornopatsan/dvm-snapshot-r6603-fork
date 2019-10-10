@@ -1,0 +1,101 @@
+/****************************************************\
+* Parameters for debugging trace and program control *
+\****************************************************/    /*E0000*/
+CMPTRACE_VERS=2889; /* minimal RTL version number, this file can be used with */    /*E0001*/
+
+EnableDynControl=0; /* turn on/off dynamical check */    /*E0002*/
+EnableTrace=0;      /* trace on/off */    /*E0003*/
+EnableCodeCoverage=0; /* defines if code coverage gathering is turned on or off */    /*E0004*/
+
+DelUsrTrace=0;      /* flag: delete old file with trace */    /*E0005*/
+
+DbgInfoPrint=1;     /* information messages of dynamic control system and
+                       program trace */    /*E0006*/
+
+DynDebugPrintStatistics=0; /* print statistics */    /*e0007*/
+DynDebugMemoryLimit=0; /* memory limit for dynamic debugger: */    /*e0008*/
+                       /* 0 - no memory limit */    /*E0009*/
+
+DynDebugExecutionTimeLimit=0; /* execution time limit for dynamic debugger: */    /*e0010*/
+                              /* 0 - no time limit */    /*E0011*/
+
+TraceOptions.TraceMode=1;  /* trace mode: */    /*e0012*/
+/* 0 - generate loop description file */    /*E0013*/
+/* 1 - save trace in file: %<processor number>%.%TraceOptions.Ext%        */    /*E0014*/
+/* 2 - generate loop description file and save trace in file (see above)  */    /*E0015*/
+/* 3 - compare performance results with the trace saved in the trace file */    /*E0016*/
+
+TraceOptions.TraceLevel=3; /* trace depth: */    /*e0017*/
+/* 0 - no information is gathered */    /*E0018*/
+/* 1 - information about loops and iterations (without variable modifications) */    /*E0019*/
+/* 2 - information about variable modifications */    /*E0020*/
+/* 3 - complete information */    /*E0021*/
+/* 4 - only checksums of arrays are gathered */    /*E0022*/
+
+ManualReductCalc=0;                  /* mode of manual reduction calculations   */    /*E0023*/
+TraceOptions.WriteEmptyIter=0;       /* trace empty iterations */    /*E0024*/
+
+TraceOptions.TracePath=;             /* path for trace files */    /*E0025*/
+TraceOptions.InputTracePrefix=;      /* input trace prefix */    /*E0026*/
+TraceOptions.OutputTracePrefix=;     /* output trace prefix */    /*E0027*/
+TraceOptions.Ext=trd;                /* file extension for processor trace */    /*E0028*/
+TraceOptions.FileLoopInfo=loops;     /* file for loop descriptions */    /*E0029*/
+TraceOptions.ErrorToScreen=0;        /* error diagnostics output to the screen */    /*E0030*/
+TraceOptions.ErrorFile=error.trd;    /* file for error diagnostics */    /*E0031*/
+
+TraceOptions.SaveThroughExec=0;      /* save trace during execution */    /*E0032*/
+TraceOptions.AppendErrorFile=0;      /* append error diagnostics into existing file */    /*E0033*/
+TraceOptions.MaxErrors=1000;         /* maximum number of detected errors */    /*E0034*/
+
+TraceOptions.Exp=0.0001;             /* accuracy of floating numbers comparison */    /*E0035*/
+TraceOptions.WrtHeaderProc=0;        /* processor, generated loop descriptions file */    /*E0036*/
+TraceOptions.SpaceIndent=2;          /* indent for the next level */    /*E0037*/
+TraceOptions.MultidimensionalArrays=1; /* use multidimensional limits for arrays */    /*E0038*/
+TraceOptions.DefaultArrayStep=1;     /* default array step */    /*E0039*/
+TraceOptions.DefaultIterStep=1;      /* default iteration step */    /*E0040*/
+
+TraceOptions.ChecksumMode=1;         /* defines the coverage of arrays
+                                        for calculating checksums */    /*E0041*/
+
+TraceOptions.CalcChecksums=0;        /* defines if in addition to usual level checksums will be calculated */    /*E0042*/
+TraceOptions.SeqLdivParContextOnly=0; /* defines if seq. loops will be divided in blocks
+                                         only if they are nested in parallel loop or always */    /*E0043*/
+
+HashMethod=1;                        /* used Hash function:
+                                        0 - StandartHashCalc
+                                        1 - OffsetHashCalc   */    /*E0044*/
+HashOffsetValue=3; /* variable address offset for HASH-value calculation
+                      used only with OffsetHashCalc method
+                      integer in the range: 0-16 */    /*E0045*/
+
+TraceOptions.TableTraceSize=2048;    /* trace table size */    /*E0046*/
+TraceOptions.HashIterIndex=1023;
+TraceOptions.HashIterSize=1024;
+
+/* sizes of the table of reduction variables */    /*E0047*/
+TraceOptions.ReductHashIndexSize=32; /* HASH-table index size */    /*E0048*/
+TraceOptions.ReductHashTableSize=32; /* HASH-table array of structures size */    /*E0049*/
+TraceOptions.ReductVarTableSize=32;  /* array of structures size */    /*E0050*/
+
+TraceOptions.drarr=0; /* trace depth */    /*e0051*/
+
+DebugOptions.ErrorFile=error.dbg;    /* filename for error diagnostics */    /*E0052*/
+
+DebugOptions.HashIndexSize=1001;     /* HASH-table index size */    /*E0053*/
+DebugOptions.HashTableSize=1000;     /* HASH-table array of structures size */    /*E0054*/
+DebugOptions.VarTableSize=100;       /* array of structures size for the variables table */    /*E0055*/
+
+DebugOptions.ErrorToScreen=0;        /* error diagnostics output to the screen */    /*E0056*/
+DebugOptions.AppendErrorFile=0;      /* append error diagnostics into existing file */    /*E0057*/
+DebugOptions.MaxErrors=1000;         /* maximum number of detected errors */    /*E0058*/
+
+DebugOptions.CheckVarInitialization=1;      /* check initialization of scalar variables */    /*E0059*/
+DebugOptions.CheckVarReadOnly=1;            /* check accessing to read-only variables */    /*E0060*/
+DebugOptions.CheckReductionAccess=1;        /* check accessing to reduction variables */    /*E0061*/
+DebugOptions.CheckDisArrInitialization=1;   /* check initialization of distibuted array elements */    /*E0062*/
+DebugOptions.CheckDisArrLimits=1;           /* check out of bounds access */    /*E0063*/
+DebugOptions.CheckDisArrEdgeExchange=1;     /* check edge exchange of distributed array */    /*E0064*/
+DebugOptions.CheckDisArrSequentialAccess=1; /* check access to distrubuted array in the sequential part */    /*E0065*/
+DebugOptions.CheckDisArrLocalElm=1;         /* check accessing to local elements of distributed array */    /*E0066*/
+DebugOptions.CheckDataDependence=1;         /* check data dependence in parallel loop */    /*E0067*/
+DebugOptions.CheckRemoteBufferAccess=1;     /* check using of remote buffers */    /*E0068*/

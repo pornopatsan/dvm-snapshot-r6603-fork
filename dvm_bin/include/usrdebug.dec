@@ -1,0 +1,139 @@
+#ifndef _USRDEBUG_DEC_
+#define _USRDEBUG_DEC_
+/********************/
+
+/**********************************************
+ *  Functions prototypes for dynanic control  *
+ *            and executions trace            *
+ **********************************************/
+
+/* before writing to the variable */
+
+DVMUSERFUN
+DvmType __callstd dprstv_(DvmType* plTypePtr, AddrType* pAddr, DvmType* pHandle,
+                       char* szOperand, DvmType lOperLength);
+
+/* after writing to the variable */
+
+DVMUSERFUN
+DvmType __callstd dstv_(void);
+
+/* use of variable for reading */
+
+DVMUSERFUN
+DvmType __callstd dldv_(DvmType* plTypePtr, AddrType* pAddr, DvmType* pHandle,
+                     char* szOperand, DvmType lOperLength);
+
+/* parallel loop beginning */
+
+DVMUSERFUN
+DvmType __callstd dbegpl_(DvmType *Rank, DvmType *No, DvmType Init[], DvmType Last[],
+                       DvmType Step[]);
+
+/* sequental loop beginning */
+
+DVMUSERFUN
+DvmType __callstd dbegsl_(DvmType *No);
+
+/* end of loop */
+
+DVMUSERFUN
+DvmType __callstd dendl_(DvmType *No, UDvmType *Line);
+
+/* next iteration beginning */
+
+DVMUSERFUN
+DvmType __callstd diter_(AddrType indexe[], DvmType IndexTypes[]);
+
+/* remote buffer defining */
+
+DVMUSERFUN
+DvmType __callstd drmbuf_(DvmType *ArrSrc, AddrType *RmtBuff, DvmType *Rank,
+                       DvmType Index[]);
+
+/* the block of operations was skipped */
+
+DVMUSERFUN
+DvmType __callstd dskpbl_(void);
+
+/* parallel block beginning */
+
+DVMUSERFUN
+DvmType __callstd dbegtr_(DvmType *No);
+
+/* DVM array or variable was read */
+
+DVMUSERFUN
+DvmType __callstd dread_(AddrType* ppAddr);
+
+/* replicated non-DVM array was read */
+
+DVMUSERFUN
+DvmType __callstd dreada_(AddrType* ppAddr, DvmType* pElemntLength,
+                       DvmType* pArrLength);
+
+/* Distributed array definition */
+
+DVMUSERFUN
+DvmType __callstd drarr_(DvmType *Rank, DvmType *TypePtr, DvmType *Handle,
+                      DvmType Size[], char *Operand, DvmType OperLength);
+
+/* Create a debug reduction group */
+
+DVMUSERFUN
+DvmType __callstd dcrtrg_(void);
+
+/* Insert reduction variable into the debug reduction group */
+
+DVMUSERFUN
+DvmType __callstd dinsrd_(ObjectRef* pDebRedGroup, DvmType* RedFuncNumbPtr, void* RedArrayPtr,
+    DvmType* RedArrayTypePtr, DvmType* RedArrayLengthPtr, void* LocArrayPtr, DvmType* LocElmLengthPtr,
+    DvmType* LocIndTypePtr);
+
+DVMUSERFUN
+DvmType __callstd dinsrf_(ObjectRef* pDebRedGroup, DvmType* RedFuncNumbPtr,
+                       AddrType* RedArrayAddrPtr, DvmType* RedArrayTypePtr,
+                       DvmType* RedArrayLengthPtr, void* LocArrayPtr,
+                       DvmType* LocElmLengthPtr, DvmType* LocIndTypePtr);
+
+/* Save the initial value of reduction variables */
+
+DVMUSERFUN
+DvmType __callstd dsavrg_(ObjectRef* pDebRedGroup);
+
+/* Calculate the reduction for all variables in the reduction group */
+
+DVMUSERFUN
+DvmType __callstd dclcrg_(ObjectRef* pDebRedGroup);
+
+/* Delete the debug reduction group */
+
+DVMUSERFUN
+DvmType __callstd ddelrg_(ObjectRef* pDebRedGroup);
+
+DVMUSERFUN
+void __callstd  dvtr_ (int *VTR, int *conv_mode);
+
+DVMUSERFUN
+DvmType __callstd dosl_(DvmType *No, DvmType* Init, DvmType* Last, DvmType* Step);
+
+DVMUSERFUN
+DvmType __callstd doplmb_(LoopRef  *LoopRefPtr, DvmType *No);
+
+DVMUSERFUN
+DvmType __callstd doplmbseq_(DvmType *No, DvmType *Rank, DvmType Init[], DvmType Last[], DvmType Step[]);
+
+DVMUSERFUN
+void __callstd dbgtron_(void);
+
+DVMUSERFUN
+void __callstd dbgtroff_(void);
+
+DVMUSERFUN
+void __callstd dbglparton_(void);
+
+DVMUSERFUN
+void __callstd dbglpartoff_(void);
+
+
+#endif /* Distributed array definition */

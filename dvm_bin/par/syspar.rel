@@ -1,0 +1,238 @@
+/**********************************************\
+* Support system parameters of general purpose *
+\**********************************************/    /*e0000*/
+SYSTEM_VERS=2889; /* minimal RTL version number, this file can be used with */    /*E0001*/
+
+IsUserPS=0;       /* user program processor system  */    /*E0002*/
+UserPS=0,0,0,0;   /* sizes of user program processor system
+                     (virtual processor system)*/    /*E0003*/
+ProcListSign=1;   /* flag on using list of external processor numbers */    /*E0004*/ 
+
+/* List of external processor numbers */    /*e0005*/
+
+/*
+ProcNumberList= 0, 1, 2, 3, 4, 5, 6, 7, 8, 9,10,11,12,13,14,15,
+               16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,
+               32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,
+               48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63;
+*/    /*E0006*/
+
+OneProcSign=0;         /* */    /*E0007*/
+
+PPMeasureCount=100000; /* number of processor performance 
+                          measuring loops */    /*E0008*/
+ProcWeightSign=1; /* use list of processor performance weights */    /*E0009*/
+
+/* List of processor performance weights */    /*e0010*/
+
+/*
+ProcWeightList= 1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ;
+*/    /*E0011*/
+
+CoordWeightSign=1; /* flag on using lists of processor coordinate weights */    /*E0012*/ 
+
+/* Lists of processor coordinate weights */    /*e0013*/
+
+/*
+CoordWeightList1= 1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ;
+
+CoordWeightList2= 1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ;
+
+CoordWeightList3= 1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ;
+
+CoordWeightList4= 1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,
+                  1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ,1 ;
+*/    /*E0014*/
+
+StdOutToFile=0;     /* flag: stdout => file */    /*E0015*/
+StdOutFileName=stdout;     /* file name for sydout */    /*E0016*/
+StdErrToFile=0;     /* flag: stderr => file */    /*E0017*/
+StdErrFileName=stderr;     /* file name for stderr */    /*E0018*/
+DelStdStream=1;     /* delete old files with
+                       standard streams */    /*E0019*/ 
+
+MultiProcErrReg=1;  /* mode byte of output messages of
+                       errors on multiprocessor system */    /*E0020*/
+
+SysInfoPrint=1;     /* turn on output of 
+                       support system information messages  */    /*E0021*/
+SysInfoStdOut=1;    /* output information messages into stdout */    /*E0022*/
+SysInfoStdErr=1;    /* output information messages 
+                       into stderr */    /*E0023*/
+SysInfoFile=0;      /* output information messages in file */    /*E0024*/
+SysInfoSepFile=1;   /* */    /*E0025*/
+SysInfoFileName=sysinfo.out; /* file name for information 
+                                messages  */    /*E0026*/
+FatInfoNoOpen=1;    /* end of execution in case of failed attempt to open
+                       file for information messages */    /*E0027*/
+DelSysInfo=1;       /* delete old files with 
+                       information messages */    /*E0028*/
+DelCurrentPar=2;    /* */    /*E0029*/
+InputParPrint=1;       /* print when input of each file with parameters starts */    /*E0030*/
+EndReadParPrint=0;     /* print when input of each file with parameters ends */    /*E0031*/
+VersStartPrint=1;      /* print version at the execution beginning */    /*E0032*/
+VersFullStartPrint=1;  /* detailed print version at the execution beginning */    /*E0033*/
+SysParPrint=1;         /* initialization parameters print */    /*E0034*/
+ProcListPrint=1;       /* table of processors print */    /*E0035*/
+WeightListPrint=1;     /* print list of processor coordinate weights */    /*E0036*/
+MsgSchedulePrint=1;    /* */    /*E0037*/
+ParamRunPrint=1;       /* print information on startup parameters */    /*E0038*/
+AcrossInfoPrint=0;     /* flag: output information of
+                          ACROSS scheme execution  */    /*E0039*/
+MPIReducePrint=0;      /* */    /*E0040*/
+MPIBcastPrint=0;       /* */    /*E0041*/
+MPIBarrierPrint=0;     /* */    /*E0042*/
+MPIInfoPrint=0;        /* */    /*E0043*/
+
+
+PPMeasurePrint=0;      /* */    /*E0044*/
+
+VersFinishPrint=0;     /* print version at the execution ending */    /*E0045*/
+VersFullFinishPrint=0; /* detailed print version at the execution ending */    /*E0046*/
+EndProgMemoryPrint=1;  /* flag: output information of non free memory
+                          at the end of execution */    /*E0047*/  
+EndProgObjectPrint=1;  /* flag: output information of non free DVM-objects
+                          at the end of execution */    /*E0048*/
+EndProgCheckSumPrint=1;/* flag: output information of checksum of 
+                          controlled  memory domains
+                          at the end of execution */    /*E0049*/
+RouterKillPrint=1;     /* flag of print kill of subtask for ROUTER */    /*E0050*/
+SysProcessNamePrint=0; /* */    /*E0051*/
+SubTasksTimePrint=0;   /* */    /*E0052*/
+UserTimePrint=1;       /* */    /*E0053*/
+FreeObjects=0;      /* */    /*E0054*/
+
+S_MPIAlltoall=0;    /* */    /*E0055*/
+A_MPIAlltoall=0;    /* */    /*E0056*/
+CG_MPIAlltoall=0;   /* */    /*E0057*/
+AlltoallWithMsgSchedule=0; /* */    /*E0058*/
+MPIReduce=2;        /* */    /*E0059*/
+MPIBcast=1;         /* */    /*E0060*/
+MPIBarrier=1;       /* */    /*E0061*/
+MPIGather=1;        /* */    /*E0062*/
+strtac_FreeBuf=0;   /* */    /*E0063*/
+consda_FreeBuf=0;   /* */    /*E0064*/
+dopl_WaitRD=2;      /* */    /*E0065*/
+InPLQNumber=4;   /* */    /*E0066*/
+AcrossGroupNumber=0; /* */    /*E0067*/
+AcrossQuantumReg=0;  /* */    /*E0068*/
+ASynchrPipeLine=1;   /* */    /*E0069*/
+CoilTime=0.;         /* */    /*E0070*/
+dopl_MPI_Test=0; /* */    /*E0071*/
+dopl_MPI_Test_Count=10; /* */    /*E0072*/
+ReqBufSize=2000; /* */    /*E0073*/
+MPS_ReqBufSize=2000; /* */    /*E0074*/
+MPI_Issend_sign=0; /* */    /*E0075*/
+IssendMsgLength=64000; /* */    /*E0076*/
+MsgSchedule=0;       /* */    /*E0077*/
+MsgPartReg=0;        /* */    /*E0078*/
+MaxMsgLength=0;      /* */    /*E0079*/
+MaxMsgParts=0;       /* */    /*E0080*/
+MsgExchangeScheme=0; /* */    /*E0081*/
+MsgPairNumber=1;     /* */    /*E0082*/
+setelw_precision=0.001; /* */    /*E0083*/
+MaxMeasureIndex=10; /* */    /*E0084*/
+RendErrorPrint=0;   /* */    /*E0085*/
+
+/* */    /*E0086*/
+
+MsgBuf1Length=0;    /* */    /*E0087*/
+MsgBufLength=0;     /* */    /*E0088*/
+DuplChanSign=0;     /* */    /*E0089*/
+ParChanNumber=0;    /* */    /*E0090*/
+MaxMsgSendNumber=0; /* */    /*E0091*/
+MaxMsg1SendNumber=0;/* */    /*E0092*/
+ResCoeff=1.;        /* */    /*E0093*/
+ResCoeffDoPL=1.;    /* */    /*E0094*/
+ResCoeffTstReq=1.;  /* */    /*E0095*/
+ResCoeffWaitReq=1.; /* */    /*E0096*/
+ResCoeffDACopy=1.;  /* */    /*E0097*/
+ResCoeffElmCopy=1.; /* */    /*E0098*/
+ResCoeffRedNonCentral=1.; /* */    /*E0099*/
+ResCoeffRedCentral=1.;    /* */    /*E0100*/
+ResCoeffLoadIB=1.;  /* */    /*E0101*/
+ResCoeffLoadIG=1.;  /* */    /*E0102*/
+ResCoeffAcross=0.5; /* */    /*E0103*/
+ResCoeffShdSend=1.; /* */    /*E0104*/
+ResCoeffInSend=1.;  /* */    /*E0105*/
+ResCoeffLoadRB=1.;  /* */    /*E0106*/
+ResCoeffLoadBG=1.;  /* */    /*E0107*/
+MsgWaitReg=0;       /* */    /*E0108*/
+FreeChanReg=0;      /* */    /*E0109*/
+
+AlignMemoryAddition=0;  /* 512 */    /*E0110*/
+AlignMemoryDelta=0;     /* 8 */    /*E0111*/
+AlignMemoryCircle=0;    /* 62 */    /*E0112*/
+
+
+ /* */    /*E0113*/
+
+CompressLevel=0;  /* */    /*E0114*/
+CompressFlush=0;  /* */    /*E0115*/
+TimeEqualizationCount=10; /* */    /*E0116*/
+MPI_Wtime_Sign=0;         /* */    /*E0117*/
+UTime_Sign=1;             /* */    /*E0118*/
+
+/* */    /*E0119*/
+
+ShgSave=0; /* */    /*E0120*/
+RgSave=0;  /* */    /*E0121*/
+
+BoundAddition=0; /* */    /*E0122*/
+
+/* */    /*E0123*/
+
+MsgCompressLevel=-1;   /* */    /*E0124*/
+MsgCompressStrategy=0; /* */    /*E0125*/
+MsgDVMCompress=0;      /* */    /*E0126*/
+CompressCoeff=0.6;     /* */    /*E0127*/
+MinMsgCompressLength=2000;  /* */    /*E0128*/
+MsgCompressWithMsgPart=1;   /* */    /*E0129*/
+ZLIB_Warning=1;             /* */    /*E0130*/
+AlltoallCompress=0;  /* */    /*E0131*/
+GatherCompress=0;    /* */    /*E0132*/
+BcastCompress=0;     /* */    /*E0133*/
+
+/* */    /*E0134*/
+
+DAReadPlane=1;   /* */    /*E0135*/
+DAWritePlane=1;  /* */    /*E0136*/
+DAVoidRead=0;    /* */    /*E0137*/
+DAVoidWrite=0;   /* */    /*E0138*/
+
+/* */    /*E0139*/
+
+dvm_void_scan=0;   /* */    /*E0140*/
+dvm_void_fread=0;  /* */    /*E0141*/
+dvm_void_fwrite=0; /* */    /*E0142*/
+MinIOMsgSize=5000; /* */    /*E0143*/
+MaxIOMsgSize=50000000; /* */    /*E0144*/
+FreeIOBuf=1;          /* */    /*E0145*/
+MPITestAfterSend=0;   /* */    /*E0146*/
+MPITestAfterRecv=0;   /* */    /*E0147*/
+SaveIOFlag=0;         /* */    /*E0148*/
+PrtSign=0;            /* */    /*E0149*/
+IOProcPrt=0;          /* */    /*E0150*/
+ApplProcPrt=19;       /* */    /*E0151*/
+SleepCount=0;         /* */    /*E0152*/
+
+/* */    /*E0153*/
+
+StrtRedSynchr=0; /* */    /*E0154*/
+StrtShdSynchr=0; /* */    /*E0155*/
+DACopySynchr=0;  /* */    /*E0156*/
+ADACopySynchr=0; /* */    /*E0157*/
