@@ -773,6 +773,37 @@ long CStatRead::ReadCall(typecom t) {
 // identifier information of interval
 // set number of current characteristics =0
 // return number of level
+void CStatRead::ReadIdent(ident *idp) {
+	short nlev = 0;
+	ident *id = NULL;
+	// nenter = number of enters / weight
+	double nenter = 0.0;
+	for (unsigned long i = 0; i < proccount; i++) {
+		if (pic[i] != NULL) {
+			pic[i]->ReadIdent(&id);
+			nlev = id->nlev;
+			nenter = nenter + id->nenter;
+		}
+	}
+	long nent = (long)(nenter / 1);
+	if (nenter - nent != 0.0) nent++;
+	idp->t = id->t;
+	idp->nline_end = id->nline_end;
+	idp->proc = id->proc;
+	idp->nlev = id->nlev;
+	idp->nline = id->nline;
+	idp->expr = id->expr;
+	idp->nenter = nent;
+	if (id->pname == NULL) {
+		idp->pname = NULL;
+	}
+	else {
+		idp->pname = new char[strlen(id->pname) + 1];
+		strcpy(idp->pname, id->pname);
+	}
+	curntime = 0;
+}
+
 short CStatRead::ReadTitle(char *str) {
     short nlev = 0;
     ident *id = NULL;
@@ -958,6 +989,94 @@ BOOL CStatRead::ReadProc(typeprint t, unsigned long *pnumb, int qnumb, short fmt
     }
     if (curntime > q) curntime = 0;
     return (TRUE);
+}
+
+void CStatRead::ReadProcS(ProcTimes *pt)
+{
+	printf("readprocs\n");
+	for (unsigned long i = 0; i < proccount; i++) {
+		// read time characteristic
+		double time;
+		printf("readtime\n");
+		pic[i]->ReadTime((typetime)(LOST), time);
+		pt[i].lost_time = time;
+		printf("readtime\n");
+		pic[i]->ReadTime((typetime)(INSUFUSR), time);
+		pt[i].insuf_user = time;
+		pic[i]->ReadTime((typetime)(INSUF), time);
+		pt[i].insuf_sys = time;
+		pic[i]->ReadTime((typetime)(IDLE), time);
+		pt[i].idle = time;
+		pic[i]->ReadTime((typetime)(SUMCOM), time);
+		pt[i].comm = time;
+		pic[i]->ReadTime((typetime)(SUMRCOM), time);
+		pt[i].real_comm = time;
+		pic[i]->ReadTime((typetime)(SUMSYN), time);
+		pt[i].synch = time;
+		pic[i]->ReadTime((typetime)(SUMVAR), time);
+		pt[i].time_var = time;
+		pic[i]->ReadTime((typetime)(IMB), time);
+		pt[i].load_imb = time;
+		pic[i]->ReadTime((typetime)(EXEC), time);
+		pt[i].exec_time = time;
+		pic[i]->ReadTime((typetime)(CPUUSR), time);
+		pt[i].prod_cpu = time;
+		pic[i]->ReadTime((typetime)(CPU), time);
+		pt[i].prod_sys = time;
+		pic[i]->ReadTime((typetime)(IOTIME), time);
+		pt[i].prod_io = time;
+		pic[i]->ReadTime((typetime)(START), time);
+		pt[i].overlap = time;
+		pic[i]->ReadTime((typetime)(DVMH_THREADS_USER_TIME), time);
+		pt[i].thr_user_time = time;
+		pic[i]->ReadTime((typetime)(DVMH_THREADS_SYSTEM_TIME), time);
+		pt[i].thr_sys_time = time;
+		pic[i]->ReadTime((typetime)(DVMH_GPU_TIME_PRODUCTIVE), time);
+		pt[i].gpu_time_prod = time;
+		pic[i]->ReadTime((typetime)(DVMH_GPU_TIME_LOST), time);
+		pt[i].gpu_time_lost = time;
+		pic[i]->ReadTime(COM, (typecom)(IO), time);
+		pt[i].col_op[IO].comm = time;
+		pic[i]->ReadTime(COM, (typecom)(RD), time);
+		pt[i].col_op[RD].comm = time;
+		pic[i]->ReadTime(COM, (typecom)(SH), time);
+		pt[i].col_op[SH].comm = time;
+		pic[i]->ReadTime(COM, (typecom)(RA), time);
+		pt[i].col_op[RA].comm = time;
+		pic[i]->ReadTime(COM, (typecom)(IO), time);
+		pt[i].col_op[IO].real_comm = time;
+		pic[i]->ReadTime(COM, (typecom)(RD), time);
+		pt[i].col_op[RD].real_comm = time;
+		pic[i]->ReadTime(COM, (typecom)(SH), time);
+		pt[i].col_op[SH].real_comm = time;
+		pic[i]->ReadTime(COM, (typecom)(RA), time);
+		pt[i].col_op[RA].real_comm = time;
+		pic[i]->ReadTime(COM, (typecom)(IO), time);
+		pt[i].col_op[IO].synch = time;
+		pic[i]->ReadTime(COM, (typecom)(RD), time);
+		pt[i].col_op[RD].synch = time;
+		pic[i]->ReadTime(COM, (typecom)(SH), time);
+		pt[i].col_op[SH].synch = time;
+		pic[i]->ReadTime(COM, (typecom)(RA), time);
+		pt[i].col_op[RA].synch = time;
+		pic[i]->ReadTime(COM, (typecom)(IO), time);
+		pt[i].col_op[IO].time_var = time;
+		pic[i]->ReadTime(COM, (typecom)(RD), time);
+		pt[i].col_op[RD].time_var = time;
+		pic[i]->ReadTime(COM, (typecom)(SH), time);
+		pt[i].col_op[SH].time_var = time;
+		pic[i]->ReadTime(COM, (typecom)(RA), time);
+		pt[i].col_op[RA].time_var = time;
+		pic[i]->ReadTime(COM, (typecom)(IO), time);
+		pt[i].col_op[IO].overlap = time;
+		pic[i]->ReadTime(COM, (typecom)(RD), time);
+		pt[i].col_op[RD].overlap = time;
+		pic[i]->ReadTime(COM, (typecom)(SH), time);
+		pt[i].col_op[SH].overlap = time;
+		pic[i]->ReadTime(COM, (typecom)(RA), time);
+		pt[i].col_op[RA].overlap = time;
+		printf("readtime\n");
+	}
 }
 
 //--------------------------------------------------------
