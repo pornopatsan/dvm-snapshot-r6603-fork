@@ -1,7 +1,0 @@
-/* WITHOUT DYNAMIC CONTROL AND WITH GENERATION LOOP DESCRIPTION FILE */
-
-EnableDynControl=0;        /* turn on/off dynamical check */
-EnableTrace=1;             /* trace on/off */
-TraceOptions.TraceMode=0;  /* trace mode */
-DelUsrTrace=0;             /* delete trace files */
-Is_DVM_STAT=0;             /* statistics on/off */
