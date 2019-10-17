@@ -103,6 +103,7 @@ struct PragmaExpander: public PragmaHandler {
 public:
     explicit PragmaExpander(llvm::raw_string_ostream &OS, const char *name = "dvm"): PragmaHandler(name), OS(OS), name(name) {}
     virtual void HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer, Token &PragmaTok);
+    virtual void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &PragmaTok) override {}
 protected:
     llvm::raw_string_ostream &OS;
     std::string name;

@@ -1,0 +1,81 @@
+
+enum {
+	GSHADOW,
+	GREMOTE,
+	GREDISTRIBUTION,
+	GREGIONIN,
+	GNUMOP
+};
+
+struct GpuOpTime {             //времена операций передачи данных с gpu
+	double gpu_to_cpu;
+	double cpu_to_gpu;
+	double gpu_to_gpu;
+};
+
+struct ThreadTime {            //времена работы одной нити
+	double user_time;
+	double sys_time;
+};
+
+struct GpuTime {               //времена работы gpu
+	char * gpu_name;
+	double prod_time;
+	double kernel_exec;
+	double loop_exec;
+	double lost_time;
+	double get_actual;
+	double data_reorg;
+	double reduction;
+	double gpu_runtime_compilation;
+	double gpu_to_cpu;
+	double cpu_to_gpu;
+	double gpu_to_gpu;
+	struct GpuOpTime op_times[GNUMOP];
+
+};
+
+struct ColOp {                 //времена выполнения коллективных операций
+	long ncall;
+	double comm;
+	double synch;
+	double real_comm;
+	double time_var;
+	double overlap;
+};
+
+struct OpGrp {
+	double calls;
+	double lost_time;
+	double prod;
+};
+
+struct ProcTimes {
+	double prod_cpu;
+	double prod_sys;
+	double prod_io;
+	double exec_time;
+	double sys_time;
+	double real_comm;
+	double lost_time;
+	double insuf_user;
+	double insuf_sys;
+	double comm;
+	double idle;
+	double load_imb;
+	double synch;
+	double time_var;
+	double overlap;
+	double thr_user_time;
+	double thr_sys_time;
+	double gpu_time_prod;
+	double gpu_time_lost;
+	unsigned long num_threads;
+	struct ThreadTime * th_times;
+	unsigned long num_gpu;
+	struct GpuTime *gpu_times;
+	struct ColOp col_op[4];//4~RED
+};
+
+typedef struct OpGrp OpGrp;
+typedef struct ProcTimes ProcTimes;

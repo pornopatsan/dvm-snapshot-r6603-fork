@@ -311,7 +311,7 @@ VarState ConverterASTVisitor::fillVarState(VarDecl *vd) {
 }
 
 bool ConverterASTVisitor::VisitDeclStmt(DeclStmt *ds) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(ds->getLocEnd());
+    SourceLocation fileLoc = srcMgr.getFileLoc(ds->getEndLoc());
     std::string fileName = srcMgr.getFilename(fileLoc);
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
@@ -327,7 +327,7 @@ bool ConverterASTVisitor::VisitDeclStmt(DeclStmt *ds) {
 }
 
 bool ConverterASTVisitor::TraverseFunctionProtoTypeLoc(FunctionProtoTypeLoc ft) {
-    SourceLocation fileLoc = srcMgr.getFileLoc(ft.getLocStart());
+    SourceLocation fileLoc = srcMgr.getFileLoc(ft.getBeginLoc());
     PresumedLoc ploc = srcMgr.getPresumedLoc(fileLoc);
     cdvmhLog(DONT_LOG, ploc.getFilename(), ploc.getLine(), "Entering MyDeclContext(Function)");
     enterDeclContext(true);
