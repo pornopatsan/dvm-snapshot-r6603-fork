@@ -50,6 +50,23 @@ class ControlPoint {
   public:
     void save(const DvmType dvmDesc[] = NULL, FILE *astream = NULL);
 
+  private:
+    template <typename T>
+    string NumberToString ( T Number )
+    {
+        std::ostringstream ss;
+        ss << Number;
+        return ss.str();
+    }
+
+    template <typename T>
+    T StringToNumber ( const string &Text )
+    {
+        istringstream ss(Text);
+        T result;
+        return ss >> result ? result : 0;
+    }
+
   public:
     int getNfiles() const { return nfiles; }
     int getNextfile() const { return nextfile; }
@@ -58,9 +75,9 @@ class ControlPoint {
 
     String getNextFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + "_" + "%d" + ".txt";
+            return directory + "/" + fname + "_" + NumberToString(this->getNextfile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + ".txt";
+            return directory + "/" + fname + "_" + NumberToString(this->getNextfile()) + ".txt";
         } else {
             // TODO: error
             return "";
@@ -69,9 +86,9 @@ class ControlPoint {
 
     String getLastFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
+            return directory + "/" + fname + "_" + NumberToString((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + ".txt";
+            return directory + "/" + fname + "_" + NumberToString((this->getNextfile() - 1) % nfiles) + ".txt";
         } else {
             // TODO: error
             return "";
