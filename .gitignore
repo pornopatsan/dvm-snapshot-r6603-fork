@@ -2,13 +2,15 @@
 .idea/
 
 *.o
+*.err
+*.a
+
 dvm_bin/
 dvm_sys/bin/
 dvm_sys/demo/
 dvm_sys/par/
 dvm_sys/include/
 dvm_sys/platform
-*.err
 dvm_sys/build_number
 dvm_sys/dvm
 dvm_sys/dvmvers.h
@@ -17,10 +19,8 @@ dvm_sys/rts/dvmh/dynamic_include.h
 dvm_sys/testing/st
 dvm_sys/tools/pppa/src/dvmvers.h
 dvm_sys/tools/predictor/Presage/Src/predictor
-*.a
 dvm_sys/tools/predictor/Trcutil/trcutil
 dvm_sys/user/dvm
 dvm_sys/user/usr.par
-dvm_sys/build_number
 dvm_sys/tools/pppa/src/help
 dvm_sys/testing/sts.gz+
