@@ -2,6 +2,7 @@
 
 #include <cstdio>
 #include <string>
+#include <sstream>
 
 #include "dvmh_async.h"
 
@@ -21,10 +22,16 @@ class ControlPoint {
 
   public:
     static const std::string DIRNAME;
-    String directory;
-    String name;
+    static std::string NumberToString(int number)
+    {
+        std::ostringstream stream;
+        stream << number;
+        return stream.str();
+    }
 
   public:
+    String directory;
+    String name;
     VectorDesc varDescList;
     VectorSize varSizeList;
     VectorSize varNmembList;
@@ -32,18 +39,13 @@ class ControlPoint {
     int axesNum;
     VectorSize axesSizeList;
 
-
     String fname;
     DvmhCpMode mode;
-
-  public:
     int nfiles;
     int nextfile;
 
   public:
     ControlPoint() {}
-
-    // ControlPoint(String name, VectorDesc varlist, String filename, int nfiles);
     ControlPoint(String name, VectorDesc varlist, String filename, int nfiles, DvmhCpMode mode=LOCAL);
     ControlPoint(String name, VectorDesc varlist);
 
@@ -58,9 +60,9 @@ class ControlPoint {
 
     String getNextFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + "_" + "%d" + ".txt";
+            return directory + "/" + fname + "_" + ControlPoint::NumberToString(this->getNextfile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + std::to_string(this->getNextfile()) + ".txt";
+            return directory + "/" + fname + "_" + ControlPoint::NumberToString(this->getNextfile()) + ".txt";
         } else {
             // TODO: error
             return "";
@@ -69,9 +71,9 @@ class ControlPoint {
 
     String getLastFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
+            return directory + "/" + fname + "_" + ControlPoint::NumberToString((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + std::to_string((this->getNextfile() - 1) % nfiles) + ".txt";
+            return directory + "/" + fname + "_" + ControlPoint::NumberToString((this->getNextfile() - 1) % nfiles) + ".txt";
         } else {
             // TODO: error
             return "";

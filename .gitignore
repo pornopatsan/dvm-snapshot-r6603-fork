@@ -21,6 +21,6 @@ dvm_sys/tools/predictor/Presage/Src/predictor
 dvm_sys/tools/predictor/Trcutil/trcutil
 dvm_sys/user/dvm
 dvm_sys/user/usr.par
-dvm_sys/dvm
+dvm_sys/build_number
 dvm_sys/tools/pppa/src/help
 dvm_sys/testing/sts.gz+
