@@ -82,7 +82,8 @@ public:
 	CStatInter * inter_tree;                                //"�������" ������ ����������
 	unsigned long nproc;									//���������� ���������
 	CProcInfo  * proc_info;                                 //���������� �� ����������� (��� ����, �������� �����)
-	char * spath;
+    CStatRead * stat;
+    char * spath;
 	bool iscomp;
 	bool isinitialized;
 	void to_string(std::string & result);
