@@ -1,14 +1,14 @@
 #include "statlist.h"
 
 void CStatInter::to_string(std::string &result) {
-	result += patch::to_string(id.t) + ' ';
-	result += patch::to_string(id.nlev) + ' ';
-	result += patch::to_string(id.expr) + ' ';
-	result += patch::to_string(id.nline) + ' ';
-	result += patch::to_string(id.nline_end) + ' ';
-	result += patch::to_string(id.proc) + ' ';
-	result += patch::to_string(id.nenter) + ' ';
-	result += '@'+id.pname+'@' + ' ';
+	result += "@interval@ ";
+	result += patch::to_string(id.nlev) + ' ';   //СѓСЂРѕРІРµРЅСЊ РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё
+	result += patch::to_string(id.t) + ' ';      //С‚РёРї РёРЅС‚РµСЂРІР°Р»Р°
+	result += patch::to_string(id.expr) + ' ';   //Р·РЅР°С‡РµРЅРёРµ РІС‹СЂР°Р¶РµРЅРёСЏ
+	result += patch::to_string(id.nline) + ' ';  //РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё РЅР°С‡Р°Р»Р°
+	result += patch::to_string(id.nline_end) + ' '; //РЅРѕРјРµСЂ СЃС‚СЂРѕРєРё РєРѕРЅС†Р°
+	result += patch::to_string(id.nenter) + ' '; //С‡РёСЃР»Рѕ РІС…РѕР¶РґРµРЅРёР№ РІ РёРЅС‚РµСЂРІР°Р»
+    result += "\n@times@ ";
 	result += patch::to_string(prod_cpu)+' ';
 	result += patch::to_string(prod_sys) + ' ';
 	result += patch::to_string(prod_io) + ' ';
@@ -33,6 +33,7 @@ void CStatInter::to_string(std::string &result) {
 	result += patch::to_string(gpu_time_lost) + ' ';
 	result += patch::to_string(nproc)+' ';
 	result += patch::to_string(threadsOfAllProcs)+' ';
+    result += "@end_times@\n";
 	for (unsigned int i = 0; i < RED; i++) {
 		result+= patch::to_string(col_op[i].ncall)+' ';
 		result += patch::to_string(col_op[i].comm) + ' ';
@@ -48,7 +49,10 @@ void CStatInter::to_string(std::string &result) {
 			result += patch::to_string(op_group[j][i].lost_time) + ' ';
 		}
 	}
+    result += "\n@proc@\n";
+    result += patch::to_string(id.proc) + '\n';   //РєРѕР»-РІРѕ РїСЂРѕС†РµСЃСЃРѕРІ
 	for (unsigned int i = 0; i < nproc; i++) {
+        result += "@proc" + patch::to_string(i) + "@ ";
 		result += patch::to_string(proc_times[i].prod_cpu) + ' ';
 		result += patch::to_string(proc_times[i].prod_sys) + ' ';
 		result += patch::to_string(proc_times[i].prod_io) + ' ';
@@ -68,14 +72,20 @@ void CStatInter::to_string(std::string &result) {
 		result += patch::to_string(proc_times[i].thr_sys_time) + ' ';
 		result += patch::to_string(proc_times[i].gpu_time_prod) + ' ';
 		result += patch::to_string(proc_times[i].gpu_time_lost) + ' ';
+        result += "\n@treads@\n";
 		result += patch::to_string(proc_times[i].num_threads) + ' ';
 		for (unsigned int j = 0; j < proc_times[i].num_threads;j++) {
+            result += "@tread" + patch::to_string(j) + "@ ";
 			result += patch::to_string(proc_times[i].th_times[j].sys_time) + ' ';
 			result += patch::to_string(proc_times[i].th_times[j].user_time) + ' ';
+            result += "@end_tread" + patch::to_string(j) + "@ ";
 		}
+        result += "\n@end_treads@\n";
+        result += "@gpu@\n";
 		result += patch::to_string(proc_times[i].num_gpu) + ' ';
 		for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-			result +='@'+proc_times[i].gpu_times[j].gpu_name+'@' + ' ';
+			result +="@gpu"+ patch::to_string(j) + "_"
+                + std::string(proc_times[i].gpu_times[j].gpu_name) + '@' + ' ';
 			result += patch::to_string(proc_times[i].gpu_times[j].prod_time)+' ';
 			result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
 			result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
@@ -92,16 +102,23 @@ void CStatInter::to_string(std::string &result) {
 				result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
 				result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
 			}
+            result += "@end_gpu" + patch::to_string(j) + "@";
 		}
-		for (int i = 0; i < 4; i++) {
-			result += patch::to_string(col_op[i].comm) + ' ';
-			result += patch::to_string(col_op[i].ncall) + ' ';
-			result += patch::to_string(col_op[i].overlap) + ' ';
-			result += patch::to_string(col_op[i].real_comm) + ' ';
-			result += patch::to_string(col_op[i].synch) + ' ';
-			result += patch::to_string(col_op[i].time_var) + ' ';
-		}
+        result += "\n@end_gpu@\n";
+
+        //what????
+		// for (int i = 0; i < 4; i++) {
+		// 	result += patch::to_string(col_op[i].comm) + ' ';
+		// 	result += patch::to_string(col_op[i].ncall) + ' ';
+		// 	result += patch::to_string(col_op[i].overlap) + ' ';
+		// 	result += patch::to_string(col_op[i].real_comm) + ' ';
+		// 	result += patch::to_string(col_op[i].synch) + ' ';
+		// 	result += patch::to_string(col_op[i].time_var) + ' ';
+		// }
+        result += "@end_proc" + patch::to_string(i) + "@\n";
 	}
+    result += "@end_proc@\n";
+    result += "@end_interval@\n";
 }
 
 CStatInter::CStatInter(const CStatInter & si) {
@@ -226,7 +243,7 @@ void CStatInter::clear() {
 	for (unsigned int i = 0; i < nproc; i++) {
 		delete [] proc_times[i].th_times;
 		for (unsigned int j = 0; j < proc_times[i].num_gpu; j++)
-			delete [] proc_times[i].gpu_times[j].gpu_name;		
+			delete [] proc_times[i].gpu_times[j].gpu_name;
 		delete [] proc_times[i].gpu_times;
 	}
 }
@@ -248,7 +265,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 {
 	printf("begin init %d\n", n);
 	unsigned long qproc = stat->QProc();
-	//читаем заголовок текущего интервала
+	//пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	stat->ReadIdent(&id);
 	// string for processor characteristics - max
 	double min[ITER + 1];
@@ -288,7 +305,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 	stat->MinMaxSum(PRVAR, minv, nprocminv, maxv, nprocmaxv, sumv);
 	stat->MinMaxSum(PROVER, minov, nprocminov, maxov, nprocmaxov, sumov);
 	printf("main charecteristics\n");
-	//читаем основные характеристики
+	//пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	nproc = n;
 	prod_cpu = sum[CPUUSR];
 	prod_sys = sum[CPU];
@@ -325,7 +342,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 		col_op[i].overlap = sumov[i];
 	}
 	//return;
-   
+
 	op_group = new OpGrp[qproc][StatGrpCount];
 	printf("group\n");
 	for (unsigned long j = 0; j < qproc; j++) {
