@@ -64,15 +64,13 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
     return std::make_pair(size, nmemb);
 }
 
-ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist,
-                           ControlPoint::String filename, int nfiles, DvmhCpMode mode) {
+ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
     this->name = name;
     this->varDescList = varlist;
-    this->fname = filename;
     this->nfiles = nfiles;
     this->mode = mode;
 
-    this->directory = DIRNAME + "/" + name;
+    this->directory = ControlPoint::DIRNAME + "/" + name;
     this->nextfile = 0;
 
     this->varSizeList.clear();
@@ -116,13 +114,17 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
 
 using namespace libdvmh;
 
-void checkOrCreateCpDirectory(const std::string &DIRNAME=ControlPoint::DIRNAME)
+// Creates DIRNAME
+// returns false if it already exists or true of is was just created
+bool checkOrCreateCpDirectory(const std::string &DIRNAME=ControlPoint::DIRNAME)
 {
     // TODO: what about windows
     struct stat sb;
     if (!(stat(DIRNAME.c_str(), &sb) == 0 && S_ISDIR(sb.st_mode))) {
         mkdir(DIRNAME.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+        return true;
     }
+    return false;
 }
 
 void saveControlPointHeader(const ControlPoint *cp)
@@ -149,10 +151,6 @@ void saveControlPointHeader(const ControlPoint *cp)
         dvmh_void_fwrite(&cp->axesSizeList[i], sizeof(size_t), 1, header);
     }
 
-    size_t fnameSize = cp->fname.size() + 1;
-    dvmh_void_fwrite(&fnameSize, sizeof(fnameSize), 1, header);
-    dvmh_void_fwrite(cp->fname.data(), sizeof(char), fnameSize, header);
-
     dvmh_fclose(header);
 }
 
@@ -178,12 +176,6 @@ void loadControlPointFromHeader(ControlPoint *cp)
     for (size_t i = 0; i < cp->axesNum; ++i) {
         dvmh_void_fread(&cp->axesSizeList[i], sizeof(size_t), 1, header);
     }
-
-    size_t fnameSize = cp->fname.size();
-    dvmh_void_fread(&fnameSize, sizeof(fnameSize), 1, header);
-    char fname[fnameSize];
-    dvmh_void_fread(fname, sizeof(char), fnameSize, header);
-    cp->fname = fname;
 
     dvmh_fclose(header);
 }
@@ -235,49 +227,10 @@ bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
         }
     }
 
-    printf("TRUE5!\n");
-
-    size_t fnameSize = 0;
-    dvmh_void_fread(&fnameSize, sizeof(fnameSize), 1, header);
-    char fname[fnameSize];
-    dvmh_void_fread(&fname, sizeof(fname), 1, header);
-
     return true;
 }
 
-extern "C" void dvmh_cp_save(const char *cp_name) {
-    // TODO: rewrite this with dvmh_save_conrol_point()
-    printf("Saving CP\n");
-    std::pair<std::string, ControlPoint *> it = *ActiveControlPoints.find(std::string(cp_name));
-    FILE *astream = dvmh_fopen((it.second->getNextFilename()).c_str(), "wb");
-    it.second->incFileQueue();
-    for (size_t i = 0; i < it.second->varDescList.size(); ++i) {
-        dvmh_smart_void_write(it.second->varDescList[i], astream);
-    }
-    saveControlPointHeader(it.second);
-    dvmh_fclose(astream);
-}
-
-// TODO: this works with active cp's only
-extern "C" void dvmh_cp_load(const char *cp_name) {
-    // TODO: rewrite this with dvmh_load_conrol_point()
-    printf("Loading CP\n");
-    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(std::string(cp_name));
-    if (iter != ActiveControlPoints.end()) {
-        std::pair<std::string, ControlPoint *> it = *iter;
-        FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r", false).c_str());
-        printf("%s\n", it.second->getLastFilename().c_str());
-        for (size_t i = 0; i < it.second->varDescList.size(); ++i) {
-            dvmh_smart_void_read(it.second->varDescList[i], astream);
-        }
-        dvmh_fclose(astream);
-    } else {
-        printf("%s\n", "ControlPoint is not Active, use <dvmh_load_conrol_point()>");
-    }
-}
-
-extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size,
-                                          const char *filename, const size_t nfiles, const int mode) {
+extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
     printf("Creating CP\n");
     checkOrCreateCpDirectory();
 
@@ -286,7 +239,7 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
         varlist.push_back(dvmDesc[i]);
     }
 
-    ControlPoint *cp = new ControlPoint(cpName, varlist, filename, nfiles, static_cast<DvmhCpMode>(mode));
+    ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
     ActiveControlPoints.insert(std::make_pair(cpName, cp));
     printf("%d\n", cp->axesNum);
 
@@ -298,12 +251,44 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
     FILE *hdr = dvmh_fopen(cp->getHeaderFilename().c_str(), "rbp");
     printf("%s\n", checkVarlistFitsHeader(cp->varDescList, hdr) ? "True" : "False");
     dvmh_fclose(hdr);
+}
 
-    // for (int i = 0; i < 64; ++i) {
-    //     if (i % 8 == 0) { printf("\n"); }
-    //     printf("%0.16lx  ", dvmDesc[0][i]);
-    // }
-    // printf("\n");
+extern "C" void dvmh_bind_conrol_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size) {
+    // TODO: make this the only load function
+    printf("Loading Control Point\n");
+
+    std::vector<DvmType *> varlist;
+    for (size_t i = 0; i < var_size; ++i) {
+        varlist.push_back(dvmDesc[i]);
+    }
+
+    FILE *header = dvmh_fopen((ControlPoint::DIRNAME + "/" + cpName + "/Header" + ".txt").c_str(), "wbp");//cp->getOpenMode("w", false).c_str());
+    if (!checkVarlistFitsHeader(varlist, header)) {
+        printf("Variables don't fit this Control Point\n");
+    } else {
+        printf("Variables do fit!\nLOADING\n");
+        ControlPoint *cp = new ControlPoint(cpName, varlist);
+        loadControlPointFromHeader(cp);
+        ActiveControlPoints.erase(cpName);
+        ActiveControlPoints.insert(std::make_pair(cpName, cp));
+    }
+    dvmh_fclose(header);
+}
+
+extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
+    checkOrCreateCpDirectory();
+
+    std::vector<DvmType *> varlist;
+    for (size_t i = 0; i < var_size; ++i) {
+        varlist.push_back(dvmDesc[i]);
+    }
+    ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
+
+    if (checkOrCreateCpDirectory(cp->directory)) {
+        dvmh_create_control_point(cpName, dvmDesc, var_size, nfiles, mode);
+    } else {
+        dvmh_bind_conrol_point(cpName, dvmDesc, var_size);
+    }
 }
 
 extern "C" void dvmh_save_conrol_point(const char *cpName) {
@@ -324,27 +309,22 @@ extern "C" void dvmh_save_conrol_point(const char *cpName) {
     }
 }
 
-extern "C" void dvmh_load_conrol_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size) {
-    // TODO: make this the only load function
-    printf("Loading Control Point\n");
-
-    std::vector<DvmType *> varlist;
-    for (size_t i = 0; i < var_size; ++i) {
-        varlist.push_back(dvmDesc[i]);
-    }
-
-    FILE *header = dvmh_fopen((ControlPoint::DIRNAME + "/" + cpName + "/Header" + ".txt").c_str(), "wbp");//cp->getOpenMode("w", false).c_str());
-    if (!checkVarlistFitsHeader(varlist, header)) {
-        printf("Variables don't fit this Control Point\n");
+// TODO: this works with active cp's only
+extern "C" void dvmh_load_conrol_point(const char *cp_name) {
+    // TODO: rewrite this with dvmh_load_conrol_point()
+    printf("Loading CP\n");
+    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(std::string(cp_name));
+    if (iter != ActiveControlPoints.end()) {
+        std::pair<std::string, ControlPoint *> it = *iter;
+        FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r", false).c_str());
+        printf("%s\n", it.second->getLastFilename().c_str());
+        for (size_t i = 0; i < it.second->varDescList.size(); ++i) {
+            dvmh_smart_void_read(it.second->varDescList[i], astream);
+        }
+        dvmh_fclose(astream);
     } else {
-        printf("Variables do fit!\nLOADING\n");
-        ControlPoint *cp = new ControlPoint(cpName, varlist);
-        loadControlPointFromHeader(cp);
-        ActiveControlPoints.erase(cpName);
-        ActiveControlPoints.insert(std::make_pair(cpName, cp));
-        dvmh_cp_load(cpName);
+        printf("%s\n", "ControlPoint is not Active, use <dvmh_load_conrol_point()>");
     }
-    dvmh_fclose(header);
 }
 
 extern "C" void dvmh_smart_void_write(DvmType dvmDesc[], FILE *astream) {
