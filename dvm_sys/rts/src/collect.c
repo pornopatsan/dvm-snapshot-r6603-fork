@@ -195,12 +195,12 @@ void   coll_ObjFreeFrom(s_COLLECTION  *Coll, byte  ObjType,
               AMV = coll_At(s_AMVIEW *, Coll, i);
 
               /* set flag to allow delayed deletion for
-                 s_AMVIEW objects from finished context.
-                 Delayed deletion happens in disarr_Done */
+                 s_AMVIEW objects from finished context. */
               if(AMV->HandlePtr->InitCrtBlockInd == BlockInd)
                  AMV->HandlePtr->InitCrtBlockInd = 0;
 
-              if(AMV->HandlePtr->CrtBlockInd == BlockInd)
+              if((AMV->HandlePtr->CrtBlockInd == BlockInd) ||
+                ((AMV->ArrColl.Count == 0) && (AMV->HandlePtr->InitCrtBlockInd == 0)))
                  coll_AtFree(Coll, i);
           }
 

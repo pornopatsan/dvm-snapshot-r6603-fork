@@ -978,22 +978,6 @@ void  disarr_Done(s_DISARRAY  *DArr)
       ( RTL_CALL, delamv_(&AMVRef) );
    }
 
-   /* Delayed deletion for AM representation.
-      Happens if its context ended and it has
-      no more arrays associated with it */
-   if((DArr->AMView != NULL) && (DArr->RegBufSign == 0) &&
-      (DArr->MemPtr == NULL))
-   {
-      AMVHandlePtr = DArr->AMView->HandlePtr;
-
-      if(DArr->AMView->ArrColl.Count == 0 &&
-         AMVHandlePtr->InitCrtBlockInd == 0)
-      {  ObjRef = (ObjectRef)AMVHandlePtr;
-
-         ( RTL_CALL, delobj_(&ObjRef) );
-      }
-   }
-
    if(RTL_TRACE)
       dvm_trace(ret_disarr_Done," \n");
 
