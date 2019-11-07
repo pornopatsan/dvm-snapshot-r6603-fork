@@ -614,10 +614,10 @@ The function returns non zero value if realigned array has a local part
 on the current processor, otherwise returns zero. 
 */    /*E0044*/
 
-{ SysHandle   *MapHandlePtr, *ArrayHandlePtr, *AMVHandlePtr;
-  s_DISARRAY  *DArr;
+{ SysHandle   *MapHandlePtr, *ArrayHandlePtr, *AMVHandlePtr, *NewArrayHandlePtr;
+  s_DISARRAY  *DArr, *NewDArr;
   s_ARRAYMAP  *Map;
-  int          i, j;
+  int          i, j, EnvInd, Coll_Ind;
   DvmType         AR, TypeSize, StaticSign, ReDistrSign, CopyRegim = 0,
                Res, Temp, ExtHdrSign;
   DvmType         LowShdWidthArray[MAXARRAYDIM],
@@ -628,6 +628,8 @@ on the current processor, otherwise returns zero.
   byte         SDisArrayFill;
   s_AMS       *wAMS;
   ObjectRef    ObjRef;
+  s_ENVIRONMENT *Env;
+  s_COLLECTION  *DAColl;
 
   StatObjectRef = (ObjectRef)ArrayHeader[0]; /* for statistics */    /*E0045*/
   DVMFTimeStart(call_mrealn_);
@@ -904,6 +906,20 @@ on the current processor, otherwise returns zero.
         }
      }
 
+     EnvInd = gEnvColl->Count - 1; /* current context index */
+     Env  = coll_At(s_ENVIRONMENT *, gEnvColl, EnvInd); /* current context */
+     DAColl = &(Env->DisArrList); /* collection for distributed arrays */
+     Coll_Ind = coll_IndexOf(DAColl, DArr); /* previous position of array in collection */
+
+     if (Coll_Ind != -1)
+     {  NewArrayHandlePtr = TstDVMArray(NewArrayHeader);
+        NewDArr = (s_DISARRAY *)NewArrayHandlePtr->pP;
+
+        /* switching position from last to previous */
+        coll_Delete(DAColl,NewDArr);
+        coll__AtInsert(DAColl,Coll_Ind,NewDArr);
+     }
+
      j = DArr->ExtHdrSign; /* save flag of
                               extended header */    /*E0062*/
 
@@ -924,6 +940,14 @@ on the current processor, otherwise returns zero.
 
      ((SysHandle *)NewArrayHeader[0])->HeaderPtr = (uLLng)ArrayHeader;
 
+      ArrayHandlePtr = DArrAMV->HandlePtr;
+
+     if(DArrAMV->ArrColl.Count == 0 &&
+        ArrayHandlePtr->InitCrtBlockInd == 0)
+        {  ObjRef = (ObjectRef)ArrayHandlePtr;
+
+           ( RTL_CALL, delobj_(&ObjRef) ); /* delayed deletion of s_AMVIEW object */
+     }
   }
 
   if(RTL_TRACE)
