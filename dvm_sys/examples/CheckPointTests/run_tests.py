@@ -25,10 +25,9 @@ def get_grid_list(filename, size_=3, min_=1, max_=4):
 def run_test(task, grid_list):
     for grid in grid_list:
         grid_str = ' '.join(str(d) for d in grid)
-        command = f'{USER_DIR}/dvm {grid_str} {TESTS_DIR}/{task}'
+        command = f'{USER_DIR}/dvm run {grid_str} {TESTS_WORKDIR}/{task}'
         logging.info(f'Running command:\t{command}')
-        # status = os.system()
-        status = 0
+        status = os.system(command)
         yield status
 
 
@@ -38,6 +37,9 @@ def main():
     files_set = set(os.listdir(TESTS_DIR))
     files_set = set(filter(lambda x: x.endswith('.c') or x.endswith('.cdv'), files_set))
     logging.info(f'Found these tests: {files_set}')
+
+    os.system(f'rm -rf {TESTS_DATA}')
+    os.system(f'mkdir {TESTS_DATA}')
 
     for test_file in files_set:
         logging.info(f'Compiling file:\t{USER_DIR}/dvm c {TESTS_DIR}/{test_file}')

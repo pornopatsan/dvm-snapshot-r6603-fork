@@ -3,22 +3,23 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+const char *filename = "data/test_smart_rw_local_%d.txt";
+const int N = 8;
+int ok = 0;
+
 int main()
 {
-    char *filename = "data/test_smart_rw_local_%d.txt";
-    int ok = 0;
-
     #pragma dvm array distribute[block][block][block]
-    unsigned int A[4][4][4];
+    unsigned int A[N][N][N];
 
     #pragma dvm array align([i][j][k] with A[i][j][k])
-    unsigned int B[4][4][4];
+    unsigned int B[N][N][N];
 
     #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
-    for(int i = 0; i < 4; ++i) {
-        for(int j = 0; j < 4; ++j) {
-            for(int k = 0; k < 4; ++k) {
-                A[i][j][k] = 0x100 * i + 0x10 * j + 0x1 * k;
+    for(int i = 0; i < N; ++i) {
+        for(int j = 0; j < N; ++j) {
+            for(int k = 0; k < N; ++k) {
+                A[i][j][k] = 0x10000 * i + 0x100 * j + 0x1 * k;
             }
         }
     }
@@ -31,10 +32,10 @@ int main()
     dvmh_smart_void_read(B, file);
     fclose(file);
 
-    #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
-    for(int i = 0; i < 4; ++i) {
-        for(int j = 0; j < 4; ++j) {
-            for(int k = 0; k < 4; ++k) {
+    #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256) reduction(sum(ok))
+    for(int i = 0; i < N; ++i) {
+        for(int j = 0; j < N; ++j) {
+            for(int k = 0; k < N; ++k) {
                 if (A[i][j][k] != B[i][j][k]) {
                     ok += 1;
                 }
@@ -42,5 +43,6 @@ int main()
         }
     }
 
+    #pragma dvm actual(ok)
     return ok;
 }
