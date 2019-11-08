@@ -3,10 +3,11 @@
 void CStat::to_string(std::string & result) {
 	CStatInter * cur=inter_tree;
 	if (cur == NULL||!isinitialized) return;
-	result += patch::to_string(iscomp) + ' ' + patch::to_string(nproc) + ' ';
+    result = "";
+	result += patch::to_string(iscomp) + ' ' + patch::to_string(nproc) + '\n';
 	for (unsigned int i = 0; i < nproc; i++) {
-		result += '@'+proc_info[i].node_name+'@' + ' ';
-		result += patch::to_string(proc_info[i].test_time)+' ';
+		result += '@'+std::string(proc_info[i].node_name)+'@' + ' ';
+		result += patch::to_string(proc_info[i].test_time)+'\n';
 	}
 	while (cur != NULL)
 	{
@@ -18,7 +19,34 @@ void CStat::to_string(std::string & result) {
 	}
 }
 
+void CStat::to_json(json &result){
+    CStatInter * cur=inter_tree;
+    if (cur == NULL||!isinitialized) return;
+//    json temp;
+            //{{"iscomp", iscomp}, {"nproc", nproc}};
+//    result.push_back(temp);
+//    result += patch::to_string(iscomp) + ' ' + patch::to_string(nproc) + '\n';
+    json proc, inter, temp;
+    for (unsigned int i = 0; i < nproc; i++) {
+        proc.push_back({{"node_name", std::string(proc_info[i].node_name)}, {"test_time", proc_info[i].test_time}});
+//        result += '@'+std::string(proc_info[i].node_name)+'@' + ' ';
+//        result += patch::to_string(proc_info[i].test_time)+'\n';
+    }
+
+    while (cur != NULL)
+    {
+        cur->to_json(temp);
+        inter.push_back(temp);
+        cur = cur->next;
+//        if (cur) {
+//            result += ' ';
+//        }
+    }
+    result = {{"iscomp", iscomp}, {"nproc", nproc}, {"proc", proc}, {"inter", inter}};
+}
+
 CStat::CStat(const CStat &s) {
+    stat = NULL;
 	isinitialized = s.isinitialized;
 	nproc = s.nproc;
 	inter_tree = NULL;
@@ -47,7 +75,10 @@ CStat::~CStat() {
 	}
 	//for (unsigned long i = 0; i < nproc; i++)
 	//	delete [] proc_info[i].node_name;
-	delete [] proc_info;
+	if (proc_info)
+	    delete [] proc_info;
+    if (stat)
+        delete stat;
 }
 
 void CStat::clear() {
@@ -56,15 +87,18 @@ void CStat::clear() {
 		inter_tree->clear();
 		delete inter_tree;
 	}
-	for (unsigned long i = 0; i < nproc; i++)
-		delete[] proc_info[i].node_name;
+	// for (unsigned long i = 0; i < nproc; i++)
+	// 	delete[] proc_info[i].node_name;
 	delete[] proc_info;
 	if (spath) {
 		delete[] spath;
 	}
+    if (stat)
+        delete stat;
 }
 
 CStat::CStat() {
+    stat = NULL;
 	isinitialized = false;
 	nproc = 0;
 	inter_tree = NULL;
@@ -78,22 +112,22 @@ void CStat::init(char * path) {
 		err = true;
 		return;
 	}
-	CStatRead stat(path, 0, 0, 0);
+	stat = new CStatRead(path, 0, 0, 0);
 	int warn;
-	if (stat.Valid(&warn) != TRUE) {
+	if (stat->Valid(&warn) != TRUE) {
 		err = true;
 		return;
 	}
-	nproc = stat.QProc();
+	nproc = stat->QProc();
 	if (nproc == 0) {
 		err = true;
 		return;
 	}
-	unsigned long n = stat.BeginTreeWalk();
-	if (n != 0) inter_tree = new CStatInter(&stat, n);
+	unsigned long n = stat->BeginTreeWalk();
+	if (n != 0) inter_tree = new CStatInter(stat, n);
 	proc_info = new struct CProcInfo[nproc];
 	for (unsigned long i = 0; i<nproc; i++) {
-		stat.NameTimeProc(i, &proc_info[i].node_name, &proc_info[i].test_time);
+		stat->NameTimeProc(i, &proc_info[i].node_name, &proc_info[i].test_time);
 	}
 	isinitialized = true;
 	spath = new char[strlen(path) + 1];
@@ -123,7 +157,7 @@ CStatInter * next_inter(short nlev, CStatInter * cur) {
 };
 
 void stat_intersect(const CStat &s1, const CStat &s2, CStat & r1, CStat & r2) {
-	if (!s1.isinitialized || !s1.isinitialized) {
+	if (!s1.isinitialized || !s2.isinitialized) {
 		return;
 	}
 	r1.spath = new char[(strlen(s1.spath)) + 1];
@@ -151,6 +185,6 @@ void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStat
 				inter_tree_intersect(i1->next, cur->next, r1, r2);
 			}
 		}
-		i1 = next_inter(cur_lev, i1);		
+		i1 = next_inter(cur_lev, i1);
 	}
  }

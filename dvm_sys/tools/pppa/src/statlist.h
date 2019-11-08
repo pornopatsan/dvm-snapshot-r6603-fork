@@ -10,6 +10,9 @@
 #include <stdbool.h>
 #include <string>
 #include <sstream>
+#include "json.hpp"
+
+using json = nlohmann::json;
 
 namespace patch
 {
@@ -29,6 +32,7 @@ public:
 	void delete_tail();
 	void clear();
 	void to_string(std::string & result);
+	void to_json(json & result);
 
 	ident id;
 	//main characteristics
@@ -82,10 +86,12 @@ public:
 	CStatInter * inter_tree;                                //"�������" ������ ����������
 	unsigned long nproc;									//���������� ���������
 	CProcInfo  * proc_info;                                 //���������� �� ����������� (��� ����, �������� �����)
-	char * spath;
+    CStatRead * stat;
+    char * spath;
 	bool iscomp;
 	bool isinitialized;
 	void to_string(std::string & result);
+	void to_json(json &result);
 	bool err;
 };
 

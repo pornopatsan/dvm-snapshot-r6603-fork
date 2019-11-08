@@ -125,7 +125,7 @@ CTreeInter::CTreeInter(gzFile stream,unsigned long lint,char *pbuff,
 		// --
 		int allLengthForInterval = commonLengthForInterval + extraLengthForThreads;
 
-		
+
 	//	id.pname=(char *)(pch + lintone);
 		id.pname=(char *)(pch + allLengthForInterval);
 		// copy identifier information

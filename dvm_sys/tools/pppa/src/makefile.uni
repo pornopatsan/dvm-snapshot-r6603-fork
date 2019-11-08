@@ -16,6 +16,7 @@ OBJS=\
     statinter.o \
     interface.o \
     stat.o \
+    integration.o \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
 	$(LINKER) -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
@@ -48,3 +49,5 @@ interface.o:
 	$(CXX) $(COPT) interface.cpp -fdeclspec
 stat.o:
 	$(CXX) $(COPT) stat.cpp
+integration.o:
+	$(CXX) $(COPT) -shared integration.cpp
