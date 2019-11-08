@@ -533,29 +533,29 @@ CStatRead::CStatRead(const char *statFilePath, int iIM, int jIM, short sore)
 //--------------------------------------------------
 // deallocate memory for trees and syn times
 CStatRead::~CStatRead(void) {
-//    if (pvers != NULL) delete[]pvers;
-//    if (gzplus == 1) {
-//        if (pbufcompr != NULL) delete[]pbufcompr;
-//        if (pbufuncompr != NULL) delete[]pbufuncompr;
-//    } else {
-//        if (pch_vms != NULL) delete[] pch_vms;
-//    }
-//    if (pclfrag != NULL) {
-//        for (unsigned long i = 0; i < proccount; i++) {
-//            if (pclfrag[i] != NULL) pclfrag[i]->~CTreeInter();
-//            pclfrag[i] = NULL;
-//            if (pic != NULL) pic[i] = NULL;
-//            if (pclsyn != NULL) {
-//                if (pclsyn[i] != NULL) pclsyn[i]->~CSynchro();
-//                pclsyn[i] = NULL;
-//            }
-//        }
-//        delete[] pclfrag;
-//    }
-//    // deallocate memory for data-member
-//    if (pclsyn != NULL) delete[] pclsyn;
-//    if (pch_vmssize != NULL) delete[]pch_vmssize;
-//    if (pic != NULL) delete[] pic;
+    if (pvers != NULL) delete[]pvers;
+    if (gzplus == 1) {
+        if (pbufcompr != NULL) delete[]pbufcompr;
+        if (pbufuncompr != NULL) delete[]pbufuncompr;
+    } else {
+        if (pch_vms != NULL) delete[] pch_vms;
+    }
+    if (pclfrag != NULL) {
+        for (unsigned long i = 0; i < proccount; i++) {
+            if (pclfrag[i] != NULL) pclfrag[i]->~CTreeInter();
+            pclfrag[i] = NULL;
+            if (pic != NULL) pic[i] = NULL;
+            if (pclsyn != NULL) {
+                if (pclsyn[i] != NULL) pclsyn[i]->~CSynchro();
+                pclsyn[i] = NULL;
+            }
+        }
+        delete[] pclfrag;
+    }
+    // deallocate memory for data-member
+    if (pclsyn != NULL) delete[] pclsyn;
+    if (pch_vmssize != NULL) delete[]pch_vmssize;
+    if (pic != NULL) delete[] pic;
 }
 
 //--------------------------------------------------

@@ -22,82 +22,77 @@ void CStat::to_string(std::string & result) {
 void CStat::to_json(json &result){
     CStatInter * cur=inter_tree;
     if (cur == NULL||!isinitialized) return;
-//    json temp;
-            //{{"iscomp", iscomp}, {"nproc", nproc}};
-//    result.push_back(temp);
-//    result += patch::to_string(iscomp) + ' ' + patch::to_string(nproc) + '\n';
     json proc, inter, temp;
     for (unsigned int i = 0; i < nproc; i++) {
         proc.push_back({{"node_name", std::string(proc_info[i].node_name)}, {"test_time", proc_info[i].test_time}});
-//        result += '@'+std::string(proc_info[i].node_name)+'@' + ' ';
-//        result += patch::to_string(proc_info[i].test_time)+'\n';
     }
-
     while (cur != NULL)
     {
         cur->to_json(temp);
         inter.push_back(temp);
         cur = cur->next;
-//        if (cur) {
-//            result += ' ';
-//        }
     }
     result = {{"iscomp", iscomp}, {"nproc", nproc}, {"proc", proc}, {"inter", inter}};
 }
 
-CStat::CStat(const CStat &s) {
+CStat::CStat(json source){
+    isjson = true;
     stat = NULL;
-	isinitialized = s.isinitialized;
-	nproc = s.nproc;
-	inter_tree = NULL;
-	CStatInter * cur_s=s.inter_tree,** cur_this=&inter_tree;
-	if (cur_s) {
-		*cur_this = new CStatInter(*(cur_s));
-		cur_this = &((*cur_this)->next);
-		cur_s = cur_s->next;
-	}
-	iscomp = s.iscomp;
-	proc_info = NULL;
-	if (s.spath) {
-		spath = new char[strlen(spath) + 1];
-		strcpy(spath, s.spath);
-	}
-	else {
-		spath = NULL;
-	}
+    iscomp = source["iscomp"];
+    nproc = source["nproc"];
+    proc_info = new CProcInfo[nproc];
+    int i = 0;
+    for (json::iterator it = source["proc"].begin(); it != source["proc"].end() && i < nproc; ++it, ++i){
+        const char * str = ((std::string)(*it)["node_name"]).c_str();
+        proc_info[i].node_name = new char[strlen(str)];
+        strcpy(proc_info[i].node_name, str);
+        proc_info[i].test_time = (*it)["test_time"];
+    }
+    CStatInter *inter_temp = NULL;
+    inter_tree = NULL;
+    for (json::reverse_iterator it = source["inter"].rbegin(); it != source["inter"].rend(); ++it){
+        inter_temp = inter_tree;
+        inter_tree = new CStatInter((json)(*it));
+        if(inter_temp)
+            inter_tree->next = inter_temp;
+    }
 }
 
 CStat::~CStat() {
 	if (inter_tree) {
-		inter_tree->delete_tail();
+        inter_tree->delete_tail();
 		inter_tree->clear();
 		delete inter_tree;
 	}
 	//for (unsigned long i = 0; i < nproc; i++)
 	//	delete [] proc_info[i].node_name;
-	if (proc_info)
-	    delete [] proc_info;
-    if (stat)
+	if (proc_info){
+        delete [] proc_info;
+    }
+    if (stat){
         delete stat;
+    }
 }
 
 void CStat::clear() {
 	if (inter_tree) {
-		inter_tree->delete_tail();
+        inter_tree->delete_tail();
 		inter_tree->clear();
 		delete inter_tree;
 	}
 	// for (unsigned long i = 0; i < nproc; i++)
 	// 	delete[] proc_info[i].node_name;
-	delete[] proc_info;
+	if (proc_info)
+	    delete[] proc_info;
 	if (spath) {
-		delete[] spath;
+        delete[] spath;
 	}
     if (stat)
         delete stat;
 }
 
 CStat::CStat() {
+    isjson = false;
     stat = NULL;
 	isinitialized = false;
 	nproc = 0;
@@ -108,6 +103,7 @@ CStat::CStat() {
 };
 
 void CStat::init(char * path) {
+    isjson = false;
 	if (isinitialized) {
 		err = true;
 		return;

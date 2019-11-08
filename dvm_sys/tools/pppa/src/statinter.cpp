@@ -34,90 +34,92 @@ void CStatInter::to_string(std::string &result) {
 	result += patch::to_string(nproc)+' ';
 	result += patch::to_string(threadsOfAllProcs)+' ';
     result += "@end_times@\n";
-	for (unsigned int i = 0; i < RED; i++) {
-		result+= patch::to_string(col_op[i].ncall)+' ';
-		result += patch::to_string(col_op[i].comm) + ' ';
-		result += patch::to_string(col_op[i].synch) + ' ';
-		result += patch::to_string(col_op[i].real_comm) + ' ';
-		result += patch::to_string(col_op[i].time_var) + ' ';
-		result += patch::to_string(col_op[i].overlap) + ' ';
-	}
-	for (unsigned int j = 0; j < nproc; j++) {
-		for (int i = 0; i <= StatGrpCount; i++) {
-			result += patch::to_string(op_group[j][i].calls) + ' ';
-			result += patch::to_string(op_group[j][i].prod) + ' ';
-			result += patch::to_string(op_group[j][i].lost_time) + ' ';
-		}
-	}
-    result += "\n@proc@\n";
-    result += patch::to_string(id.proc) + '\n';   //кол-во процессов
-	for (unsigned int i = 0; i < nproc; i++) {
-        result += "@proc" + patch::to_string(i) + "@ ";
-		result += patch::to_string(proc_times[i].prod_cpu) + ' ';
-		result += patch::to_string(proc_times[i].prod_sys) + ' ';
-		result += patch::to_string(proc_times[i].prod_io) + ' ';
-		result += patch::to_string(proc_times[i].exec_time) + ' ';
-		result += patch::to_string(proc_times[i].sys_time) + ' ';
-		result += patch::to_string(proc_times[i].real_comm) + ' ';
-		result += patch::to_string(proc_times[i].lost_time) + ' ';
-		result += patch::to_string(proc_times[i].insuf_user) + ' ';
-		result += patch::to_string(proc_times[i].insuf_sys) + ' ';
-		result += patch::to_string(proc_times[i].comm) + ' ';
-		result += patch::to_string(proc_times[i].idle) + ' ';
-		result += patch::to_string(proc_times[i].load_imb) + ' ';
-		result += patch::to_string(proc_times[i].synch) + ' ';
-		result += patch::to_string(proc_times[i].time_var) + ' ';
-		result += patch::to_string(proc_times[i].overlap) + ' ';
-		result += patch::to_string(proc_times[i].thr_user_time) + ' ';
-		result += patch::to_string(proc_times[i].thr_sys_time) + ' ';
-		result += patch::to_string(proc_times[i].gpu_time_prod) + ' ';
-		result += patch::to_string(proc_times[i].gpu_time_lost) + ' ';
-        result += "\n@treads@\n";
-		result += patch::to_string(proc_times[i].num_threads) + ' ';
-		for (unsigned int j = 0; j < proc_times[i].num_threads;j++) {
-            result += "@tread" + patch::to_string(j) + "@ ";
-			result += patch::to_string(proc_times[i].th_times[j].sys_time) + ' ';
-			result += patch::to_string(proc_times[i].th_times[j].user_time) + ' ';
-            result += "@end_tread" + patch::to_string(j) + "@ ";
-		}
-        result += "\n@end_treads@\n";
-        result += "@gpu@\n";
-		result += patch::to_string(proc_times[i].num_gpu) + ' ';
-		for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-			result +="@gpu"+ patch::to_string(j) + "_"
-                + std::string(proc_times[i].gpu_times[j].gpu_name) + '@' + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].prod_time)+' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].lost_time) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].get_actual) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].data_reorg) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].reduction) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].gpu_runtime_compilation) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_cpu) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].cpu_to_gpu) + ' ';
-			result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_gpu)+ ' ';
-			for (unsigned int k = 0; k < GNUMOP; k++) {
-				result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu) + ' ';
-				result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
-				result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
-			}
-            result += "@end_gpu" + patch::to_string(j) + "@";
-		}
-        result += "\n@end_gpu@\n";
+    if (!isjson){
+        for (unsigned int i = 0; i < RED; i++) {
+            result+= patch::to_string(col_op[i].ncall)+' ';
+            result += patch::to_string(col_op[i].comm) + ' ';
+            result += patch::to_string(col_op[i].synch) + ' ';
+            result += patch::to_string(col_op[i].real_comm) + ' ';
+            result += patch::to_string(col_op[i].time_var) + ' ';
+            result += patch::to_string(col_op[i].overlap) + ' ';
+        }
+        for (unsigned int j = 0; j < nproc; j++) {
+            for (int i = 0; i <= StatGrpCount; i++) {
+                result += patch::to_string(op_group[j][i].calls) + ' ';
+                result += patch::to_string(op_group[j][i].prod) + ' ';
+                result += patch::to_string(op_group[j][i].lost_time) + ' ';
+            }
+        }
+        result += "\n@proc@\n";
+        result += patch::to_string(id.proc) + '\n';   //кол-во процессов
+        for (unsigned int i = 0; i < nproc; i++) {
+            result += "@proc" + patch::to_string(i) + "@ ";
+            result += patch::to_string(proc_times[i].prod_cpu) + ' ';
+            result += patch::to_string(proc_times[i].prod_sys) + ' ';
+            result += patch::to_string(proc_times[i].prod_io) + ' ';
+            result += patch::to_string(proc_times[i].exec_time) + ' ';
+            result += patch::to_string(proc_times[i].sys_time) + ' ';
+            result += patch::to_string(proc_times[i].real_comm) + ' ';
+            result += patch::to_string(proc_times[i].lost_time) + ' ';
+            result += patch::to_string(proc_times[i].insuf_user) + ' ';
+            result += patch::to_string(proc_times[i].insuf_sys) + ' ';
+            result += patch::to_string(proc_times[i].comm) + ' ';
+            result += patch::to_string(proc_times[i].idle) + ' ';
+            result += patch::to_string(proc_times[i].load_imb) + ' ';
+            result += patch::to_string(proc_times[i].synch) + ' ';
+            result += patch::to_string(proc_times[i].time_var) + ' ';
+            result += patch::to_string(proc_times[i].overlap) + ' ';
+            result += patch::to_string(proc_times[i].thr_user_time) + ' ';
+            result += patch::to_string(proc_times[i].thr_sys_time) + ' ';
+            result += patch::to_string(proc_times[i].gpu_time_prod) + ' ';
+            result += patch::to_string(proc_times[i].gpu_time_lost) + ' ';
+            result += "\n@treads@\n";
+            result += patch::to_string(proc_times[i].num_threads) + ' ';
+            for (unsigned int j = 0; j < proc_times[i].num_threads;j++) {
+                result += "@tread" + patch::to_string(j) + "@ ";
+                result += patch::to_string(proc_times[i].th_times[j].sys_time) + ' ';
+                result += patch::to_string(proc_times[i].th_times[j].user_time) + ' ';
+                result += "@end_tread" + patch::to_string(j) + "@ ";
+            }
+            result += "\n@end_treads@\n";
+            result += "@gpu@\n";
+            result += patch::to_string(proc_times[i].num_gpu) + ' ';
+            for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
+                result +="@gpu"+ patch::to_string(j) + "_"
+                    + std::string(proc_times[i].gpu_times[j].gpu_name) + '@' + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].prod_time)+' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].lost_time) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].get_actual) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].data_reorg) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].reduction) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].gpu_runtime_compilation) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_cpu) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].cpu_to_gpu) + ' ';
+                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_gpu)+ ' ';
+                for (unsigned int k = 0; k < GNUMOP; k++) {
+                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu) + ' ';
+                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
+                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
+                }
+                result += "@end_gpu" + patch::to_string(j) + "@";
+            }
+            result += "\n@end_gpu@\n";
 
-        //what????
-		// for (int i = 0; i < 4; i++) {
-		// 	result += patch::to_string(col_op[i].comm) + ' ';
-		// 	result += patch::to_string(col_op[i].ncall) + ' ';
-		// 	result += patch::to_string(col_op[i].overlap) + ' ';
-		// 	result += patch::to_string(col_op[i].real_comm) + ' ';
-		// 	result += patch::to_string(col_op[i].synch) + ' ';
-		// 	result += patch::to_string(col_op[i].time_var) + ' ';
-		// }
-        result += "@end_proc" + patch::to_string(i) + "@\n";
-	}
-    result += "@end_proc@\n";
+            //what????
+            // for (int i = 0; i < 4; i++) {
+            // 	result += patch::to_string(col_op[i].comm) + ' ';
+            // 	result += patch::to_string(col_op[i].ncall) + ' ';
+            // 	result += patch::to_string(col_op[i].overlap) + ' ';
+            // 	result += patch::to_string(col_op[i].real_comm) + ' ';
+            // 	result += patch::to_string(col_op[i].synch) + ' ';
+            // 	result += patch::to_string(col_op[i].time_var) + ' ';
+            // }
+            result += "@end_proc" + patch::to_string(i) + "@\n";
+        }
+        result += "@end_proc@\n";
+    }
     result += "@end_interval@\n";
 }
 
@@ -140,7 +142,6 @@ void CStatInter::to_json(json & result){
                         {"prod_io", prod_io},
                         {"exec_time", exec_time},
                         {"sys_time", sys_time},
-                        {"real_comm", real_comm},
                         {"efficiency", efficiency},
                         {"lost_time", lost_time},
                         {"insuf_user", insuf_user},
@@ -162,95 +163,50 @@ void CStatInter::to_json(json & result){
                     }
                 }
              };
-//    for (unsigned int i = 0; i < RED; i++) {
-//        result+= patch::to_string(col_op[i].ncall)+' ';
-//        result += patch::to_string(col_op[i].comm) + ' ';
-//        result += patch::to_string(col_op[i].synch) + ' ';
-//        result += patch::to_string(col_op[i].real_comm) + ' ';
-//        result += patch::to_string(col_op[i].time_var) + ' ';
-//        result += patch::to_string(col_op[i].overlap) + ' ';
-//    }
-//    for (unsigned int j = 0; j < nproc; j++) {
-//        for (int i = 0; i <= StatGrpCount; i++) {
-//            result += patch::to_string(op_group[j][i].calls) + ' ';
-//            result += patch::to_string(op_group[j][i].prod) + ' ';
-//            result += patch::to_string(op_group[j][i].lost_time) + ' ';
-//        }
-//    }
-//    result += "\n@proc@\n";
-//    result += patch::to_string(id.proc) + '\n';   //кол-во процессов
-//    for (unsigned int i = 0; i < nproc; i++) {
-//        result += "@proc" + patch::to_string(i) + "@ ";
-//        result += patch::to_string(proc_times[i].prod_cpu) + ' ';
-//        result += patch::to_string(proc_times[i].prod_sys) + ' ';
-//        result += patch::to_string(proc_times[i].prod_io) + ' ';
-//        result += patch::to_string(proc_times[i].exec_time) + ' ';
-//        result += patch::to_string(proc_times[i].sys_time) + ' ';
-//        result += patch::to_string(proc_times[i].real_comm) + ' ';
-//        result += patch::to_string(proc_times[i].lost_time) + ' ';
-//        result += patch::to_string(proc_times[i].insuf_user) + ' ';
-//        result += patch::to_string(proc_times[i].insuf_sys) + ' ';
-//        result += patch::to_string(proc_times[i].comm) + ' ';
-//        result += patch::to_string(proc_times[i].idle) + ' ';
-//        result += patch::to_string(proc_times[i].load_imb) + ' ';
-//        result += patch::to_string(proc_times[i].synch) + ' ';
-//        result += patch::to_string(proc_times[i].time_var) + ' ';
-//        result += patch::to_string(proc_times[i].overlap) + ' ';
-//        result += patch::to_string(proc_times[i].thr_user_time) + ' ';
-//        result += patch::to_string(proc_times[i].thr_sys_time) + ' ';
-//        result += patch::to_string(proc_times[i].gpu_time_prod) + ' ';
-//        result += patch::to_string(proc_times[i].gpu_time_lost) + ' ';
-//        result += "\n@treads@\n";
-//        result += patch::to_string(proc_times[i].num_threads) + ' ';
-//        for (unsigned int j = 0; j < proc_times[i].num_threads;j++) {
-//            result += "@tread" + patch::to_string(j) + "@ ";
-//            result += patch::to_string(proc_times[i].th_times[j].sys_time) + ' ';
-//            result += patch::to_string(proc_times[i].th_times[j].user_time) + ' ';
-//            result += "@end_tread" + patch::to_string(j) + "@ ";
-//        }
-//        result += "\n@end_treads@\n";
-//        result += "@gpu@\n";
-//        result += patch::to_string(proc_times[i].num_gpu) + ' ';
-//        for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-//            result +="@gpu"+ patch::to_string(j) + "_"
-//                     + std::string(proc_times[i].gpu_times[j].gpu_name) + '@' + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].prod_time)+' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].lost_time) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].get_actual) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].data_reorg) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].reduction) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].gpu_runtime_compilation) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_cpu) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].cpu_to_gpu) + ' ';
-//            result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_gpu)+ ' ';
-//            for (unsigned int k = 0; k < GNUMOP; k++) {
-//                result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu) + ' ';
-//                result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
-//                result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
-//            }
-//            result += "@end_gpu" + patch::to_string(j) + "@";
-//        }
-//        result += "\n@end_gpu@\n";
-//
-//        //what????
-//        // for (int i = 0; i < 4; i++) {
-//        // 	result += patch::to_string(col_op[i].comm) + ' ';
-//        // 	result += patch::to_string(col_op[i].ncall) + ' ';
-//        // 	result += patch::to_string(col_op[i].overlap) + ' ';
-//        // 	result += patch::to_string(col_op[i].real_comm) + ' ';
-//        // 	result += patch::to_string(col_op[i].synch) + ' ';
-//        // 	result += patch::to_string(col_op[i].time_var) + ' ';
-//        // }
-//        result += "@end_proc" + patch::to_string(i) + "@\n";
-//    }
-//    result += "@end_proc@\n";
-//    result += "@end_interval@\n";
+}
 
+CStatInter::CStatInter(json source){
+    isjson = true;
+    // -----  id  -----
+    json j_id = source["id"];
+    id.nenter = j_id["nenter"];
+    id.nline_end = j_id["nline_end"];
+    id.nline = j_id["nline"];
+    id.expr = j_id["expr"];
+    id.nlev = j_id["nlev"];
+    id.t = j_id["t"];
+
+    // -----  times  -----
+    json j_times = source["times"];
+    prod_cpu = j_times["prod_cpu"];
+    prod_sys = j_times["prod_sys"];
+    prod_io = j_times["prod_io"];
+    exec_time = j_times["exec_time"];
+    sys_time = j_times["sys_time"];
+    efficiency = j_times["efficiency"];
+    lost_time = j_times["lost_time"];
+    insuf_user = j_times["insuf_user"];
+    insuf_sys = j_times["insuf_sys"];
+    comm = j_times["comm"];
+    real_comm = j_times["real_comm"];
+    comm_start = j_times["comm_start"];
+    idle = j_times["idle"];
+    load_imb = j_times["load_imb"];
+    synch = j_times["synch"];
+    time_var = j_times["time_var"];
+    overlap = j_times["overlap"];
+    thr_user_time = j_times["thr_user_time"];
+    thr_sys_time = j_times["thr_sys_time"];
+    gpu_time_prod = j_times["gpu_time_prod"];
+    gpu_time_lost = j_times["gpu_time_lost"];
+    nproc = j_times["nproc"];
+    threadsOfAllProcs = j_times["threadsOfAllProcs"];
+
+    next = NULL;
 }
 
 CStatInter::CStatInter(const CStatInter & si) {
+    isjson = si.isjson;
 	id.t = si.id.t;
 	id.nlev = si.id.nlev;
 	id.expr = si.id.expr;
@@ -292,96 +248,102 @@ CStatInter::CStatInter(const CStatInter & si) {
 	gpu_time_lost=si.gpu_time_lost;
 	nproc=si.nproc;
 	threadsOfAllProcs=si.threadsOfAllProcs;
-	for (int i = 0; i < RED; i++) {
-		col_op[i] = si.col_op[i];
-	}
-	op_group = new OpGrp[nproc][StatGrpCount];
-	for (unsigned long j = 0; j < nproc; j++) {
-		for (int i = 0; i <= StatGrpCount; i++) {
-			op_group[j][i].calls = si.op_group[j][i].calls;
-			op_group[j][i].prod = si.op_group[j][i].prod;
-			op_group[j][i].lost_time = op_group[j][i].lost_time;
-		}
-	}
-	proc_times = new struct ProcTimes[nproc];
-	for (unsigned long i = 1; i <= nproc; ++i)
-	{
-		proc_times[i].prod_cpu=si.proc_times[i].prod_cpu;
-		proc_times[i].prod_sys=si.proc_times[i].prod_sys;
-		proc_times[i].prod_io=si.proc_times[i].prod_io;
-		proc_times[i].exec_time=si.proc_times[i].exec_time;
-		proc_times[i].sys_time=si.proc_times[i].sys_time;
-		proc_times[i].real_comm=si.proc_times[i].real_comm;
-		proc_times[i].lost_time=si.proc_times[i].lost_time;
-		proc_times[i].insuf_user=si.proc_times[i].insuf_user;
-		proc_times[i].insuf_sys=si.proc_times[i].insuf_sys;
-		proc_times[i].comm=si.proc_times[i].comm;
-		proc_times[i].idle=si.proc_times[i].idle;
-		proc_times[i].load_imb=si.proc_times[i].load_imb;
-		proc_times[i].synch=si.proc_times[i].synch;
-		proc_times[i].time_var=si.proc_times[i].time_var;
-		proc_times[i].overlap=si.proc_times[i].overlap;
-		proc_times[i].thr_user_time=si.proc_times[i].thr_user_time;
-		proc_times[i].thr_sys_time=si.proc_times[i].thr_sys_time;
-		proc_times[i].gpu_time_prod=si.proc_times[i].gpu_time_prod;
-		proc_times[i].gpu_time_lost=si.proc_times[i].gpu_time_lost;
-		proc_times[i].num_threads=si.proc_times[i].num_threads;
-		proc_times[i].th_times = new struct ThreadTime[proc_times[i].num_threads];
-		for (unsigned long j = 0; j < proc_times[i].num_threads; j++)
-		{
-			proc_times[i].th_times[j].user_time = si.proc_times[i].th_times[j].user_time;
-			proc_times[i].th_times[j].sys_time = si.proc_times[i].th_times[j].sys_time;
-		}
-		proc_times[i].num_gpu=si.proc_times[i].num_gpu;
-		proc_times[i].gpu_times = new struct GpuTime[DVMH_STAT_MAX_GPU_CNT];
-		for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-			if (si.proc_times[i].gpu_times[j].gpu_name) {
-				proc_times[i].gpu_times[j].gpu_name = new char[strlen(si.proc_times[i].gpu_times[j].gpu_name) + 1];
-				strcpy(proc_times[i].gpu_times[j].gpu_name, si.proc_times[i].gpu_times[j].gpu_name);
-			}
-			else
-			{
-				proc_times[i].gpu_times[j].gpu_name = new char[2];
-				proc_times[i].gpu_times[j].gpu_name[0] = '0';
-				proc_times[i].gpu_times[j].gpu_name[1] = '\0';
-			}
-			proc_times[i].gpu_times[j].prod_time=si.proc_times[i].gpu_times[j].prod_time;
-			proc_times[i].gpu_times[j].kernel_exec=si.proc_times[i].gpu_times[j].kernel_exec;
-			proc_times[i].gpu_times[j].loop_exec=si.proc_times[i].gpu_times[j].loop_exec;
-			proc_times[i].gpu_times[j].lost_time=si.proc_times[i].gpu_times[j].lost_time;
-			proc_times[i].gpu_times[j].get_actual=si.proc_times[i].gpu_times[j].get_actual;
-			proc_times[i].gpu_times[j].data_reorg=si.proc_times[i].gpu_times[j].data_reorg;
-			proc_times[i].gpu_times[j].reduction=si.proc_times[i].gpu_times[j].reduction;
-			proc_times[i].gpu_times[j].gpu_runtime_compilation=si.proc_times[i].gpu_times[j].gpu_runtime_compilation;
-			proc_times[i].gpu_times[j].gpu_to_cpu=si.proc_times[i].gpu_times[j].gpu_to_cpu;
-			proc_times[i].gpu_times[j].cpu_to_gpu=si.proc_times[i].gpu_times[j].cpu_to_gpu;
-			proc_times[i].gpu_times[j].gpu_to_gpu=si.proc_times[i].gpu_times[j].gpu_to_gpu;
-			for (unsigned int k = 0; k < GNUMOP; k++) {
-				proc_times[i].gpu_times[j].op_times[k] = si.proc_times[i].gpu_times[j].op_times[k];
-			}
-		}
-		for (unsigned int j = 0; j < 4; j++) {
-			proc_times[i].col_op[j] = si.proc_times[i].col_op[j];
-		}//4~RED
-	}
+	if (!isjson) {
+        for (int i = 0; i < RED; i++) {
+            col_op[i] = si.col_op[i];
+        }
+        op_group = new OpGrp[nproc][StatGrpCount];
+        //	for (int i = 0; i < nproc; ++i)
+        //        op_group[i] = new OpGrp[StatGrpCount];
+
+        for (unsigned long j = 0; j < nproc; j++) {
+            for (int i = 0; i < StatGrpCount; i++) {
+                op_group[j][i].calls = si.op_group[j][i].calls;
+                op_group[j][i].prod = si.op_group[j][i].prod;
+                op_group[j][i].lost_time = op_group[j][i].lost_time;
+            }
+        }
+        proc_times = new struct ProcTimes[nproc];
+        for (unsigned long i = 0; i < nproc; ++i) {
+            proc_times[i].prod_cpu = si.proc_times[i].prod_cpu;
+            proc_times[i].prod_sys = si.proc_times[i].prod_sys;
+            proc_times[i].prod_io = si.proc_times[i].prod_io;
+            proc_times[i].exec_time = si.proc_times[i].exec_time;
+            proc_times[i].sys_time = si.proc_times[i].sys_time;
+            proc_times[i].real_comm = si.proc_times[i].real_comm;
+            proc_times[i].lost_time = si.proc_times[i].lost_time;
+            proc_times[i].insuf_user = si.proc_times[i].insuf_user;
+            proc_times[i].insuf_sys = si.proc_times[i].insuf_sys;
+            proc_times[i].comm = si.proc_times[i].comm;
+            proc_times[i].idle = si.proc_times[i].idle;
+            proc_times[i].load_imb = si.proc_times[i].load_imb;
+            proc_times[i].synch = si.proc_times[i].synch;
+            proc_times[i].time_var = si.proc_times[i].time_var;
+            proc_times[i].overlap = si.proc_times[i].overlap;
+            proc_times[i].thr_user_time = si.proc_times[i].thr_user_time;
+            proc_times[i].thr_sys_time = si.proc_times[i].thr_sys_time;
+            proc_times[i].gpu_time_prod = si.proc_times[i].gpu_time_prod;
+            proc_times[i].gpu_time_lost = si.proc_times[i].gpu_time_lost;
+            proc_times[i].num_threads = si.proc_times[i].num_threads;
+            proc_times[i].th_times = new struct ThreadTime[proc_times[i].num_threads];
+            for (unsigned long j = 0; j < proc_times[i].num_threads; j++) {
+                proc_times[i].th_times[j].user_time = si.proc_times[i].th_times[j].user_time;
+                proc_times[i].th_times[j].sys_time = si.proc_times[i].th_times[j].sys_time;
+            }
+            proc_times[i].num_gpu = si.proc_times[i].num_gpu;
+            proc_times[i].gpu_times = new struct GpuTime[DVMH_STAT_MAX_GPU_CNT];
+            for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
+                if (si.proc_times[i].gpu_times[j].gpu_name) {
+                    proc_times[i].gpu_times[j].gpu_name = new char[strlen(si.proc_times[i].gpu_times[j].gpu_name) + 1];
+                    strcpy(proc_times[i].gpu_times[j].gpu_name, si.proc_times[i].gpu_times[j].gpu_name);
+                } else {
+                    proc_times[i].gpu_times[j].gpu_name = new char[2];
+                    proc_times[i].gpu_times[j].gpu_name[0] = '0';
+                    proc_times[i].gpu_times[j].gpu_name[1] = '\0';
+                }
+                proc_times[i].gpu_times[j].prod_time = si.proc_times[i].gpu_times[j].prod_time;
+                proc_times[i].gpu_times[j].kernel_exec = si.proc_times[i].gpu_times[j].kernel_exec;
+                proc_times[i].gpu_times[j].loop_exec = si.proc_times[i].gpu_times[j].loop_exec;
+                proc_times[i].gpu_times[j].lost_time = si.proc_times[i].gpu_times[j].lost_time;
+                proc_times[i].gpu_times[j].get_actual = si.proc_times[i].gpu_times[j].get_actual;
+                proc_times[i].gpu_times[j].data_reorg = si.proc_times[i].gpu_times[j].data_reorg;
+                proc_times[i].gpu_times[j].reduction = si.proc_times[i].gpu_times[j].reduction;
+                proc_times[i].gpu_times[j].gpu_runtime_compilation = si.proc_times[i].gpu_times[j].gpu_runtime_compilation;
+                proc_times[i].gpu_times[j].gpu_to_cpu = si.proc_times[i].gpu_times[j].gpu_to_cpu;
+                proc_times[i].gpu_times[j].cpu_to_gpu = si.proc_times[i].gpu_times[j].cpu_to_gpu;
+                proc_times[i].gpu_times[j].gpu_to_gpu = si.proc_times[i].gpu_times[j].gpu_to_gpu;
+                for (unsigned int k = 0; k < GNUMOP; k++) {
+                    proc_times[i].gpu_times[j].op_times[k] = si.proc_times[i].gpu_times[j].op_times[k];
+                }
+            }
+            for (unsigned int j = 0; j < 4; j++) {
+                proc_times[i].col_op[j] = si.proc_times[i].col_op[j];
+            }//4~RED
+        }
+    }
 	next = NULL;
 }
 
 void CStatInter::clear() {
-	delete [] op_group;
-	for (unsigned int i = 0; i < nproc; i++) {
-		delete [] proc_times[i].th_times;
-		for (unsigned int j = 0; j < proc_times[i].num_gpu; j++)
-			delete [] proc_times[i].gpu_times[j].gpu_name;
-		delete [] proc_times[i].gpu_times;
-	}
+    if (!isjson){
+        delete [] op_group;
+        for (unsigned int i = 0; i < nproc; i++) {
+            if (proc_times[i].num_threads)
+                delete [] proc_times[i].th_times;
+            for (unsigned int j = 0; j < proc_times[i].num_gpu; j++)
+                if (proc_times[i].gpu_times[j].gpu_name)
+                    delete [] proc_times[i].gpu_times[j].gpu_name;
+            if (proc_times[i].num_gpu)
+                delete [] proc_times[i].gpu_times;
+        }
+    }
 }
 
 void CStatInter::delete_tail() {
 	if (next != NULL) {
 		next->delete_tail();
-		next->clear();
-		delete next;
+        clear();
+        delete next;
 	}
 }
 
@@ -392,8 +354,9 @@ CStatInter::~CStatInter() {
 
 CStatInter::CStatInter(CStatRead * stat, int n)
 {
+    isjson = false;
 	printf("begin init %d\n", n);
-	unsigned long qproc = stat->QProc();
+	qproc = stat->QProc();
 	//������ ��������� �������� ���������
 	stat->ReadIdent(&id);
 	// string for processor characteristics - max
@@ -472,7 +435,9 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 	}
 	//return;
 
-	op_group = new OpGrp[qproc][StatGrpCount];
+    op_group = new OpGrp[qproc][StatGrpCount];
+//    for (int i = 0; i < qproc; ++i)
+//        op_group[i] = new OpGrp[StatGrpCount];
 	printf("group\n");
 	for (unsigned long j = 0; j < qproc; j++) {
 		double prod[StatGrpCount], lost[StatGrpCount], sumprod = 0.0, sumlost = 0.0;

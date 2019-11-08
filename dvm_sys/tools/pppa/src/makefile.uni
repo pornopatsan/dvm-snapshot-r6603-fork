@@ -50,4 +50,6 @@ interface.o:
 stat.o:
 	$(CXX) $(COPT) stat.cpp
 integration.o:
-	$(CXX) $(COPT) -shared integration.cpp
+	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
+integration.dll:
+	clang++ -shared -o integration.dll *.o ../../Zlib/*.o
