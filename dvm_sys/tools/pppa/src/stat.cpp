@@ -19,6 +19,32 @@ void CStat::to_string(std::string & result) {
 	}
 }
 
+void CStat::to_json(json &result){
+    CStatInter * cur=inter_tree;
+    if (cur == NULL||!isinitialized) return;
+//    json temp;
+            //{{"iscomp", iscomp}, {"nproc", nproc}};
+//    result.push_back(temp);
+//    result += patch::to_string(iscomp) + ' ' + patch::to_string(nproc) + '\n';
+    json proc, inter, temp;
+    for (unsigned int i = 0; i < nproc; i++) {
+        proc.push_back({{"node_name", std::string(proc_info[i].node_name)}, {"test_time", proc_info[i].test_time}});
+//        result += '@'+std::string(proc_info[i].node_name)+'@' + ' ';
+//        result += patch::to_string(proc_info[i].test_time)+'\n';
+    }
+
+    while (cur != NULL)
+    {
+        cur->to_json(temp);
+        inter.push_back(temp);
+        cur = cur->next;
+//        if (cur) {
+//            result += ' ';
+//        }
+    }
+    result = {{"iscomp", iscomp}, {"nproc", nproc}, {"proc", proc}, {"inter", inter}};
+}
+
 CStat::CStat(const CStat &s) {
     stat = NULL;
 	isinitialized = s.isinitialized;
@@ -49,7 +75,8 @@ CStat::~CStat() {
 	}
 	//for (unsigned long i = 0; i < nproc; i++)
 	//	delete [] proc_info[i].node_name;
-	delete [] proc_info;
+	if (proc_info)
+	    delete [] proc_info;
     if (stat)
         delete stat;
 }
@@ -130,7 +157,7 @@ CStatInter * next_inter(short nlev, CStatInter * cur) {
 };
 
 void stat_intersect(const CStat &s1, const CStat &s2, CStat & r1, CStat & r2) {
-	if (!s1.isinitialized || !s1.isinitialized) {
+	if (!s1.isinitialized || !s2.isinitialized) {
 		return;
 	}
 	r1.spath = new char[(strlen(s1.spath)) + 1];

@@ -15,6 +15,8 @@ OBJS=\
     statinter.o \
     interface.o \
     stat.o \
+    integration.o \
+    integration.dll \
     Source.o \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
@@ -36,15 +38,19 @@ statread.o:
 	$(CXX) $(COPT) statread.cpp
 treeinter.o:
 	$(CXX) $(COPT) treeinter.cpp
-statprintf.o:
-	$(CXX) $(COPT) statprintf.cpp
+# statprintf.o:
+# 	$(CXX) $(COPT) statprintf.cpp
 statinter.o:
-	$(CXX) $(COPT) statinter.cpp
+	$(CXX) $(COPT) -std=c++11 statinter.cpp
 statlist.o:
-	$(CXX) $(COPT) statlist.cpp
+	$(CXX) $(COPT) -std=c++11 statlist.cpp
 interface.o:
-	$(CXX) $(COPT) interface.cpp -fdeclspec
+	$(CXX) $(COPT) -std=c++11 interface.cpp -fdeclspec
 stat.o:
-	$(CXX) $(COPT) stat.cpp
+	$(CXX) $(COPT) -std=c++11 stat.cpp
 Source.o:
-	$(CXX) $(COPT) ../../../testing/Source.cpp
+	$(CXX) $(COPT) -std=c++11 ../../../testing/Source.cpp
+integration.o:
+	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
+integration.dll:
+	clang++ -shared -o integration.dll *.o ../../Zlib/*.o
