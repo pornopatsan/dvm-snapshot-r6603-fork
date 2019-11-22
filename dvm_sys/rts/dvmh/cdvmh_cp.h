@@ -85,7 +85,7 @@ class ControlPoint {
         }
     }
 
-    String getOpenMode(const String &rw, bool async=false, bool binary=true) {
+    String getOpenMode(const String &rw, bool async=false, bool binary=true) const {
         String res = rw;
         if (binary) { res += "b"; }
         if (async) { res += "s"; }
@@ -98,6 +98,14 @@ class ControlPoint {
             return "";
         }
         return res;
+    }
+
+    String buildName(const String name) const {
+        String suffix = "_";
+        for (size_t i = 0; i < this->axesNum; ++i) {
+            suffix += this->NumberToString(this->axesSizeList[i]);
+        }
+        return name + suffix;
     }
 
 }; // class ControlPoint

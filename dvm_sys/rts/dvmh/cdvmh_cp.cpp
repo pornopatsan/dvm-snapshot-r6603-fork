@@ -65,12 +65,9 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
 }
 
 ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
-    this->name = name;
     this->varDescList = varlist;
     this->nfiles = nfiles;
     this->mode = mode;
-
-    this->directory = ControlPoint::DIRNAME + "/" + name;
     this->nextfile = 0;
 
     this->varSizeList.clear();
@@ -86,13 +83,13 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
     for(int i = 0; i < axesNum; ++i) {
         this->axesSizeList.push_back(dvmh_get_num_procs(i + 1));
     }
+
+    this->name = this->buildName(name);
+    this->directory = DIRNAME + "/" + this->name;
 }
 
 ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist) {
-    this->name = name;
     this->varDescList = varlist;
-
-    this->directory = DIRNAME + "/" + name;
     this->nextfile = 0;
 
     this->varSizeList.clear();
@@ -108,6 +105,9 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
     for(int i = 0; i < axesNum; ++i) {
         this->axesSizeList.push_back(dvmh_get_num_procs(i + 1));
     }
+
+    this->name = this->buildName(name);
+    this->directory = DIRNAME + "/" + this->name;
 }
 
 }; // namespace libdvmh

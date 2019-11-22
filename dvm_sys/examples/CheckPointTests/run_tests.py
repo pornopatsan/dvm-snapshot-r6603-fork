@@ -14,7 +14,7 @@ TESTS_WORKDIR = USER_DIR + '/tests'
 TESTS_DATA = TESTS_WORKDIR + '/data'
 
 
-def get_grid_list(filename, size_=3, min_=1, max_=4):
+def get_grid_list(filename, size_=3, min_=1, max_=2):
     nd = re.search(r'_(\d)d', filename)
     if nd:
         n = int(nd.group(1))
@@ -38,6 +38,7 @@ def main():
     files_set = set(filter(lambda x: x.endswith('.c') or x.endswith('.cdv'), files_set))
     logging.info(f'Found these tests: {files_set}')
 
+    os.system(f'rm -rf control_points')
     os.system(f'rm -rf {TESTS_DATA}')
     os.system(f'mkdir {TESTS_DATA}')
 
