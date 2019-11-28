@@ -27,7 +27,7 @@ int main()
 
     DvmType *dvmDesc = (DvmType) malloc(2 * sizeof(DvmType *));
     dvmDesc[0] = A; dvmDesc[1] = B;
-    dvmh_create_or_bind_control_point("test-cp1", dvmDesc, 2, 5, 0);
+    dvmh_create_control_point("test-cp1", dvmDesc, 2, 5, 0);
 
 //    FILE *file = fopen(filename, "rbl");
 //    dvmh_smart_void_read(B, file);

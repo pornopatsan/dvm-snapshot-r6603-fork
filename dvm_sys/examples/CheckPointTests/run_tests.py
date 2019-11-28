@@ -2,7 +2,7 @@ import os
 import re
 import logging
 import random
-
+import argparse
 
 FORMAT = '%(asctime)-15s %(levelname)-8s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -12,6 +12,12 @@ TESTS_DIR = os.path.dirname(__file__)
 USER_DIR = TESTS_DIR.replace('examples/CheckPointTests', 'user')
 TESTS_WORKDIR = USER_DIR + '/tests'
 TESTS_DATA = TESTS_WORKDIR + '/data'
+
+
+def parse_args():
+    args = argparse.ArgumentParser()
+    args.add_argument('--compile-only', action='store_true')
+    return args.parse_args()
 
 
 def get_grid_list(filename, size_=3, min_=1, max_=2):
@@ -32,6 +38,7 @@ def run_test(task, grid_list):
 
 
 def main():
+    args = parse_args()
     logging.info('Start unit-testing')
 
     files_set = set(os.listdir(TESTS_DIR))
@@ -50,6 +57,10 @@ def main():
             logging.error(f'Error compiling {test_file}, information is below')
             os.system(f'cat {TESTS_DATA}/compile_status')
             raise RuntimeError(f'Error compiling {test_file}')
+
+    if args.compile_only:
+        logging.info('Finished')
+        return
 
     ok_tests, failed_tests, total_tests = 0, 0, len(files_set)
     for test_file in files_set:

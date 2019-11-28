@@ -102,10 +102,10 @@ void dvmh_ftn_rewind_(const DvmType *pUnit, const DvmType *pErrFlagRef, const Dv
 void dvmh_ftn_flush_(const DvmType *pUnit, const DvmType *pErrFlagRef, const DvmType *pIOStatRef, const DvmType *pIOMsgStrRef);
 
 void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode);
-void dvmh_bind_conrol_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size);
+void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size);
 void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode);
-void dvmh_save_conrol_point(const char *cpName);
-void dvmh_load_conrol_point(const char *cpName);
+void dvmh_save_control_point(const char *cpName);
+void dvmh_load_control_point(const char *cpName);
 void dvmh_smart_void_write(DvmType dvmDesc[], FILE *file);
 void dvmh_smart_void_read(DvmType dvmDesc[], FILE *file);
 

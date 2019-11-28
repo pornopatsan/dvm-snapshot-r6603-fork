@@ -101,9 +101,9 @@ class ControlPoint {
     }
 
     String buildName(const String name) const {
-        String suffix = "_";
+        String suffix = "";
         for (size_t i = 0; i < this->axesNum; ++i) {
-            suffix += this->NumberToString(this->axesSizeList[i]);
+            suffix += "_" + this->NumberToString(this->axesSizeList[i]);
         }
         return name + suffix;
     }
