@@ -56,22 +56,20 @@ class ControlPoint {
 
     String getNextFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/todo_" + ControlPoint::NumberToString(this->getNextFile()) + "_" + "%d" + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/todo_" + ControlPoint::NumberToString(this->getNextFile()) + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + ".txt";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
     }
     String getLastFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/todo_" + ControlPoint::NumberToString(this->getLastFile()) + "_" + "%d" + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/todo_" + ControlPoint::NumberToString(this->getLastFile()) + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + ".txt";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
     }
     String getHeaderFilename() const {
@@ -80,8 +78,7 @@ class ControlPoint {
         } else if (this->mode == PARALLEL){
             return this->directory + "/Header" + ".txt";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
     }
 
@@ -94,18 +91,9 @@ class ControlPoint {
         } else if (this->mode == PARALLEL){
             res += "p";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
         return res;
-    }
-
-    String buildName(const String name) const {
-        String suffix = "";
-        for (size_t i = 0; i < this->axesNum; ++i) {
-            suffix += "_" + this->NumberToString(this->axesSizeList[i]);
-        }
-        return name + suffix;
     }
 
 }; // class ControlPoint

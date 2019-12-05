@@ -4,9 +4,7 @@
 #include <unistd.h>
 
 typedef long DvmType;
-const char *filename = "data/test_smart_rw_local_%d.txt";
 const int N = 8;
-int ok = 0;
 
 int main()
 {
@@ -27,23 +25,7 @@ int main()
 
     DvmType *dvmDesc = (DvmType) malloc(2 * sizeof(DvmType *));
     dvmDesc[0] = A; dvmDesc[1] = B;
-    dvmh_create_control_point("test-cp1", dvmDesc, 2, 5, 0);
-
-//    FILE *file = fopen(filename, "rbl");
-//    dvmh_smart_void_read(B, file);
-//    fclose(file);
-//
-//    #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256) reduction(sum(ok))
-//    for(int i = 0; i < N; ++i) {
-//        for(int j = 0; j < N; ++j) {
-//            for(int k = 0; k < N; ++k) {
-//                if (A[i][j][k] != B[i][j][k]) {
-//                    ok += 1;
-//                }
-//            }
-//        }
-//    }
-
-    #pragma dvm actual(ok)
-    return ok;
+    dvmh_create_control_point("test_cp_create_local", dvmDesc, 2, 5, 0);
+    dvmh_save_control_point("test_cp_create_local");
+    return 0;
 }

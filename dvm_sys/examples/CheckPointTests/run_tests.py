@@ -34,7 +34,7 @@ def run_test(task, grid_list):
         command = f'{USER_DIR}/dvm run {grid_str} {TESTS_WORKDIR}/{task}'
         logging.info(f'Running command:\t{command}')
         status = os.system(command)
-        yield status
+        yield bool(status) == bool('_fail' in task)
 
 
 def main():
@@ -65,8 +65,8 @@ def main():
     ok_tests, failed_tests, total_tests = 0, 0, len(files_set)
     for test_file in files_set:
         all_passed = True
-        for status in run_test(test_file.split('.')[0], get_grid_list(test_file)):
-            if status == 0:
+        for passed in run_test(test_file.split('.')[0], get_grid_list(test_file)):
+            if passed:
                 logging.info('OK')
             else:
                 logging.error('FAILED')

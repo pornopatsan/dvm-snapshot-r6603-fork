@@ -51,6 +51,14 @@ namespace libdvmh {
 
 std::map<std::string, ControlPoint *, std::less<std::string> > ActiveControlPoints;
 
+ControlPoint::String BuildName(const ControlPoint::String name) {
+    ControlPoint::String suffix = "";
+    for(int i = 0; i < dvmh_get_num_proc_axes(); ++i) {
+        suffix += "_" + ControlPoint::NumberToString(dvmh_get_num_procs(i + 1));
+    }
+    return name + suffix;
+}
+
 std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
     DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
     DvmhData *data = obj->as<DvmhData>();
@@ -84,7 +92,7 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
         this->axesSizeList.push_back(dvmh_get_num_procs(i + 1));
     }
 
-    this->name = this->buildName(name);
+    this->name = BuildName(name);
     this->directory = DIRNAME + "/" + this->name;
 }
 
@@ -106,7 +114,7 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
         this->axesSizeList.push_back(dvmh_get_num_procs(i + 1));
     }
 
-    this->name = this->buildName(name);
+    this->name = BuildName(name);
     this->directory = DIRNAME + "/" + this->name;
 }
 
@@ -114,7 +122,7 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
 
 using namespace libdvmh;
 
-// Creates DIRNAME
+// Creates <DIRNAME> directory
 // returns false if it already exists or true of is was just created
 bool checkOrCreateCpDirectory(const std::string &DIRNAME=ControlPoint::DIRNAME)
 {
@@ -201,7 +209,7 @@ bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
         }
     }
 
-    //  TODO: delete this, as it actually doesnt matter with new naming
+    //  TODO: delete this, as it actually doesn't matter with new naming
     int axNum = 0;
     dvmh_void_fread(&axNum, sizeof(axNum), 1, header);
     if (axNum != dvmh_get_num_proc_axes()) {
@@ -232,7 +240,7 @@ void activateControlPoint(ControlPoint *cp) {
 }
 
 extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
-    printf("Creating CP\n");
+//    printf("Creating CP\n");
     checkOrCreateCpDirectory();
 
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
@@ -243,30 +251,31 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
     saveControlPointHeader(cp);
     activateControlPoint(cp);
 
-    printf("%s\n", cp->getHeaderFilename().c_str());
+//    printf("%s\n", cp->getHeaderFilename().c_str());
     FILE *hdr = dvmh_fopen(cp->getHeaderFilename().c_str(), cp->getOpenMode("r").c_str());
-    printf("%s\n", checkVarlistFitsHeader(cp->varDescList, hdr) ? "True" : "False");
+//    printf("%s\n", checkVarlistFitsHeader(cp->varDescList, hdr) ? "True" : "False");
     dvmh_fclose(hdr);
 }
 
 extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size) {
     // TODO: make this the only load function
-    printf("Binding Control Point\n");
+//    printf("Binding Control Point\n");
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
     ControlPoint *cp = new ControlPoint(cpName, varlist);
 
     FILE *header = dvmh_fopen(cp->getHeaderFilename().c_str(), cp->getOpenMode("r").c_str());
     if (checkVarlistFitsHeader(varlist, header)) {
-        printf("Variables do fit!\n");
+//        printf("Variables do fit!\n");
         activateControlPoint(cp);
     } else {
         printf("Variables don't fit this Control Point\n");
+        exit(1);
     }
     dvmh_fclose(header);
 }
 
 extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
-    printf("Creating or Binding Control Point\n");
+//    printf("Creating or Binding Control Point\n");
     checkOrCreateCpDirectory();
 
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
@@ -278,8 +287,8 @@ extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *d
 }
 
 extern "C" void dvmh_save_control_point(const char *cpName) {
-    printf("Saving Control Point\n");
-    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(std::string(cpName));
+//    printf("Saving Control Point\n");
+    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         ControlPoint *cp = iter->second;
         FILE *astream = dvmh_fopen((cp->getNextFilename()).c_str(), cp->getOpenMode("w", false).c_str());
@@ -291,12 +300,13 @@ extern "C" void dvmh_save_control_point(const char *cpName) {
         dvmh_fclose(astream);
     } else {
         printf("%s\n", "ControlPoint not found. Try creating it first");
+        exit(1);
     }
 }
 
-extern "C" void dvmh_load_control_point(const char *cp_name) {
-    printf("Loading Control Point\n");
-    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(std::string(cp_name));
+extern "C" void dvmh_load_control_point(const char *cpName) {
+//    printf("Loading Control Point\n");
+    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         std::pair<std::string, ControlPoint *> it = *iter;
         FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r", false).c_str());
@@ -305,34 +315,21 @@ extern "C" void dvmh_load_control_point(const char *cp_name) {
         }
         dvmh_fclose(astream);
     } else {
-        printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point() first>");
+        printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point()> first");
+        exit(1);
     }
 }
 
-extern "C" void dvmh_smart_void_write(DvmType dvmDesc[], FILE *astream) {
-    DvmhFile *stream = (DvmhFile *)astream;
-    DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
-    DvmhData *data = obj->as<DvmhData>();
-
-    size_t size = data->getTypeSize();
-    const Interval *spc = data->getSpace();
-    size_t nmemb = 1;
-    for (size_t i = 0; i < data->getRank(); ++i) {
-        nmemb *= spc[i].size();
-    }
-    dvmh_void_fwrite_distrib(dvmDesc, size, nmemb, astream);
+extern "C" void dvmh_smart_void_write(DvmType dvmDesc[], FILE *stream) {
+    const std::pair<size_t, size_t> sizeAndNmemb = getSizeAndNmemb(dvmDesc);
+    const size_t size = sizeAndNmemb.first;
+    const size_t nmemb = sizeAndNmemb.second;
+    dvmh_void_fwrite_distrib(dvmDesc, size, nmemb, stream);
 }
 
-extern "C" void dvmh_smart_void_read(DvmType dvmDesc[], FILE *astream) {
-    DvmhFile *stream = (DvmhFile *)astream;
-    DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
-    DvmhData *data = obj->as<DvmhData>();
-
-    size_t size = data->getTypeSize();
-    const Interval *spc = data->getSpace();
-    size_t nmemb = 1;
-    for (size_t i = 0; i < data->getRank(); ++i) {
-        nmemb *= spc[i].size();
-    }
-    dvmh_void_fread_distrib(dvmDesc, size, nmemb, astream);
+extern "C" void dvmh_smart_void_read(DvmType dvmDesc[], FILE *stream) {
+    const std::pair<size_t, size_t> sizeAndNmemb = getSizeAndNmemb(dvmDesc);
+    const size_t size = sizeAndNmemb.first;
+    const size_t nmemb = sizeAndNmemb.second;
+    dvmh_void_fread_distrib(dvmDesc, size, nmemb, stream);
 }
