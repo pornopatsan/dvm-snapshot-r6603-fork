@@ -1,4 +1,5 @@
 #include "statlist.h"
+#include <iostream>
 
 void CStat::to_string(std::string & result) {
 	CStatInter * cur=inter_tree;
@@ -53,25 +54,27 @@ CStat::CStat(json source){
     for (json::reverse_iterator it = source["inter"].rbegin(); it != source["inter"].rend(); ++it){
         inter_temp = inter_tree;
         inter_tree = new CStatInter((json)(*it));
-        if(inter_temp)
-            inter_tree->next = inter_temp;
+//        if(inter_temp)
+        inter_tree->next = inter_temp;
     }
+    isinitialized = true;
 }
 
 CStat::~CStat() {
-	if (inter_tree) {
-        inter_tree->delete_tail();
-		inter_tree->clear();
-		delete inter_tree;
-	}
+//    printf("Destructor: ~Stat()\n");
+//	if (inter_tree) {
+//        inter_tree->delete_tail();
+//		inter_tree->clear();
+//		delete inter_tree;
+//	}
 	//for (unsigned long i = 0; i < nproc; i++)
 	//	delete [] proc_info[i].node_name;
-	if (proc_info){
-        delete [] proc_info;
-    }
-    if (stat){
-        delete stat;
-    }
+//	if (proc_info){
+//        delete [] proc_info;
+//    }
+//    if (stat){
+//        delete stat;
+//    }
 }
 
 void CStat::clear() {
@@ -131,8 +134,8 @@ void CStat::init(char * path) {
 }
 
 CStatInter * find_inter(long expr, short nlev, CStatInter * cur) {
-	while (cur && cur->id.nlev == nlev) {
-		if (cur->id.expr == expr) {
+	while (cur) {
+		if (cur->id.expr == expr && cur->id.nlev == nlev) {
 			return cur;
 		}
 		cur = cur->next;
@@ -152,35 +155,62 @@ CStatInter * next_inter(short nlev, CStatInter * cur) {
 	return cur;
 };
 
+int copy_for_compare(const CStat &s, CStat &r){
+    if (!s.isinitialized)
+        return 1;
+    if (!s.isjson) {
+        r.spath = new char[(strlen(s.spath)) + 1];
+        strcpy(r.spath, s.spath);
+    }
+    r.nproc = s.nproc;
+    r.proc_info = new CProcInfo[r.nproc];
+    for (int i = 0; i < r.nproc; ++i){
+        r.proc_info[i].node_name = new char[strlen(s.proc_info[i].node_name)];
+        strcpy(r.proc_info[i].node_name, s.proc_info[i].node_name);
+        r.proc_info->test_time = s.proc_info->test_time;
+    }
+    r.isinitialized = true;
+    r.iscomp = true;
+    return 0;
+}
+
 void stat_intersect(const CStat &s1, const CStat &s2, CStat & r1, CStat & r2) {
-	if (!s1.isinitialized || !s2.isinitialized) {
-		return;
-	}
-	r1.spath = new char[(strlen(s1.spath)) + 1];
-	strcpy(r1.spath, s1.spath);
-	r1.iscomp = 1;
-	r1.isinitialized = 1;
-	r2.spath = new char[(strlen(s2.spath)) + 1];
-	strcpy(r2.spath, s2.spath);
-	r2.iscomp = 1;
-	r2.isinitialized = 1;
+	if (copy_for_compare(s1, r1) || copy_for_compare(s2, r2))
+	    return;
 	inter_tree_intersect(s1.inter_tree, s2.inter_tree, &r1.inter_tree, &r2.inter_tree);
-	return;
 };
+
+void skip_to_end(CStatInter ***i){
+    while ((**i)->next != NULL)
+        *i = &(**i)->next;
+}
 
 void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStatInter **r2) {
 	CStatInter *cur;
 	short cur_lev = i1->id.nlev;
 	while (i1 != NULL) {
 		if (cur = find_inter(i1->id.expr, cur_lev, i2)) {
-			*r1 = new CStatInter(*i1);
+            *r1 = new CStatInter(*i1);
 			*r2 = new CStatInter(*i2);
 			r1 = &(*r1)->next;
 			r2 = &(*r2)->next;
-			if (i1->next->id.nlev > cur_lev && cur->next->id.nlev > cur_lev) {
-				inter_tree_intersect(i1->next, cur->next, r1, r2);
-			}
+			if (i1->next != NULL && cur->next != NULL && i1->next->id.nlev > cur_lev && cur->next->id.nlev > cur_lev) {
+                inter_tree_intersect(i1->next, cur->next, r1, r2);
+                skip_to_end(&r1);
+                skip_to_end(&r2);
+                r1 = &(*r1)->next;
+                r2 = &(*r2)->next;
+            }
 		}
 		i1 = next_inter(cur_lev, i1);
+		i2 = next_inter(cur_lev, i2);
+//		json j;
+//
+//		if (i1 != NULL){
+//            i1->to_json(j);
+//		    std::cout << ">> next_inter:  " << i1->id.nlev << "\n\n" << j << "\n\n";
+//        }
+//		else
+//            std::cout << ">> next_inter:  " << i1 << "\n\n" << j << "\n\n";
 	}
  }

@@ -8,6 +8,7 @@ void CStatInter::to_string(std::string &result) {
 	result += patch::to_string(id.nline) + ' ';  //номер строки начала
 	result += patch::to_string(id.nline_end) + ' '; //номер строки конца
 	result += patch::to_string(id.nenter) + ' '; //число вхождений в интервал
+	result += std::string(id.pname) + ' ';
     result += "\n@times@ ";
 	result += patch::to_string(prod_cpu)+' ';
 	result += patch::to_string(prod_sys) + ' ';
@@ -132,7 +133,8 @@ void CStatInter::to_json(json & result){
                         {"expr", id.expr},
                         {"nline", id.nline},
                         {"nline_end", id.nline_end},
-                        {"nenter", id.nenter}
+                        {"nenter", id.nenter},
+                        {"pname", id.pname}
                     }
                 },
                 {"times",
@@ -175,6 +177,11 @@ CStatInter::CStatInter(json source){
     id.expr = j_id["expr"];
     id.nlev = j_id["nlev"];
     id.t = j_id["t"];
+    std::string tmp = std::string(j_id["pname"]);
+    id.pname = new char[tmp.length() + 1];
+    for (int i = 0; i < tmp.length(); ++i)
+        id.pname[i] = tmp[i];
+    id.pname[tmp.length()] = '\0';
 
     // -----  times  -----
     json j_times = source["times"];
@@ -348,6 +355,7 @@ void CStatInter::delete_tail() {
 }
 
 CStatInter::~CStatInter() {
+    printf("Destructor: ~CStatInter()\n");
 	//delete_tail();
 	//clear();
 }

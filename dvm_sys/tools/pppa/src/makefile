@@ -1,7 +1,7 @@
 BINDIR=../../../testing
 
 EXECUTABLES = st
-COPT=-c -I../../Zlib/include
+COPT=-c -I../../Zlib/include -g
 ZLIB	= zlib
 ZLIBDIR	= ../../Zlib/Release
 
