@@ -26,8 +26,9 @@ namespace patch
 
 class CStatInter {
 public:
-	CStatInter(const CStatInter & si);
+    CStatInter( const CStatInter& si);
 	CStatInter(CStatRead * stat_read, int n);
+	CStatInter(json source);
 	~CStatInter();
 	void delete_tail();
 	void clear();
@@ -62,12 +63,13 @@ public:
 	unsigned long nproc;
 	unsigned long threadsOfAllProcs;
 	struct ColOp col_op[RED];
-	OpGrp (* op_group) [StatGrpCount];
-	//comparative characteristics
+    OpGrp (* op_group)[StatGrpCount];
+    unsigned long qproc;
+    bool isjson;
+    //comparative characteristics
 	//struct ProcTimes comp_proc_times[3];
 	//characteristics by processes
 	struct ProcTimes *  proc_times;
-//========================================//
 	CStatInter * next;
 };
 
@@ -76,10 +78,13 @@ struct CProcInfo {
 	double test_time;
 };
 
-class CStat {
+class CStat {   //копирование и присваивание запрещены
+private:
+    CStat operator=(const CStat&);
+    CStat( const CStat& );
 public:
 	CStat();
-	CStat(const CStat &s);
+	CStat(json source);
 	void init(char * path) ;
 	void clear();
 	~CStat() ;
@@ -93,6 +98,7 @@ public:
 	void to_string(std::string & result);
 	void to_json(json &result);
 	bool err;
+	bool isjson;
 };
 
 struct CStatParam {
