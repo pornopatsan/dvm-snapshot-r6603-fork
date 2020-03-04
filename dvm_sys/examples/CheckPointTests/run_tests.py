@@ -3,6 +3,7 @@ import re
 import logging
 import random
 import argparse
+import multiprocessing as mp
 
 FORMAT = '%(asctime)-15s %(levelname)-8s %(message)s'
 logging.basicConfig(format=FORMAT, level=logging.DEBUG)
@@ -17,6 +18,7 @@ TESTS_DATA = TESTS_WORKDIR + '/data'
 def parse_args():
     args = argparse.ArgumentParser()
     args.add_argument('--compile-only', action='store_true')
+    args.add_argument('--test-regex', default=r'.*', help='regexp to filter to test names and run a sample of tests')
     return args.parse_args()
 
 
@@ -40,9 +42,11 @@ def run_test(task, grid_list):
 def main():
     args = parse_args()
     logging.info('Start unit-testing')
+    logging.info(f'System cpu cores count = {mp.cpu_count()}')
 
     files_set = set(os.listdir(TESTS_DIR))
     files_set = set(filter(lambda x: x.endswith('.c') or x.endswith('.cdv'), files_set))
+    files_set = set(filter(lambda x: re.match(args.test_regex, x), files_set))
     logging.info(f'Found these tests: {files_set}')
 
     os.system(f'rm -rf control_points')
@@ -63,7 +67,7 @@ def main():
         return
 
     ok_tests, failed_tests, total_tests = 0, 0, len(files_set)
-    for test_file in files_set:
+    for test_file in sorted(files_set):
         all_passed = True
         for passed in run_test(test_file.split('.')[0], get_grid_list(test_file)):
             if passed:
