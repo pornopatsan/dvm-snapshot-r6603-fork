@@ -42,6 +42,9 @@ class ControlPoint {
     int nfiles;
     int nextfile;
 
+    bool saveLock;
+    DvmhFile *fileSaveStream;
+
   public:
     ControlPoint() {}
     ControlPoint(String name, VectorDesc varlist, int nfiles, DvmhCpMode mode);
@@ -53,47 +56,51 @@ class ControlPoint {
     int getLastFile() const { return (this->getNextFile() - 1) % this->getFilesNum(); }
     void incFileQueue() { nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
     void decFileQueue() { nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
+    void lockSave() { this->saveLock = true; }
+    void unlockSave() { this->saveLock = false; }
+    bool isSaveLocked() { return this->saveLock; }
+    bool isCpLocal() const { return ((this->mode == LOCAL) || (this->mode == LOCAL_ASYNC)); }
+    bool isCpParallel() const { return ((this->mode == PARALLEL) || (this->mode == PARALLEL_ASYNC)); }
+    bool isCpAsync() const { return ((this->mode == LOCAL_ASYNC) || (this->mode == PARALLEL_ASYNC)); }
 
     String getNextFilename() const {
-        if (this->mode == LOCAL) {
+        if (this->isCpLocal()) {
             return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + ".txt";
         } else {
             exit(1);
         }
     }
     String getLastFilename() const {
-        if (this->mode == LOCAL) {
+        if (this->isCpLocal()) {
             return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + ".txt";
         } else {
             exit(1);
         }
     }
     String getHeaderFilename() const {
-        if (this->mode == LOCAL) {
+        if (this->isCpLocal()) {
             return this->directory + "/Header" + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return this->directory + "/Header" + ".txt";
         } else {
             exit(1);
         }
     }
 
-    String getOpenMode(const String &rw, bool async=false, bool binary=true) const {
+    String getCpOpenMode(const String rw, bool local, bool async, bool binary) const {
         String res = rw;
         if (binary) { res += "b"; }
         if (async) { res += "s"; }
-        if (this->mode == LOCAL) {
-            res += "l";
-        } else if (this->mode == PARALLEL){
-            res += "p";
-        } else {
-            exit(1);
-        }
+        res += (local ? "l" : "p");
         return res;
+    }
+
+    String getOpenMode(const String rw, bool binary=true) const {
+        return this->getCpOpenMode(rw, this->isCpLocal(), this->isCpAsync(), binary);
     }
 
 }; // class ControlPoint

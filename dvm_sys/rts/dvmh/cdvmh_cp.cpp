@@ -75,8 +75,10 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
 ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
     this->varDescList = varlist;
     this->nfiles = nfiles;
-    this->mode = mode;
     this->nextfile = 0;
+    this->mode = mode;
+    this->saveLock = false;
+    this->fileSaveStream = nullptr;
 
     this->varSizeList.clear();
     this->varNmembList.clear();
@@ -99,6 +101,8 @@ ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc v
 ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist) {
     this->varDescList = varlist;
     this->nextfile = 0;
+    this->saveLock = false;
+    this->fileSaveStream = nullptr;
 
     this->varSizeList.clear();
     this->varNmembList.clear();
@@ -137,6 +141,7 @@ bool checkOrCreateCpDirectory(const std::string &DIRNAME=ControlPoint::DIRNAME)
 
 void saveControlPointHeader(const ControlPoint *cp)
 {
+    // TODO: decide either write header async or sync?
     FILE *header = dvmh_fopen(cp->getHeaderFilename().c_str(), cp->getOpenMode("w").c_str());
     // TODO: Pack data to write only once
     // TODO: Save many other params
@@ -239,6 +244,12 @@ void activateControlPoint(ControlPoint *cp) {
     ActiveControlPoints.insert(std::make_pair(cp->name, cp));
 }
 
+void waitControlPoint(ControlPoint *cp) {
+    cp->fileSaveStream->syncOperations(); // TODO: not sure how it works, investigate
+    cp->fileSaveStream = nullptr;
+    cp->unlockSave();
+}
+
 extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
 //    printf("Creating CP\n");
     checkOrCreateCpDirectory();
@@ -291,13 +302,27 @@ extern "C" void dvmh_save_control_point(const char *cpName) {
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         ControlPoint *cp = iter->second;
-        FILE *astream = dvmh_fopen((cp->getNextFilename()).c_str(), cp->getOpenMode("w", false).c_str());
+        if (cp->isSaveLocked()) {
+            if (cp->isCpAsync()) {
+                waitControlPoint(cp);
+            } else {
+                printf("%s\n", "Previous sync save had failed to some reason. Aborting");
+                exit(1);
+            }
+        }
+
+        FILE *astream = dvmh_fopen((cp->getNextFilename()).c_str(), cp->getOpenMode("w").c_str());
+        cp->lockSave();
+        cp->fileSaveStream = (DvmhFile *) astream;
         cp->incFileQueue();
         for (size_t i = 0; i < cp->varDescList.size(); ++i) {
             dvmh_smart_void_write(cp->varDescList[i], astream);
         }
         saveControlPointHeader(cp);
-        dvmh_fclose(astream);
+        if (!cp->isCpAsync()) {
+            cp->unlockSave();
+            dvmh_fclose(astream);
+        }
     } else {
         printf("%s\n", "ControlPoint not found. Try creating it first");
         exit(1);
@@ -309,11 +334,22 @@ extern "C" void dvmh_load_control_point(const char *cpName) {
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         std::pair<std::string, ControlPoint *> it = *iter;
-        FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r", false).c_str());
+        FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r").c_str());
         for (size_t i = 0; i < it.second->varDescList.size(); ++i) {
             dvmh_smart_void_read(it.second->varDescList[i], astream);
         }
         dvmh_fclose(astream);
+    } else {
+        printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point()> first");
+        exit(1);
+    }
+}
+
+extern "C" void dvmh_wait_control_point(const char *cpName) {
+    std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
+    if (iter != ActiveControlPoints.end()) {
+        std::pair<std::string, ControlPoint *> it = *iter;
+        waitControlPoint(it.second);
     } else {
         printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point()> first");
         exit(1);

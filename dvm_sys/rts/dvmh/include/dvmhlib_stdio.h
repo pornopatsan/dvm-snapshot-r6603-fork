@@ -106,6 +106,7 @@ void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_
 void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode);
 void dvmh_save_control_point(const char *cpName);
 void dvmh_load_control_point(const char *cpName);
+void dvmh_wait_control_point(const char *cpName);
 void dvmh_smart_void_write(DvmType dvmDesc[], FILE *file);
 void dvmh_smart_void_read(DvmType dvmDesc[], FILE *file);
 
