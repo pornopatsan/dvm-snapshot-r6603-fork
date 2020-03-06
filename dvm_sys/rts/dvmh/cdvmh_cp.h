@@ -9,7 +9,7 @@
 // #include "dvmh_stdio.cpp" // TODO: do not include this
 namespace libdvmh {
 enum RWKind { rwkRead, rwkWrite }; // TODO: get original from cdmh_stdio.cpp
-enum DvmhCpMode {LOCAL, PARALLEL};
+enum DvmhCpMode {LOCAL, PARALLEL, LOCAL_ASYNC, PARALLEL_ASYNC};
 
 class ControlPoint {
 
@@ -22,8 +22,7 @@ class ControlPoint {
 
   public:
     static const std::string DIRNAME;
-    static std::string NumberToString(int number)
-    {
+    static std::string NumberToString(int number) {
         std::ostringstream stream;
         stream << number;
         return stream.str();
@@ -39,50 +38,51 @@ class ControlPoint {
     int axesNum;
     VectorSize axesSizeList;
 
-    String fname;
     DvmhCpMode mode;
     int nfiles;
     int nextfile;
 
   public:
     ControlPoint() {}
-    ControlPoint(String name, VectorDesc varlist, String filename, int nfiles, DvmhCpMode mode=LOCAL);
+    ControlPoint(String name, VectorDesc varlist, int nfiles, DvmhCpMode mode);
     ControlPoint(String name, VectorDesc varlist);
 
   public:
-    void save(const DvmType dvmDesc[] = NULL, FILE *astream = NULL);
-
-  public:
-    int getNfiles() const { return nfiles; }
-    int getNextfile() const { return nextfile; }
-    void incFileQueue() { nextfile = (nextfile + 1) % nfiles; }
-    void decFileQueue() { nextfile = (nextfile - 1) % nfiles; }
+    int getFilesNum() const { return nfiles; }
+    int getNextFile() const { return nextfile; }
+    int getLastFile() const { return (this->getNextFile() - 1) % this->getFilesNum(); }
+    void incFileQueue() { nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
+    void decFileQueue() { nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
 
     String getNextFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + ControlPoint::NumberToString(this->getNextfile()) + "_" + "%d" + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + ControlPoint::NumberToString(this->getNextfile()) + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + ".txt";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
     }
-
     String getLastFilename() const {
         if (this->mode == LOCAL) {
-            return directory + "/" + fname + "_" + ControlPoint::NumberToString((this->getNextfile() - 1) % nfiles) + "_" + "%d" + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + "_" + "%d" + ".txt";
         } else if (this->mode == PARALLEL){
-            return directory + "/" + fname + "_" + ControlPoint::NumberToString((this->getNextfile() - 1) % nfiles) + ".txt";
+            return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + ".txt";
         } else {
-            // TODO: error
-            return "";
+            exit(1);
         }
     }
     String getHeaderFilename() const {
-        return this->directory + "/Header" + ".txt";
+        if (this->mode == LOCAL) {
+            return this->directory + "/Header" + "_" + "%d" + ".txt";
+        } else if (this->mode == PARALLEL){
+            return this->directory + "/Header" + ".txt";
+        } else {
+            exit(1);
+        }
     }
-    String getOpenMode(const String &rw, bool async=false, bool binary=true) {
+
+    String getOpenMode(const String &rw, bool async=false, bool binary=true) const {
         String res = rw;
         if (binary) { res += "b"; }
         if (async) { res += "s"; }
@@ -91,7 +91,7 @@ class ControlPoint {
         } else if (this->mode == PARALLEL){
             res += "p";
         } else {
-            // error
+            exit(1);
         }
         return res;
     }
