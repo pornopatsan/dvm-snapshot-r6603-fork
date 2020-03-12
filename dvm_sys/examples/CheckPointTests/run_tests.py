@@ -18,7 +18,7 @@ TESTS_DATA = TESTS_WORKDIR + '/data'
 def parse_args():
     args = argparse.ArgumentParser()
     args.add_argument('--compile-only', action='store_true')
-    args.add_argument('--test-regex', default=r'.*', help='regexp to filter to test names and run a sample of tests')
+    args.add_argument('--test-regex', default=r'test.*', help='regexp to filter test names and run a sample of tests')
     return args.parse_args()
 
 

@@ -139,6 +139,13 @@ bool checkOrCreateCpDirectory(const std::string &DIRNAME=ControlPoint::DIRNAME)
     return false;
 }
 
+bool checkFileExists(const std::string &filename)
+{
+    // TODO: what about windows
+    struct stat sb;
+    return (stat(filename.c_str(), &sb) == 0);
+}
+
 void saveControlPointHeader(const ControlPoint *cp)
 {
     // TODO: decide either write header async or sync?
@@ -213,21 +220,6 @@ bool checkVarlistFitsHeader(ControlPoint::VectorDesc vlist, FILE *header)
             return false;
         }
     }
-
-    //  TODO: delete this, as it actually doesn't matter with new naming
-    int axNum = 0;
-    dvmh_void_fread(&axNum, sizeof(axNum), 1, header);
-    if (axNum != dvmh_get_num_proc_axes()) {
-        return false;
-    }
-    size_t axSizeList[axNum];
-    dvmh_void_fread(&axSizeList, sizeof(axSizeList), 1, header);
-    for (int i = 0; i < axNum; ++i) {
-        if (axSizeList[i] != dvmh_get_num_procs(i + 1)) {
-            return false;
-        }
-    }
-
     return true;
 }
 
@@ -245,38 +237,42 @@ void activateControlPoint(ControlPoint *cp) {
 }
 
 void waitControlPoint(ControlPoint *cp) {
-    cp->fileSaveStream->syncOperations(); // TODO: not sure how it works, investigate
-    cp->fileSaveStream = nullptr;
-    cp->unlockSave();
+    if (cp->isCpAsync()) {
+        if (cp->isSaveLocked()) {
+            cp->fileSaveStream->syncOperations();
+            dvmh_fclose((FILE *) cp->fileSaveStream);
+            cp->fileSaveStream = nullptr;
+            cp->unlockSave();
+        } else {
+            printf("%s\n", "Cannot wait Control Point, no operations are ongoing. Aborting");
+            exit(1);
+        }
+    } else {
+        printf("%s\n", "Cannot wait sync Control Point. Aborting");
+        exit(1);
+    }
 }
 
 extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
-//    printf("Creating CP\n");
     checkOrCreateCpDirectory();
-
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
     ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
-
     // TODO: what if cp already exists? Maybe just delete it, cause someone manually called create cp
     checkOrCreateCpDirectory(cp->directory);
     saveControlPointHeader(cp);
     activateControlPoint(cp);
-
-//    printf("%s\n", cp->getHeaderFilename().c_str());
-    FILE *hdr = dvmh_fopen(cp->getHeaderFilename().c_str(), cp->getOpenMode("r").c_str());
-//    printf("%s\n", checkVarlistFitsHeader(cp->varDescList, hdr) ? "True" : "False");
-    dvmh_fclose(hdr);
 }
 
 extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size) {
-    // TODO: make this the only load function
-//    printf("Binding Control Point\n");
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
     ControlPoint *cp = new ControlPoint(cpName, varlist);
+    if (!checkFileExists(cp->directory) || !checkFileExists(cp->getHeaderFilename().c_str())) {
+        printf("Control Point is corrupted or not found. Aborting\n");
+        exit(1);
+    }
 
     FILE *header = dvmh_fopen(cp->getHeaderFilename().c_str(), cp->getOpenMode("r").c_str());
     if (checkVarlistFitsHeader(varlist, header)) {
-//        printf("Variables do fit!\n");
         activateControlPoint(cp);
     } else {
         printf("Variables don't fit this Control Point\n");
@@ -286,9 +282,7 @@ extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], 
 }
 
 extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
-//    printf("Creating or Binding Control Point\n");
     checkOrCreateCpDirectory();
-
     std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
     ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
     if (checkOrCreateCpDirectory(cp->directory)) {
@@ -298,30 +292,21 @@ extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *d
 }
 
 extern "C" void dvmh_save_control_point(const char *cpName) {
-//    printf("Saving Control Point\n");
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         ControlPoint *cp = iter->second;
-        if (cp->isSaveLocked()) {
-            if (cp->isCpAsync()) {
-                waitControlPoint(cp);
-            } else {
-                printf("%s\n", "Previous sync save had failed to some reason. Aborting");
-                exit(1);
-            }
-        }
-
-        FILE *astream = dvmh_fopen((cp->getNextFilename()).c_str(), cp->getOpenMode("w").c_str());
+        if (cp->isSaveLocked()) { waitControlPoint(cp); }
         cp->lockSave();
-        cp->fileSaveStream = (DvmhFile *) astream;
         cp->incFileQueue();
+        cp->fileSaveStream = (DvmhFile *) dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("w").c_str());
         for (size_t i = 0; i < cp->varDescList.size(); ++i) {
-            dvmh_smart_void_write(cp->varDescList[i], astream);
+            dvmh_smart_void_write(cp->varDescList[i], (FILE *) cp->fileSaveStream);
         }
         saveControlPointHeader(cp);
         if (!cp->isCpAsync()) {
+            dvmh_fclose((FILE *) cp->fileSaveStream);
+            cp->fileSaveStream = nullptr;
             cp->unlockSave();
-            dvmh_fclose(astream);
         }
     } else {
         printf("%s\n", "ControlPoint not found. Try creating it first");
@@ -330,10 +315,10 @@ extern "C" void dvmh_save_control_point(const char *cpName) {
 }
 
 extern "C" void dvmh_load_control_point(const char *cpName) {
-//    printf("Loading Control Point\n");
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
         std::pair<std::string, ControlPoint *> it = *iter;
+        if (it.second->isSaveLocked()) { waitControlPoint(it.second); }
         FILE *astream = dvmh_fopen((it.second->getLastFilename()).c_str(), it.second->getOpenMode("r").c_str());
         for (size_t i = 0; i < it.second->varDescList.size(); ++i) {
             dvmh_smart_void_read(it.second->varDescList[i], astream);

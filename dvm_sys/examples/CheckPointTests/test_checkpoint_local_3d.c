@@ -6,6 +6,12 @@
 
 typedef long DvmType;
 const int N = 8;
+const char *name = "test_checkpoint_local";
+enum Mode {LOCAL, PARALLEL, LOCAL_ASYNC, PARALLEL_ASYNC};
+enum Mode mode = LOCAL;
+const int nfiles = 3;
+double eps = 0;
+
 
 int main()
 {
@@ -21,10 +27,10 @@ int main()
         }
     }
 
-    DvmType *dvmDesc = (DvmType *) malloc(1 * sizeof(DvmType *));
+    DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
     dvmDesc[0] = A;
-    dvmh_create_control_point("test_cp_load_parallel", dvmDesc, 1, 2, 1);
-    dvmh_save_control_point("test_cp_load_parallel");
+    dvmh_create_control_point(name, dvmDesc, 1, nfiles, mode);
+    dvmh_save_control_point(name);
 
     #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
     for(int i = 0; i < N; ++i) {
@@ -35,7 +41,7 @@ int main()
         }
     }
 
-    dvmh_load_control_point("test_cp_load_parallel");
+    dvmh_load_control_point(name);
 
     #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
     for(int i = 0; i < N; ++i) {
@@ -45,5 +51,6 @@ int main()
             }
         }
     }
+
     return 0;
 }

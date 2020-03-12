@@ -56,12 +56,14 @@ class ControlPoint {
     int getLastFile() const { return (this->getNextFile() - 1) % this->getFilesNum(); }
     void incFileQueue() { nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
     void decFileQueue() { nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
-    void lockSave() { this->saveLock = true; }
-    void unlockSave() { this->saveLock = false; }
-    bool isSaveLocked() { return this->saveLock; }
+
     bool isCpLocal() const { return ((this->mode == LOCAL) || (this->mode == LOCAL_ASYNC)); }
     bool isCpParallel() const { return ((this->mode == PARALLEL) || (this->mode == PARALLEL_ASYNC)); }
     bool isCpAsync() const { return ((this->mode == LOCAL_ASYNC) || (this->mode == PARALLEL_ASYNC)); }
+
+    bool isSaveLocked() { return this->saveLock; }
+    void lockSave() { !this->isSaveLocked() ? ((void) (this->saveLock = true)) : exit(1); }
+    void unlockSave() { this->isSaveLocked() ? ((void) (this->saveLock = false)) : exit(1); }
 
     String getNextFilename() const {
         if (this->isCpLocal()) {
