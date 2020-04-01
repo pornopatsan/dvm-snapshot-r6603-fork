@@ -44,6 +44,7 @@ void  intergrp(void)
   StatGrp[ ret_align_              ] = DistrGrp;
   StatGrp[ call_getps_             ] = DistrGrp;
   StatGrp[ ret_getps_              ] = DistrGrp;
+  
   StatGrp[ call_saverg_            ] = RedGrp;
   StatGrp[ ret_saverg_             ] = RedGrp;
   StatGrp[ call_CreateVMS          ] = 0;
@@ -333,6 +334,9 @@ void  intergrp(void)
   StatGrp[ call_tsynch_            ] = 0;
   StatGrp[ ret_tsynch_             ] = 0;
 
+  StatGrp[ call_copy_              ] = MsgPasGrp;  //io stat
+  StatGrp[ ret_copy_               ] = MsgPasGrp;  //io stat
+
   StatGrp[ call_getamr_            ] = DistrGrp;
   StatGrp[ ret_getamr_             ] = DistrGrp;
   StatGrp[ call_crtps_             ] = DistrGrp;
@@ -452,6 +456,9 @@ void  intergrp(void)
   StatGrp[ ret_acsend_             ] = SystemGrp;
   StatGrp[ call_acrecv_            ] = SystemGrp;
   StatGrp[ ret_acrecv_             ] = SystemGrp;
+
+  StatGrp[ call_acsend_            ] = MsgPasGrp;
+  StatGrp[ ret_acsend_             ] = MsgPasGrp;
 
   StatGrp[ call_recvla_            ] = StartShdGrp;
   StatGrp[ ret_recvla_             ] = StartShdGrp;

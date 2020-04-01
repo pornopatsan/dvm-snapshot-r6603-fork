@@ -40,6 +40,10 @@
 #include "mps.h"
 #include "util.h"
 
+extern "C" void eiof_();  //io stat
+extern "C" void biof_();  //io stat
+extern "C" void bcopy_();  //io stat
+extern "C" void ecopy_();  //io stat
 using namespace libdvmh;
 
 namespace libdvmh {
@@ -698,7 +702,9 @@ void AsyncReader::execute() {
         if (errRank.first) {
             if (myRank == errRank.second)
                 res = elemsBefore + myRes;
+            bcopy_();  //io stat
             f->myComm->bcast(errRank.second, res);
+            ecopy_();  //io stat
         } else {
             res = nmemb;
         }
@@ -845,7 +851,9 @@ void AsyncParWriter::execute() {
     if (errRank.first) {
         if (myRank == errRank.second)
             res = elemsBefore + myRes;
+        bcopy_();  //io stat
         f->myComm->bcast(errRank.second, res);
+        ecopy_();  //io stat
     } else {
         res = nmemb;
     }
@@ -1089,17 +1097,20 @@ void DvmhFile::syncOperations() const {
 
 int DvmhFile::seekLocal(long long offset, int whence) {
     assert(hasStream());
-    return myFseek(offset, whence);
+    int result = myFseek(offset, whence);
+    return result;
 }
 
 UDvmType DvmhFile::readLocal(void *ptr, UDvmType size, UDvmType nmemb) {
     assert(hasStream());
-    return fread(ptr, size, nmemb, stream);
+    UDvmType result = fread(ptr, size, nmemb, stream);
+    return result;
 }
 
 UDvmType DvmhFile::writeLocal(void *ptr, UDvmType size, UDvmType nmemb) {
     assert(hasStream());
-    return fwrite(ptr, size, nmemb, stream);
+    UDvmType result = fwrite(ptr, size, nmemb, stream);
+    return result;
 }
 
 void DvmhFile::flushLocalIfAsync() {
@@ -1172,7 +1183,9 @@ void DvmhFile::syncParallelAfter(int lastCommRank) {
             } buf;
             if (owningMPS->getCommRank() == curRoot)
                 buf.err = fgetpos(stream, &buf.pos);
+            bcopy_();  //io stat
             myComm->bcast(curRoot, &buf, sizeof(buf));
+            ecopy_();  //io stat
             checkInternal2(!buf.err, msg);
             if (isIOProc())
                 buf.err = fsetpos(stream, &buf.pos);
@@ -1183,11 +1196,13 @@ void DvmhFile::syncParallelAfter(int lastCommRank) {
 }
 
 bool DvmhFile::isAlone() const {
-    return localFlag || owningMPS->getCommSize() <= 1;
+    bool result = localFlag || owningMPS->getCommSize() <= 1;
+    return result;
 }
 
 bool DvmhFile::isIOProc() const {
-    return localFlag || owningMPS->isIOProc();
+    bool result = localFlag || owningMPS->isIOProc();
+    return result;
 }
 
 void DvmhFile::init() {
@@ -1242,13 +1257,19 @@ void DvmhFile::setAsync(bool async) {
 }
 
 void DvmhFile::ioBcast(void *buf, UDvmType size) const {
-    if (!isAlone())
+    if (!isAlone()){
+    	bcopy_();  //io stat
         myComm->bcast(owningMPS->getIOProc(), buf, size);
+        ecopy_();  //io stat
+    }
 }
 
 void DvmhFile::ioBcast(char **pBuf, UDvmType *pSize) const {
-    if (!isAlone())
+    if (!isAlone()){
+    	bcopy_();  //io stat
         myComm->bcast(owningMPS->getIOProc(), pBuf, pSize);
+        ecopy_();  //io stat
+    }
 }
 
 void DvmhFile::wrap(FILE *f, bool local, bool parallel, bool async) {
@@ -1264,7 +1285,8 @@ void DvmhFile::wrap(FILE *f, bool local, bool parallel, bool async) {
 }
 
 bool DvmhFile::needsUnite() const {
-    return !isAlone() || (localFlag && isMainThread && !isInParloop && currentMPS->getCommSize() > 1);
+    bool result = !isAlone() || (localFlag && isMainThread && !isInParloop && currentMPS->getCommSize() > 1);
+    return result;
 }
 
 int DvmhFile::uniteIntErr(int err, bool collectiveOp) const {
@@ -1433,56 +1455,72 @@ enum RWKind {rwkRead, rwkWrite};
 }
 
 extern "C" int dvmh_remove(const char *filename) {
+    biof_(); //io stat
     // Supposes a global FS, only one processor does the action
     checkError2(isMainThread && !isInParloop, "Global file operations are permitted only from the sequential part of the program. Use dvmh_remove_local API function if appropriate.");
+ 
     int err = 0;
     if (currentMPS->isIOProc())
         err = remove(filename) != 0;
     err = uniteIntErr(err, false);
+    eiof_();  
     return err;
 }
 
 extern "C" int dvmh_remove_local(const char *filename) {
+    biof_();  //io stat
     // Supposes either a local FS, or different files on every processor
     char realFN[FILENAME_MAX + 1];
     localizeFileName(realFN, filename);
     int err = remove(realFN) != 0;
     err = uniteIntErr(err, true);
+    eiof_();  
     return err;
 }
 
 extern "C" int dvmh_rename(const char *oldFN, const char *newFN) {
+    biof_();  //io stat
     // Supposes a global FS, only one processor does the action
     checkError2(isMainThread && !isInParloop, "Global file operations are permitted only from the sequential part of the program. Use dvmh_rename_local API function if appropriate.");
     int err = 0;
     if (currentMPS->isIOProc())
         err = rename(oldFN, newFN) != 0;
     err = uniteIntErr(err, false);
+    eiof_();  
     return err;
 }
 
 extern "C" int dvmh_rename_local(const char *oldFN, const char *newFN) {
+    biof_();  //io stat
     // Supposes either a local FS, or different files on every processor
     char realOldFN[FILENAME_MAX + 1], realNewFN[FILENAME_MAX + 1];
     localizeFileName(realOldFN, oldFN);
     localizeFileName(realNewFN, newFN);
     int err = rename(realOldFN, realNewFN) != 0;
     err = uniteIntErr(err, true);
+    eiof_();  
     return err;
 }
 
 extern "C" FILE *dvmh_tmpfile(void) {
+    biof_();  //io stat
     // Global temporary file
     checkError2(isMainThread && !isInParloop, "Global file operations are permitted only from the sequential part of the program. Use dvmh_tmpfile_local API function if appropriate.");
-    return (FILE *)DvmhFile::openTemporary(false, false, false);
+    FILE * result = (FILE *)DvmhFile::openTemporary(false, false, false);
+    eiof_();  
+    return result;
 }
 
 extern "C" FILE *dvmh_tmpfile_local(void) {
+    biof_();  //io stat
     // Local temporary file
-    return (FILE *)DvmhFile::openTemporary(true, false, false);
+    FILE * result = (FILE *)DvmhFile::openTemporary(true, false, false);
+    eiof_();  
+    return result;
 }
 
 extern "C" char *dvmh_tmpnam(char *s) {
+    biof_();  //io stat
     // Global temporary file name, which could be useless if temporary folder is not shared
     checkError2(isMainThread && !isInParloop, "Global file operations are permitted only from the sequential part of the program. Use dvmh_tmpnam_local API function if appropriate.");
     if (currentMPS->getCommSize() == 1)
@@ -1515,24 +1553,31 @@ extern "C" char *dvmh_tmpnam(char *s) {
         strcpy(internalBuffer, buf.str);
         res = internalBuffer;
     }
+    eiof_();  //io stat
     return res;
 }
 
 extern "C" char *dvmh_tmpnam_local(char *s) {
+    biof_();  //io stat
     // Local temporary file name
-    return tmpnam(s);
+    char *result = tmpnam(s);
+    eiof_(); 
+    return result;
 }
 
 extern "C" int dvmh_fclose(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fclose function");
     int res = stream->close() ? 0 : EOF;
     if (stream != orig_stdin && stream != orig_stdout && stream != orig_stderr)
         delete stream;
+    eiof_();  
     return res;
 }
 
 extern "C" int dvmh_fflush(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     bool res = false;
     if (stream) {
@@ -1542,14 +1587,19 @@ extern "C" int dvmh_fflush(FILE *astream) {
         for (int i = 0; i < currentMPS->getFileCount(); i++)
             res = currentMPS->getFile(i)->flush() && res;
     }
+    eiof_(); 
     return res ? 0 : EOF;
 }
 
 extern "C" FILE *dvmh_fopen(const char *filename, const char *mode) {
-    return (FILE *)DvmhFile::openNew(filename, mode);
+     biof_();  //io stat
+    FILE *result = (FILE *)DvmhFile::openNew(filename, mode);
+    eiof_();  
+    return result;
 }
 
 extern "C" FILE *dvmh_freopen(const char *filename, const char *mode, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the freopen function");
     bool res = false;
@@ -1561,93 +1611,116 @@ extern "C" FILE *dvmh_freopen(const char *filename, const char *mode, FILE *astr
     }
     if (!res && stream != orig_stdin && stream != orig_stdout && stream != orig_stderr)
         delete stream;
+    eiof_();  //io stat
     return res ? (FILE *)stream : 0;
 }
 
 extern "C" void dvmh_setbuf(FILE *astream, char *buf) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the setbuf function");
     stream->setBuffer(buf, (buf ? _IOFBF : _IONBF), BUFSIZ);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_setvbuf(FILE *astream, char *buf, int mode, size_t size) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the setvbuf function");
-    return stream->setBuffer(buf, mode, size) ? 0 : EOF;
+    int result = stream->setBuffer(buf, mode, size) ? 0 : EOF;
+    eiof_();  //io stat
+    return result;
 }
 
 extern "C" int dvmh_fprintf(FILE *stream, const char *format, ...) {
+    biof_();  //io stat
     checkError2(stream, "NULL stream is passed to the fprintf function");
     int res;
     va_list ap;
     va_start(ap, format);
     res = dvmh_vfprintf(stream, format, ap);
     va_end(ap);
+    eiof_();  //io stat
     return res;
 }
 
 extern "C" void dvmh_void_fprintf(FILE *stream, const char *format, ...) {
+    biof_();  //io stat
     checkError2(stream, "NULL stream is passed to the fprintf function");
     va_list ap;
     va_start(ap, format);
     dvmh_void_vfprintf(stream, format, ap);
     va_end(ap);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_fscanf(FILE *stream, const char *format, ...) {
+    biof_();  //io stat
     checkError2(stream, "NULL stream is passed to the fscanf function");
     int res;
     va_list ap;
     va_start(ap, format);
     res = dvmh_vfscanf(stream, format, ap);
     va_end(ap);
+    eiof_();  //io stat
     return res;
 }
 
 extern "C" void dvmh_void_fscanf(FILE *stream, const char *format, ...) {
+    biof_();  //io stat
     checkError2(stream, "NULL stream is passed to the fscanf function");
     va_list ap;
     va_start(ap, format);
     dvmh_void_vfscanf(stream, format, ap);
     va_end(ap);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_printf(const char *format, ...) {
+    biof_();  //io stat
     int res;
     va_list ap;
     va_start(ap, format);
     res = dvmh_vfprintf((FILE *)orig_stdout, format, ap);
     va_end(ap);
+    eiof_();  //io stat
     return res;
 }
 
 extern "C" void dvmh_void_printf(const char *format, ...) {
+    biof_();  //io stat
     va_list ap;
     va_start(ap, format);
     dvmh_void_vfprintf((FILE *)orig_stdout, format, ap);
     va_end(ap);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_scanf(const char *format, ...) {
+    biof_();  //io stat
     int res;
     va_list ap;
     va_start(ap, format);
     res = dvmh_vfscanf((FILE *)orig_stdin, format, ap);
     va_end(ap);
+    eiof_();  //io stat
     return res;
 }
 
 extern "C" void dvmh_void_scanf(const char *format, ...) {
+    biof_();  //io stat
     va_list ap;
     va_start(ap, format);
     dvmh_void_vfscanf((FILE *)orig_stdin, format, ap);
     va_end(ap);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_vfprintf(FILE *astream, const char *format, va_list arg) {
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the vfprintf function");
-    return stream->printFormatted(format, arg);
+    int result = stream->printFormatted(format, arg);
+    return result;
 }
 
 extern "C" void dvmh_void_vfprintf(FILE *astream, const char *format, va_list arg) {
@@ -1659,7 +1732,8 @@ extern "C" void dvmh_void_vfprintf(FILE *astream, const char *format, va_list ar
 extern "C" int dvmh_vfscanf(FILE *astream, const char *format, va_list arg) {
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the vfscanf function");
-    return stream->scanFormatted(format, arg);
+    int result = stream->scanFormatted(format, arg);
+    return result;
 }
 
 extern "C" void dvmh_void_vfscanf(FILE *astream, const char *format, va_list arg) {
@@ -1687,7 +1761,8 @@ extern "C" void dvmh_void_vscanf(const char *format, va_list arg) {
 extern "C" int dvmh_fgetc(FILE *astream) {
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fgetc function");
-    return stream->getChar();
+    int result = stream->getChar();
+    return result;
 }
 
 extern "C" char *dvmh_fgets(char *s, int n, FILE *astream) {
@@ -2169,8 +2244,11 @@ void AsyncReadWrite::executeSerial() {
                             if (curPieces->getPiece(i)->blockIntersect(rank, procBlock, block))
                                 sendRecvBufSize += block->blockSize(rank) * typeSize;
                         char *sendRecvBuf = new char[sendRecvBufSize];
-                        if (dir == rwkWrite)
+                        if (dir == rwkWrite){
+                        	bcopy_();  //io stat
                             f->getComm()->recv(p, sendRecvBuf, sendRecvBufSize);
+                            ecopy_();  //io stat
+                        }
                         UDvmType bufOffs = 0, sendRecvBufOffs = 0;
                         for (int i = 0; i < curPieces->getCount(); i++) {
                             const Interval *curPiece = curPieces->getPiece(i);
@@ -2185,8 +2263,11 @@ void AsyncReadWrite::executeSerial() {
                             }
                             bufOffs += bufWrapper.getSize();
                         }
-                        if (dir == rwkRead)
+                        if (dir == rwkRead){
+                        	bcopy_();  //io stat
                             f->getComm()->send(p, sendRecvBuf, sendRecvBufSize);
+                            ecopy_();  //io stat
+                        }
                         delete[] sendRecvBuf;
                     }
                 }
@@ -2200,8 +2281,11 @@ void AsyncReadWrite::executeSerial() {
                 if (curPieces->getPiece(i)->blockIntersect(rank, procBlock, block))
                     sendRecvBufSize += block->blockSize(rank) * typeSize;
             char *sendRecvBuf = new char[sendRecvBufSize];
-            if (dir == rwkRead)
+            if (dir == rwkRead){
+            	bcopy_();  //io stat
                 f->getComm()->recv(ioMPS->getIOProc(), sendRecvBuf, sendRecvBufSize);
+                ecopy_();  //io stat
+            }
             UDvmType sendRecvBufOffs = 0;
             for (int i = 0; i < curPieces->getCount(); i++) {
                 if (curPieces->getPiece(i)->blockIntersect(rank, procBlock, block)) {
@@ -2213,11 +2297,16 @@ void AsyncReadWrite::executeSerial() {
                     sendRecvBufOffs += sendRecvBufWrapper.getSize();
                 }
             }
-            if (dir == rwkWrite)
+            if (dir == rwkWrite){
+            	bcopy_();  //io stat
                 f->getComm()->send(ioMPS->getIOProc(), sendRecvBuf, sendRecvBufSize);
+                ecopy_();  //io stat
+            }
             delete[] sendRecvBuf;
         }
+        bcopy_();  //io stat
         f->getComm()->bcast(ioMPS->getIOProc(), curDone);
+        ecopy_();  //io stat
         delete curPieces;
         elemsDone += elemsNow;
         bytesDone += curDone;
@@ -2275,7 +2364,9 @@ void AsyncReadWrite::executeParallel() {
             UDvmType factElemCount = 0;
             if (myRank == errRank.second)
                 factElemCount = elemsBefore + divDownU(myDone, typeSize);
+            bcopy_();  //io stat
             f->getComm()->bcast(errRank.second, factElemCount);
+            ecopy_();  //io stat
             UDvmType elemsLeft = factElemCount;
             for (int p = 0; p < procCount; p++) {
                 UDvmType curBlock = std::min(elemsLeft, writeIntervals[p].size());
@@ -2418,7 +2509,9 @@ void AsyncReadWrite::executeParallel() {
             UDvmType factElemCount = 0;
             if (myRank == errRank.second)
                 factElemCount = elemsBefore + divDownU(myDone, typeSize);
+            bcopy_();  //io stat
             f->getComm()->bcast(errRank.second, factElemCount);
+            ecopy_();  //io stat
             lastRank = errRank.second;
             bytesDone += factElemCount * typeSize;
         } else {
@@ -2508,120 +2601,164 @@ static bool dvmhReadWrite(DvmhObject *obj, UDvmType size, UDvmType nmemb, DvmhFi
             ", while array type size = " UDTFMT, names[dir], size, nmemb, typeSize);
     checkError3(elemCount <= data->getTotalElemCount(), "Too big size parameters are passed to %s function. size = " UDTFMT ", nmemb = " UDTFMT
             ", while array type size = " UDTFMT " and array element count = " UDTFMT, names[dir], size, nmemb, typeSize, data->getTotalElemCount());
-    return dvmhReadWriteGeneral(data, size, Interval::create(0, (DvmType)elemCount - 1), data->getSpace(), stream, dir, pItemsDone, noResult);
+    bool result = dvmhReadWriteGeneral(data, size, Interval::create(0, (DvmType)elemCount - 1), data->getSpace(), stream, dir, pItemsDone, noResult);
+    return result; 
 }
 
 extern "C" size_t dvmh_fread(void *ptr, size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fread function");
-    return stream->read(ptr, size, nmemb);
+    size_t result = stream->read(ptr, size, nmemb);
+    eiof_();  //io stat
+    return result;
 }
 
 extern "C" size_t dvmh_fread_distrib(DvmType dvmDesc[], size_t size, size_t nmemb, FILE *astream) {
+    biof_(); //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fread function");
     DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
     UDvmType itemsDone = 0;
     dvmhReadWrite(obj, size, nmemb, stream, rwkRead, &itemsDone);
+    eiof_();  //io stat
     return itemsDone;
 }
 
 extern "C" void dvmh_void_fread(void *ptr, size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fread function");
     stream->read(ptr, size, nmemb, true);
+    eiof_();  //io stat
 }
 
 extern "C" void dvmh_void_fread_distrib(DvmType dvmDesc[], size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fread function");
     DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
     dvmhReadWrite(obj, size, nmemb, stream, rwkRead, 0, true);
+    eiof_();  //io stat
 }
 
 extern "C" size_t dvmh_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fwrite function");
-    return stream->write(ptr, size, nmemb);
+    size_t result = stream->write(ptr, size, nmemb);
+    eiof_();  //io stat
+    return result; 
 }
 
 extern "C" size_t dvmh_fwrite_distrib(const DvmType dvmDesc[], size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fwrite function");
     DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
     UDvmType itemsDone = 0;
     dvmhReadWrite(obj, size, nmemb, stream, rwkWrite, &itemsDone);
+    eiof_();  //io stat
     return itemsDone;
 }
 
 extern "C" void dvmh_void_fwrite(const void *ptr, size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fwrite function");
     stream->write(ptr, size, nmemb, true);
+    eiof_();  //io stat
 }
 
 extern "C" void dvmh_void_fwrite_distrib(const DvmType dvmDesc[], size_t size, size_t nmemb, FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fwrite function");
     DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
     dvmhReadWrite(obj, size, nmemb, stream, rwkWrite, 0, true);
+    eiof_();  //io stat
 }
 
 extern "C" int dvmh_fgetpos(FILE *astream, fpos_t *pos) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fgetpos function");
-    return stream->getPosition(pos) ? 0 : EOF;
+    int result = stream->getPosition(pos) ? 0 : EOF;
+    eiof_(); 
+    return result;
 }
 
 extern "C" int dvmh_fseek(FILE *astream, long offset, int whence) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fseek function");
-    return stream->seek(offset, whence) ? 0 : EOF;
+    int result = stream->seek(offset, whence) ? 0 : EOF;
+    eiof_();
+    return result; 
 }
 
 extern "C" void dvmh_void_fseek(FILE *astream, long offset, int whence) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fseek function");
     stream->seek(offset, whence, true);
+    eiof_();
 }
 
 extern "C" int dvmh_fsetpos(FILE *astream, const fpos_t *pos) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the fsetpos function");
-    return stream->setPosition(pos) ? 0 : EOF;
+    int result = stream->setPosition(pos) ? 0 : EOF;
+    eiof_();
+    return result;
 }
 
 extern "C" long dvmh_ftell(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the ftell function");
-    return stream->tell();
+    long result = stream->tell();
+    eiof_();
+    return result; 
 }
 
 extern "C" void dvmh_rewind(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the rewind function");
     stream->rewind();
+    eiof_();
 }
 
 extern "C" void dvmh_clearerr(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the clearerr function");
     stream->clearErrors();
+    eiof_();
 }
 
 extern "C" int dvmh_feof(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the feof function");
-    return stream->eof() ? 1 : 0;
+    int result = stream->eof() ? 1 : 0;
+    eiof_();
+    return result; 
 }
 
 extern "C" int dvmh_ferror(FILE *astream) {
+    biof_();  //io stat
     DvmhFile *stream = (DvmhFile *)astream;
     checkError2(stream, "NULL stream is passed to the ferror function");
-    return stream->isInErrorState() ? 1 : 0;
+    int result = stream->isInErrorState() ? 1 : 0;
+    eiof_();
+    return result; 
 }
 
 extern "C" void dvmh_perror(const char *s) {
+    biof_();  //io stat
     int errNo = errno;
     if (orig_stderr->isLocal() || (isMainThread && !isInParloop)) {
         if (!orig_stderr->isLocal())
@@ -2632,6 +2769,7 @@ extern "C" void dvmh_perror(const char *s) {
         dvmh_log(NFERROR, "perror() is the only exception, which falls back to stderr in this case");
         fprintf(stderr, "%s%s%s\n", (s && *s ? s : ""), (s && *s ? ": " : ""), strerror(errNo));
     }
+    eiof_();  //io stat
 }
 
 // Interface functions for Fortran-DVMH, which mimic standard Fortran I/O functions
