@@ -146,6 +146,7 @@ void CStatInter::to_json(json & result){
                         {"sys_time", sys_time},
                         {"efficiency", efficiency},
                         {"lost_time", lost_time},
+                        {"insuf", insuf},
                         {"insuf_user", insuf_user},
                         {"insuf_sys", insuf_sys},
                         {"comm", comm},
@@ -192,6 +193,7 @@ CStatInter::CStatInter(json source){
     sys_time = j_times["sys_time"];
     efficiency = j_times["efficiency"];
     lost_time = j_times["lost_time"];
+    insuf = j_times["insuf"];
     insuf_user = j_times["insuf_user"];
     insuf_sys = j_times["insuf_sys"];
     comm = j_times["comm"];
