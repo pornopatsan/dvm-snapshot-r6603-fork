@@ -1,6 +1,7 @@
 BINDIR=../../../testing
 
 EXECUTABLES = st
+CXX=/usr/local/opt/llvm@9/bin/clang++ -g -O2
 COPT=-c -I../../Zlib/include -g
 ZLIB	= zlib
 ZLIBDIR	= ../../Zlib/Release
@@ -49,7 +50,7 @@ interface.o:
 stat.o:
 	$(CXX) $(COPT) -std=c++11 stat.cpp
 Source.o:
-	$(CXX) $(COPT) -std=c++11 ../../../testing/Source.cpp
+	$(CXX) $(COPT) -std=c++11 ../../../testing/Source.cpp -fdeclspec
 integration.o:
 	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
 integration.dll:

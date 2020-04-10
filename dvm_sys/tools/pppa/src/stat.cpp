@@ -25,7 +25,8 @@ void CStat::to_json(json &result){
     if (cur == NULL||!isinitialized) return;
     json proc, inter, temp;
     for (unsigned int i = 0; i < nproc; i++) {
-        proc.push_back({{"node_name", std::string(proc_info[i].node_name)}, {"test_time", proc_info[i].test_time}});
+        proc.push_back({{"node_name", std::string(proc_info[i].node_name)},
+                        {"test_time", (proc_info[i].test_time) ? proc_info[i].test_time : 0.0}});
     }
     while (cur != NULL)
     {
@@ -186,12 +187,17 @@ void skip_to_end(CStatInter ***i){
 }
 
 void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStatInter **r2) {
+    std::cout << "In inter_tree_intersect\n";
 	CStatInter *cur;
+	if (!i1 || !i2)
+	    return;
 	short cur_lev = i1->id.nlev;
-	while (i1 != NULL) {
+	while (i1 != NULL && i2 != NULL) {
+	    std::cout << "Going to find_inter: " << i1->id.expr << "  " << cur_lev << std::endl;
 		if (cur = find_inter(i1->id.expr, cur_lev, i2)) {
+            std::cout << "Find_inter: " << cur->id.expr << "  " << cur->id.nlev << std::endl;
             *r1 = new CStatInter(*i1);
-			*r2 = new CStatInter(*i2);
+			*r2 = new CStatInter(*cur);
 			r1 = &(*r1)->next;
 			r2 = &(*r2)->next;
 			if (i1->next != NULL && cur->next != NULL && i1->next->id.nlev > cur_lev && cur->next->id.nlev > cur_lev) {
@@ -201,9 +207,9 @@ void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStat
                 r1 = &(*r1)->next;
                 r2 = &(*r2)->next;
             }
-		}
+            i2 = next_inter(cur_lev, i2);
+        }
 		i1 = next_inter(cur_lev, i1);
-		i2 = next_inter(cur_lev, i2);
 //		json j;
 //
 //		if (i1 != NULL){

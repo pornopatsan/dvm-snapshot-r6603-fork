@@ -17,6 +17,7 @@ OBJS=\
     interface.o \
     stat.o \
     integration.o \
+    integration.dll \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
 	$(LINKER) -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)

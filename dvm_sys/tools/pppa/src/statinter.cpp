@@ -108,7 +108,7 @@ void CStatInter::to_string(std::string &result) {
             }
             result += "\n@end_gpu@\n";
 
-            //what????
+            // Col_op
             // for (int i = 0; i < 4; i++) {
             // 	result += patch::to_string(col_op[i].comm) + ' ';
             // 	result += patch::to_string(col_op[i].ncall) + ' ';
@@ -125,6 +125,18 @@ void CStatInter::to_string(std::string &result) {
 }
 
 void CStatInter::to_json(json & result){
+    json col_op_json;
+    for (int i = 0; i < RED; i++) {
+        col_op_json.push_back(
+                {
+                        {"ncall", col_op[i].ncall},
+                        {"comm", col_op[i].comm},
+                        {"real_comm", col_op[i].real_comm},
+                        {"synch", col_op[i].synch},
+                        {"time_var", col_op[i].time_var},
+                        {"overlap", col_op[i].overlap}
+                });
+    }
     result = {
                 {"id",
                     {
@@ -164,7 +176,8 @@ void CStatInter::to_json(json & result){
                         {"nproc", nproc},
                         {"threadsOfAllProcs", threadsOfAllProcs}
                     }
-                }
+                },
+                {"col_op", col_op_json}
              };
 }
 
@@ -210,6 +223,17 @@ CStatInter::CStatInter(json source){
     gpu_time_lost = j_times["gpu_time_lost"];
     nproc = j_times["nproc"];
     threadsOfAllProcs = j_times["threadsOfAllProcs"];
+
+    // -----  col_op  -----
+    json j_col_op = source["col_op"];
+    for (int i = 0; i < RED; i++) {
+        col_op[i].ncall = j_col_op[i]["ncall"];
+        col_op[i].comm = j_col_op[i]["comm"];
+        col_op[i].real_comm = j_col_op[i]["real_comm"];
+        col_op[i].synch = j_col_op[i]["synch"];
+        col_op[i].time_var = j_col_op[i]["time_var"];
+        col_op[i].overlap = j_col_op[i]["overlap"];
+    }
 
     next = NULL;
 }
@@ -257,10 +281,10 @@ CStatInter::CStatInter(const CStatInter & si) {
 	gpu_time_lost=si.gpu_time_lost;
 	nproc=si.nproc;
 	threadsOfAllProcs=si.threadsOfAllProcs;
+    for (int i = 0; i < RED; i++) {
+        col_op[i] = si.col_op[i];
+    }
 	if (!isjson) {
-        for (int i = 0; i < RED; i++) {
-            col_op[i] = si.col_op[i];
-        }
         op_group = new OpGrp[nproc][StatGrpCount];
         //	for (int i = 0; i < nproc; ++i)
         //        op_group[i] = new OpGrp[StatGrpCount];
