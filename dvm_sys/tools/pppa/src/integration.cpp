@@ -28,13 +28,10 @@ int read_stat_(char * name, char * &res){
 }
 
 int stat_intersect_(char * st1, char * st2, char * &res1, char * &res2){
-    std::cout << "Going to parse\n\n";
     json j1 = json::parse(st1), j2 = json::parse(st2);
-    std::cout << "Parse OK\n\n";
     CStat stat1(j1), stat2(j2), stat_res1, stat_res2;
-    std::cout << "Going to intersect\n\n";
     stat_intersect(stat1, stat2, stat_res1, stat_res2);
-    std::cout << "Intersect OK\n\n";
+    std::cout << "stat_intersect OK " << std::endl;
     if (!stat1.isinitialized || !stat2.isinitialized || !stat_res1.isinitialized || !stat_res2.isinitialized){
         std::cout << ">>  Not inicialized\n\n";
         return 1;

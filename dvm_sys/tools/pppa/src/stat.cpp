@@ -134,12 +134,18 @@ void CStat::init(char * path) {
 	strcpy(spath, path);
 }
 
-CStatInter * find_inter(long expr, short nlev, CStatInter * cur) {
-	while (cur) {
-		if (cur->id.expr == expr && cur->id.nlev == nlev) {
-			return cur;
-		}
-		cur = cur->next;
+CStatInter * find_inter(short type, long expr, short nlev, CStatInter * cur) {
+    while (cur != NULL) {
+		if (cur->id.t == type && cur->id.nlev == nlev)
+		    switch (type){
+		        case USER:
+		            if (cur->id.expr == expr)
+                        return cur;
+		            break;
+                default:
+                    return cur;
+		    }
+        cur = cur->next;
 	}
 	return NULL;
 };
@@ -149,7 +155,7 @@ CStatInter * next_inter(short nlev, CStatInter * cur) {
 		return NULL;
 	}
 	cur = cur->next;
-	while (cur && cur->id.nlev != nlev)
+	while (cur != NULL && cur->id.nlev != nlev)
 	{
 		cur = cur->next;
 	}
@@ -193,21 +199,23 @@ void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStat
 	    return;
 	short cur_lev = i1->id.nlev;
 	while (i1 != NULL && i2 != NULL) {
-	    std::cout << "Going to find_inter: " << i1->id.expr << "  " << cur_lev << std::endl;
-		if (cur = find_inter(i1->id.expr, cur_lev, i2)) {
-            std::cout << "Find_inter: " << cur->id.expr << "  " << cur->id.nlev << std::endl;
+	    std::cout << "Going to find_inter: " << i1->id.expr << "  " << cur_lev  << " " << i1->id.t << " " << i1->id.nline << std::endl;
+		if (cur = find_inter(i1->id.t, i1->id.expr, cur_lev, i2)) {
+            std::cout << "Find_inter: " << cur->id.expr << "  " << cur->id.nlev << " " << cur->id.nline << std::endl;
             *r1 = new CStatInter(*i1);
 			*r2 = new CStatInter(*cur);
 			r1 = &(*r1)->next;
 			r2 = &(*r2)->next;
-			if (i1->next != NULL && cur->next != NULL && i1->next->id.nlev > cur_lev && cur->next->id.nlev > cur_lev) {
+            if (i1->next != NULL && cur->next != NULL && i1->next->id.nlev > cur_lev && cur->next->id.nlev > cur_lev) {
                 inter_tree_intersect(i1->next, cur->next, r1, r2);
-                skip_to_end(&r1);
-                skip_to_end(&r2);
-                r1 = &(*r1)->next;
-                r2 = &(*r2)->next;
+                if (*r1 != NULL && *r2 != NULL){
+                    skip_to_end(&r1);
+                    skip_to_end(&r2);
+                    r1 = &(*r1)->next;
+                    r2 = &(*r2)->next;
+                }
             }
-            i2 = next_inter(cur_lev, i2);
+            i2 = next_inter(cur_lev, cur);
         }
 		i1 = next_inter(cur_lev, i1);
 //		json j;
@@ -219,4 +227,5 @@ void inter_tree_intersect(CStatInter *i1, CStatInter *i2, CStatInter **r1, CStat
 //		else
 //            std::cout << ">> next_inter:  " << i1 << "\n\n" << j << "\n\n";
 	}
+//	std::cout << "inter_tree_intersect OK " << cur_lev << std::endl;
  }
