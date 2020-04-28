@@ -47,8 +47,6 @@ int main(int an, char **as)
 
         /* Parallel loop with base array A */
         /* calculating maximum in variable eps */
-#pragma dvm interval 1
-#pragma dvm interval 11
         #pragma dvm parallel([i][j] on A[i][j]) reduction(max(eps)), cuda_block(256)
         for (i = 1; i < L - 1; i++)
             for (j = 1; j < L - 1; j++)
@@ -57,24 +55,16 @@ int main(int an, char **as)
                 eps = Max(tmp, eps);
                 A[i][j] = B[i][j];
             }
-#pragma dvm endinterval
-#pragma dvm interval 12
-#pragma dvm endinterval
-#pragma dvm endinterval
 
         /* Parallel loop with base array B and */
         /* with prior updating shadow elements of array A */
-#pragma dvm interval 2
         #pragma dvm parallel([i][j] on B[i][j]) shadow_renew(A), cuda_block(256)
         for (i = 1; i < L - 1; i++)
             for (j = 1; j < L - 1; j++)
                 B[i][j] = (A[i - 1][j] + A[i][j - 1] + A[i][j + 1] + A[i + 1][j]) / 4.0;
-#pragma dvm endinterval
 
-#pragma dvm interval 3
         #pragma dvm get_actual(eps)
         printf("it=%4i   eps=%e\n", it, eps);
-#pragma dvm endinterval
         if (eps < MAXEPS)
             break;
     }

@@ -157,6 +157,8 @@ CStatInter * next_inter(short nlev, CStatInter * cur) {
 	cur = cur->next;
 	while (cur != NULL && cur->id.nlev != nlev)
 	{
+	    if (cur->id.nlev < nlev)
+	        return NULL;
 		cur = cur->next;
 	}
 	return cur;

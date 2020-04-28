@@ -1,4 +1,5 @@
 #include "statlist.h"
+#include <iostream>
 
 void CStatInter::to_string(std::string &result) {
 	result += "@interval@ ";
@@ -35,15 +36,15 @@ void CStatInter::to_string(std::string &result) {
 	result += patch::to_string(nproc)+' ';
 	result += patch::to_string(threadsOfAllProcs)+' ';
     result += "@end_times@\n";
+    for (unsigned int i = 0; i < RED; i++) {
+        result+= patch::to_string(col_op[i].ncall)+' ';
+        result += patch::to_string(col_op[i].comm) + ' ';
+        result += patch::to_string(col_op[i].synch) + ' ';
+        result += patch::to_string(col_op[i].real_comm) + ' ';
+        result += patch::to_string(col_op[i].time_var) + ' ';
+        result += patch::to_string(col_op[i].overlap) + ' ';
+    }
     if (!isjson){
-        for (unsigned int i = 0; i < RED; i++) {
-            result+= patch::to_string(col_op[i].ncall)+' ';
-            result += patch::to_string(col_op[i].comm) + ' ';
-            result += patch::to_string(col_op[i].synch) + ' ';
-            result += patch::to_string(col_op[i].real_comm) + ' ';
-            result += patch::to_string(col_op[i].time_var) + ' ';
-            result += patch::to_string(col_op[i].overlap) + ' ';
-        }
         for (unsigned int j = 0; j < nproc; j++) {
             for (int i = 0; i <= StatGrpCount; i++) {
                 result += patch::to_string(op_group[j][i].calls) + ' ';
@@ -125,7 +126,7 @@ void CStatInter::to_string(std::string &result) {
 }
 
 void CStatInter::to_json(json & result){
-    json col_op_json;
+    json col_op_json, proc_times_json;
     for (int i = 0; i < RED; i++) {
         col_op_json.push_back(
                 {
@@ -137,6 +138,78 @@ void CStatInter::to_json(json & result){
                         {"overlap", col_op[i].overlap}
                 });
     }
+    for (unsigned int i = 0; i < nproc; i++) {
+        json th_times_json, gpu_times_json;
+        // ---  treads  ---
+//        std::cout << ">> th_times_json\n";
+        for (unsigned int j = 0; j < proc_times[i].num_threads; ++j){
+            th_times_json.push_back(
+                    {
+                        {"sys_time", proc_times[i].th_times[j].sys_time},
+                        {"user_time", proc_times[i].th_times[j].user_time}
+                    });
+        }
+        //  ---  GPU  ---
+        for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
+            json op_times_json;
+//            std::cout << ">> op_times_json\n";
+            for (unsigned int k = 0; k < GNUMOP; k++) {
+                op_times_json.push_back(
+                        {
+                            {"cpu_to_gpu", proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu},
+                            {"gpu_to_gpu", proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu},
+                            {"gpu_to_cpu", proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu}
+                        });
+            }
+//            std::cout << ">> gpu_times_json\n";
+            gpu_times_json.push_back(
+                    {
+                        {"gpu_name", proc_times[i].gpu_times[j].gpu_name},
+                        {"prod_time", proc_times[i].gpu_times[j].prod_time},
+                        {"kernel_exec", proc_times[i].gpu_times[j].kernel_exec},
+                        {"loop_exec", proc_times[i].gpu_times[j].loop_exec},
+                        {"lost_time", proc_times[i].gpu_times[j].lost_time},
+                        {"get_actual", proc_times[i].gpu_times[j].get_actual},
+                        {"data_reorg", proc_times[i].gpu_times[j].data_reorg},
+                        {"reduction", proc_times[i].gpu_times[j].reduction},
+                        {"gpu_runtime_compilation", proc_times[i].gpu_times[j].gpu_runtime_compilation},
+                        {"gpu_to_cpu", proc_times[i].gpu_times[j].gpu_to_cpu},
+                        {"cpu_to_gpu", proc_times[i].gpu_times[j].cpu_to_gpu},
+                        {"gpu_to_gpu", proc_times[i].gpu_times[j].gpu_to_gpu},
+                        {"op_times", op_times_json}
+                    });
+        }
+        //  ---  processors  ---
+//        std::cout << ">> proc_times_json\n";
+        proc_times_json.push_back(
+                {
+                        {"prod_cpu",      proc_times[i].prod_cpu},
+                        {"prod_sys",      proc_times[i].prod_sys},
+                        {"prod_io",       proc_times[i].prod_io},
+                        {"exec_time",     proc_times[i].exec_time},
+                        {"sys_time",      proc_times[i].sys_time},
+                        {"real_comm",     proc_times[i].real_comm},
+                        {"lost_time",     proc_times[i].lost_time},
+                        {"insuf_user",    proc_times[i].insuf_user},
+                        {"insuf_sys",     proc_times[i].insuf_sys},
+                        {"comm",          proc_times[i].comm},
+                        {"idle",          proc_times[i].idle},
+                        {"load_imb",      proc_times[i].load_imb},
+                        {"synch",         proc_times[i].synch},
+                        {"time_var",      proc_times[i].time_var},
+                        {"overlap",       proc_times[i].overlap},
+                        {"thr_user_time", proc_times[i].thr_user_time},
+                        {"thr_sys_time",  proc_times[i].thr_sys_time},
+                        {"gpu_time_prod", proc_times[i].gpu_time_prod},
+                        {"gpu_time_lost", proc_times[i].gpu_time_lost},
+                        {"num_threads",   proc_times[i].num_threads},
+                        {"num_gpu", proc_times[i].num_gpu},
+                        {"th_times", th_times_json},
+                        {"gpu_times", gpu_times_json}
+                });
+    }
+//    std::cout << ">> New JSON OK\n";
+
     result = {
                 {"id",
                     {
@@ -177,7 +250,8 @@ void CStatInter::to_json(json & result){
                         {"threadsOfAllProcs", threadsOfAllProcs}
                     }
                 },
-                {"col_op", col_op_json}
+                {"col_op", col_op_json},
+                {"proc_times", proc_times_json}
              };
 }
 
@@ -225,20 +299,85 @@ CStatInter::CStatInter(json source){
     threadsOfAllProcs = j_times["threadsOfAllProcs"];
 
     // -----  col_op  -----
-    json j_col_op = source["col_op"];
-    for (int i = 0; i < RED; i++) {
-        col_op[i].ncall = j_col_op[i]["ncall"];
-        col_op[i].comm = j_col_op[i]["comm"];
-        col_op[i].real_comm = j_col_op[i]["real_comm"];
-        col_op[i].synch = j_col_op[i]["synch"];
-        col_op[i].time_var = j_col_op[i]["time_var"];
-        col_op[i].overlap = j_col_op[i]["overlap"];
+    if (source.contains("col_op")) {
+        json j_col_op = source["col_op"];
+        for (int i = 0; i < RED; ++i) {
+            col_op[i].ncall = j_col_op[i]["ncall"];
+            col_op[i].comm = j_col_op[i]["comm"];
+            col_op[i].real_comm = j_col_op[i]["real_comm"];
+            col_op[i].synch = j_col_op[i]["synch"];
+            col_op[i].time_var = j_col_op[i]["time_var"];
+            col_op[i].overlap = j_col_op[i]["overlap"];
+        }
+    }
+
+    // -----  proc_times  -----
+    if (source.contains("proc_times")){
+        proc_times = new struct ProcTimes[nproc];
+        json proc_times_json = source["proc_times"];
+        for (int i = 0; i < nproc; ++i){
+            json th_times_json = proc_times_json[i]["th_times"],
+                 gpu_times_json = proc_times_json[i]["gpu_times"];
+            proc_times[i].prod_cpu = proc_times_json[i]["prod_cpu"];
+            proc_times[i].prod_sys = proc_times_json[i]["prod_sys"];
+            proc_times[i].prod_io = proc_times_json[i]["prod_io"];
+            proc_times[i].exec_time = proc_times_json[i]["exec_time"];
+            proc_times[i].sys_time = proc_times_json[i]["sys_time"];
+            proc_times[i].real_comm = proc_times_json[i]["real_comm"];
+            proc_times[i].lost_time = proc_times_json[i]["lost_time"];
+            proc_times[i].insuf_user = proc_times_json[i]["insuf_user"];
+            proc_times[i].insuf_sys = proc_times_json[i]["insuf_sys"];
+            proc_times[i].comm = proc_times_json[i]["comm"];
+            proc_times[i].idle = proc_times_json[i]["idle"];
+            proc_times[i].load_imb = proc_times_json[i]["load_imb"];
+            proc_times[i].synch = proc_times_json[i]["synch"];
+            proc_times[i].time_var = proc_times_json[i]["time_var"];
+            proc_times[i].overlap = proc_times_json[i]["overlap"];
+            proc_times[i].thr_user_time = proc_times_json[i]["thr_user_time"];
+            proc_times[i].thr_sys_time = proc_times_json[i]["thr_sys_time"];
+            proc_times[i].gpu_time_prod = proc_times_json[i]["gpu_time_prod"];
+            proc_times[i].gpu_time_lost = proc_times_json[i]["gpu_time_lost"];
+            proc_times[i].num_threads = proc_times_json[i]["num_threads"];
+            proc_times[i].num_gpu = proc_times_json[i]["num_gpu"];
+//            std::cout << ">>  NumGPU  -  " << proc_times[i].num_gpu << std::endl;
+            proc_times[i].th_times = new struct ThreadTime[proc_times[i].num_threads];
+            for (int j = 0; j < proc_times[i].num_threads; ++j){
+                proc_times[i].th_times[j].user_time = th_times_json[j]["user_time"];
+                proc_times[i].th_times[j].sys_time = th_times_json[j]["sys_time"];
+            }
+            proc_times[i].gpu_times = new struct GpuTime[proc_times[i].num_gpu];
+            for (int j = 0; j < proc_times[i].num_gpu; ++j){
+                json op_times_json = gpu_times_json[j]["op_times"];
+                tmp = std::string(gpu_times_json[j]["gpu_name"]);
+                proc_times[i].gpu_times[j].gpu_name = new char[tmp.length() + 1];
+                for (int k = 0; k < tmp.length(); ++k)
+                    proc_times[i].gpu_times[j].gpu_name[k] = tmp[k];
+                proc_times[i].gpu_times[j].gpu_name[tmp.length()] = '\0';
+                proc_times[i].gpu_times[j].prod_time = gpu_times_json[j]["prod_time"];
+                proc_times[i].gpu_times[j].kernel_exec = gpu_times_json[j]["kernel_exec"];
+                proc_times[i].gpu_times[j].loop_exec = gpu_times_json[j]["loop_exec"];
+                proc_times[i].gpu_times[j].lost_time = gpu_times_json[j]["lost_time"];
+                proc_times[i].gpu_times[j].get_actual = gpu_times_json[j]["get_actual"];
+                proc_times[i].gpu_times[j].data_reorg = gpu_times_json[j]["data_reorg"];
+                proc_times[i].gpu_times[j].reduction = gpu_times_json[j]["reduction"];
+                proc_times[i].gpu_times[j].gpu_runtime_compilation = gpu_times_json[j]["gpu_runtime_compilation"];
+                proc_times[i].gpu_times[j].gpu_to_cpu = gpu_times_json[j]["gpu_to_cpu"];
+                proc_times[i].gpu_times[j].cpu_to_gpu = gpu_times_json[j]["cpu_to_gpu"];
+                proc_times[i].gpu_times[j].gpu_to_gpu = gpu_times_json[j]["gpu_to_gpu"];
+                for (int k = 0; k < GNUMOP; ++k){
+                    proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu = op_times_json[k]["cpu_to_gpu"];
+                    proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu = op_times_json[k]["gpu_to_gpu"];
+                    proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu = op_times_json[k]["gpu_to_cpu"];
+                }
+            }
+        }
     }
 
     next = NULL;
 }
 
 CStatInter::CStatInter(const CStatInter & si) {
+//    std::cout << ">> In CStatInter(si)\n";
     isjson = si.isjson;
 	id.t = si.id.t;
 	id.nlev = si.id.nlev;
@@ -284,7 +423,8 @@ CStatInter::CStatInter(const CStatInter & si) {
     for (int i = 0; i < RED; i++) {
         col_op[i] = si.col_op[i];
     }
-	if (!isjson) {
+//    std::cout << ">> Prev OK\n";
+    if (!isjson) {
         op_group = new OpGrp[nproc][StatGrpCount];
         //	for (int i = 0; i < nproc; ++i)
         //        op_group[i] = new OpGrp[StatGrpCount];
@@ -296,65 +436,74 @@ CStatInter::CStatInter(const CStatInter & si) {
                 op_group[j][i].lost_time = op_group[j][i].lost_time;
             }
         }
-        proc_times = new struct ProcTimes[nproc];
-        for (unsigned long i = 0; i < nproc; ++i) {
-            proc_times[i].prod_cpu = si.proc_times[i].prod_cpu;
-            proc_times[i].prod_sys = si.proc_times[i].prod_sys;
-            proc_times[i].prod_io = si.proc_times[i].prod_io;
-            proc_times[i].exec_time = si.proc_times[i].exec_time;
-            proc_times[i].sys_time = si.proc_times[i].sys_time;
-            proc_times[i].real_comm = si.proc_times[i].real_comm;
-            proc_times[i].lost_time = si.proc_times[i].lost_time;
-            proc_times[i].insuf_user = si.proc_times[i].insuf_user;
-            proc_times[i].insuf_sys = si.proc_times[i].insuf_sys;
-            proc_times[i].comm = si.proc_times[i].comm;
-            proc_times[i].idle = si.proc_times[i].idle;
-            proc_times[i].load_imb = si.proc_times[i].load_imb;
-            proc_times[i].synch = si.proc_times[i].synch;
-            proc_times[i].time_var = si.proc_times[i].time_var;
-            proc_times[i].overlap = si.proc_times[i].overlap;
-            proc_times[i].thr_user_time = si.proc_times[i].thr_user_time;
-            proc_times[i].thr_sys_time = si.proc_times[i].thr_sys_time;
-            proc_times[i].gpu_time_prod = si.proc_times[i].gpu_time_prod;
-            proc_times[i].gpu_time_lost = si.proc_times[i].gpu_time_lost;
-            proc_times[i].num_threads = si.proc_times[i].num_threads;
-            proc_times[i].th_times = new struct ThreadTime[proc_times[i].num_threads];
-            for (unsigned long j = 0; j < proc_times[i].num_threads; j++) {
-                proc_times[i].th_times[j].user_time = si.proc_times[i].th_times[j].user_time;
-                proc_times[i].th_times[j].sys_time = si.proc_times[i].th_times[j].sys_time;
-            }
-            proc_times[i].num_gpu = si.proc_times[i].num_gpu;
-            proc_times[i].gpu_times = new struct GpuTime[DVMH_STAT_MAX_GPU_CNT];
-            for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-                if (si.proc_times[i].gpu_times[j].gpu_name) {
-                    proc_times[i].gpu_times[j].gpu_name = new char[strlen(si.proc_times[i].gpu_times[j].gpu_name) + 1];
-                    strcpy(proc_times[i].gpu_times[j].gpu_name, si.proc_times[i].gpu_times[j].gpu_name);
-                } else {
-                    proc_times[i].gpu_times[j].gpu_name = new char[2];
-                    proc_times[i].gpu_times[j].gpu_name[0] = '0';
-                    proc_times[i].gpu_times[j].gpu_name[1] = '\0';
-                }
-                proc_times[i].gpu_times[j].prod_time = si.proc_times[i].gpu_times[j].prod_time;
-                proc_times[i].gpu_times[j].kernel_exec = si.proc_times[i].gpu_times[j].kernel_exec;
-                proc_times[i].gpu_times[j].loop_exec = si.proc_times[i].gpu_times[j].loop_exec;
-                proc_times[i].gpu_times[j].lost_time = si.proc_times[i].gpu_times[j].lost_time;
-                proc_times[i].gpu_times[j].get_actual = si.proc_times[i].gpu_times[j].get_actual;
-                proc_times[i].gpu_times[j].data_reorg = si.proc_times[i].gpu_times[j].data_reorg;
-                proc_times[i].gpu_times[j].reduction = si.proc_times[i].gpu_times[j].reduction;
-                proc_times[i].gpu_times[j].gpu_runtime_compilation = si.proc_times[i].gpu_times[j].gpu_runtime_compilation;
-                proc_times[i].gpu_times[j].gpu_to_cpu = si.proc_times[i].gpu_times[j].gpu_to_cpu;
-                proc_times[i].gpu_times[j].cpu_to_gpu = si.proc_times[i].gpu_times[j].cpu_to_gpu;
-                proc_times[i].gpu_times[j].gpu_to_gpu = si.proc_times[i].gpu_times[j].gpu_to_gpu;
-                for (unsigned int k = 0; k < GNUMOP; k++) {
-                    proc_times[i].gpu_times[j].op_times[k] = si.proc_times[i].gpu_times[j].op_times[k];
-                }
-            }
-            for (unsigned int j = 0; j < 4; j++) {
-                proc_times[i].col_op[j] = si.proc_times[i].col_op[j];
-            }//4~RED
+    }
+//    std::cout << ">> Going to ProcTimes  -  nproc = " << nproc << std::endl;
+
+    proc_times = new struct ProcTimes[nproc];
+    for (unsigned long i = 0; i < nproc; ++i) {
+        proc_times[i].prod_cpu = si.proc_times[i].prod_cpu;
+        proc_times[i].prod_sys = si.proc_times[i].prod_sys;
+        proc_times[i].prod_io = si.proc_times[i].prod_io;
+        proc_times[i].exec_time = si.proc_times[i].exec_time;
+        proc_times[i].sys_time = si.proc_times[i].sys_time;
+        proc_times[i].real_comm = si.proc_times[i].real_comm;
+        proc_times[i].lost_time = si.proc_times[i].lost_time;
+        proc_times[i].insuf_user = si.proc_times[i].insuf_user;
+        proc_times[i].insuf_sys = si.proc_times[i].insuf_sys;
+        proc_times[i].comm = si.proc_times[i].comm;
+        proc_times[i].idle = si.proc_times[i].idle;
+        proc_times[i].load_imb = si.proc_times[i].load_imb;
+        proc_times[i].synch = si.proc_times[i].synch;
+        proc_times[i].time_var = si.proc_times[i].time_var;
+        proc_times[i].overlap = si.proc_times[i].overlap;
+        proc_times[i].thr_user_time = si.proc_times[i].thr_user_time;
+        proc_times[i].thr_sys_time = si.proc_times[i].thr_sys_time;
+        proc_times[i].gpu_time_prod = si.proc_times[i].gpu_time_prod;
+        proc_times[i].gpu_time_lost = si.proc_times[i].gpu_time_lost;
+        proc_times[i].num_threads = si.proc_times[i].num_threads;
+        std::cout << ">> Going to ThreadTime\n";
+        proc_times[i].th_times = new struct ThreadTime[proc_times[i].num_threads];
+        for (unsigned long j = 0; j < proc_times[i].num_threads; j++) {
+            proc_times[i].th_times[j].user_time = si.proc_times[i].th_times[j].user_time;
+            proc_times[i].th_times[j].sys_time = si.proc_times[i].th_times[j].sys_time;
         }
+        proc_times[i].num_gpu = si.proc_times[i].num_gpu;
+//        std::cout << ">> Going to GpuTime  -  num_gpu = " << proc_times[i].num_gpu << std::endl;
+        proc_times[i].gpu_times = new struct GpuTime[proc_times[i].num_gpu];
+        for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
+//            std::cout << ">> Name = " << si.proc_times[i].gpu_times[j].gpu_name << std::endl;
+            if (si.proc_times[i].gpu_times[j].gpu_name) {
+                proc_times[i].gpu_times[j].gpu_name = new char[strlen(si.proc_times[i].gpu_times[j].gpu_name) + 1];
+                strcpy(proc_times[i].gpu_times[j].gpu_name, si.proc_times[i].gpu_times[j].gpu_name);
+            } else {
+                proc_times[i].gpu_times[j].gpu_name = new char[2];
+                proc_times[i].gpu_times[j].gpu_name[0] = '0';
+                proc_times[i].gpu_times[j].gpu_name[1] = '\0';
+            }
+//            std::cout << ">> Name OK\n";
+            proc_times[i].gpu_times[j].prod_time = si.proc_times[i].gpu_times[j].prod_time;
+            proc_times[i].gpu_times[j].kernel_exec = si.proc_times[i].gpu_times[j].kernel_exec;
+            proc_times[i].gpu_times[j].loop_exec = si.proc_times[i].gpu_times[j].loop_exec;
+            proc_times[i].gpu_times[j].lost_time = si.proc_times[i].gpu_times[j].lost_time;
+            proc_times[i].gpu_times[j].get_actual = si.proc_times[i].gpu_times[j].get_actual;
+            proc_times[i].gpu_times[j].data_reorg = si.proc_times[i].gpu_times[j].data_reorg;
+            proc_times[i].gpu_times[j].reduction = si.proc_times[i].gpu_times[j].reduction;
+            proc_times[i].gpu_times[j].gpu_runtime_compilation = si.proc_times[i].gpu_times[j].gpu_runtime_compilation;
+            proc_times[i].gpu_times[j].gpu_to_cpu = si.proc_times[i].gpu_times[j].gpu_to_cpu;
+            proc_times[i].gpu_times[j].cpu_to_gpu = si.proc_times[i].gpu_times[j].cpu_to_gpu;
+            proc_times[i].gpu_times[j].gpu_to_gpu = si.proc_times[i].gpu_times[j].gpu_to_gpu;
+//            std::cout << ">> Not ded\n";
+            for (unsigned int k = 0; k < GNUMOP; k++) {
+                proc_times[i].gpu_times[j].op_times[k] = si.proc_times[i].gpu_times[j].op_times[k];
+            }
+        }
+//            for (unsigned int j = 0; j < 4; j++) {
+//                proc_times[i].col_op[j] = si.proc_times[i].col_op[j];
+//            }//4~RED
+//        }
     }
 	next = NULL;
+//    std::cout << ">>  CStatInter(si)  OK\n";
 }
 
 void CStatInter::clear() {

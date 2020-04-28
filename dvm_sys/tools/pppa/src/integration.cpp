@@ -9,6 +9,15 @@
 
 void _stat_to_char(CStat &stat, char * &res){
     json j;
+//    std::cout << std::endl << std::endl;
+//    auto cur = stat.inter_tree;
+//    while (cur != NULL){
+//        for (int i = 0; i < cur->id.nlev; ++i)
+//            std::cout << "    ";
+//        std::cout << cur->id.nlev << " " << ((cur->id.t == SEQ) ? "SEQ" : ((cur->id.t == PAR) ? "PAR" : "USER"));
+//        std::cout << " " << ((cur->id.t == USER) ? cur->id.expr : NULL) << "  " << cur->id.nline << std::endl;
+//        cur = cur->next;
+//    }
     stat.to_json(j);
     std::string str = j.dump();
     res = (char*) malloc(sizeof(char) * (str.size() + 1));
