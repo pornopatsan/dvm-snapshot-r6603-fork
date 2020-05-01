@@ -7,35 +7,47 @@ enum {
 	GNUMOP
 };
 
-struct GpuOpTime {             //времена операций передачи данных с gpu
+struct GpuOpTime {             //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ gpu
 	double gpu_to_cpu;
 	double cpu_to_gpu;
 	double gpu_to_gpu;
 };
 
-struct ThreadTime {            //времена работы одной нити
+struct ThreadTime {            //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ
 	double user_time;
 	double sys_time;
 };
 
-struct GpuTime {               //времена работы gpu
-	char * gpu_name;
-	double prod_time;
-	double kernel_exec;
-	double loop_exec;
-	double lost_time;
-	double get_actual;
-	double data_reorg;
-	double reduction;
-	double gpu_runtime_compilation;
-	double gpu_to_cpu;
-	double cpu_to_gpu;
-	double gpu_to_gpu;
-	struct GpuOpTime op_times[GNUMOP];
+struct GpuMetric {
+    unsigned int countMeasures;  /**< РєРѕР»РёС‡РµСЃС‚РІРѕ РёР·РјРµСЂРµРЅРёР№ С…Р°СЂР°РєС‚РµСЂРёСЃС‚РёРєРё */
+    double  timeProductive; /**< РїРѕР»РµР·РЅРѕРµ РІСЂРµРјСЏ */
+    double  timeLost;       /**< РїРѕС‚РµСЂСЏРЅРЅРѕРµ РІСЂРµРјСЏ */
 
+    // -- РђРіСЂРµРіРёСЂРѕРІР°РЅРЅС‹Рµ Р·РЅР°С‡РµРЅРёСЏ (РґР»СЏ box-РґРёР°РіСЂР°РјРјС‹)
+    double min;    /**< РјРёРЅРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ */
+    double mean;   /**< СЃСЂРµРґРЅРµРµ */
+    double max;    /**< РјР°РєСЃРёРјР°Р»СЊРЅРѕРµ Р·РЅР°С‡РµРЅРёРµ */
+    double sum;    /**< СЃСѓРјРјР° Р·РЅР°С‡РµРЅРёР№ */
 };
 
-struct ColOp {                 //времена выполнения коллективных операций
+struct GpuTime {               //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅ gpu
+	char * gpu_name;
+	double prod_time;
+    double lost_time;
+//    double kernel_exec;
+//	double loop_exec;
+//	double get_actual;
+//	double data_reorg;
+//	double reduction;
+//	double gpu_runtime_compilation;
+//	double gpu_to_cpu;
+//	double cpu_to_gpu;
+//	double gpu_to_gpu;
+//	struct GpuOpTime op_times[GNUMOP];
+    struct GpuMetric metrics[DVMH_STAT_METRIC_FORCE_INT];
+};
+
+struct ColOp {                 //пїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
 	long ncall;
 	double comm;
 	double synch;

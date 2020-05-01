@@ -133,7 +133,7 @@ struct _dvmh_stat_header_st {
  */
 struct _dvmh_stat_interval_gpu_metric_st {
     short hasOwnMeasures;  /**< если собственные измерения */
-    short isReduced;       /**< значения метрики редучированы */
+    short isReduced;       /**< значения метрики редуцированы */
 
 #if DVMH_EXTENDED_STAT == 1
     dvmh_stat_interval_gpu_metric_value *values; /**< ссылка на массив значений */

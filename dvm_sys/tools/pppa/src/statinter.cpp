@@ -1,6 +1,7 @@
 #include "statlist.h"
 #include <iostream>
 
+//---  Not relevant ‣ Use to_json  ---//
 void CStatInter::to_string(std::string &result) {
 	result += "@interval@ ";
 	result += patch::to_string(id.nlev) + ' ';   //уровень вложенности
@@ -90,21 +91,21 @@ void CStatInter::to_string(std::string &result) {
                 result +="@gpu"+ patch::to_string(j) + "_"
                     + std::string(proc_times[i].gpu_times[j].gpu_name) + '@' + ' ';
                 result += patch::to_string(proc_times[i].gpu_times[j].prod_time)+' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
                 result += patch::to_string(proc_times[i].gpu_times[j].lost_time) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].get_actual) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].data_reorg) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].reduction) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].gpu_runtime_compilation) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_cpu) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].cpu_to_gpu) + ' ';
-                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_gpu)+ ' ';
-                for (unsigned int k = 0; k < GNUMOP; k++) {
-                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu) + ' ';
-                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
-                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
-                }
+//                result += patch::to_string(proc_times[i].gpu_times[j].kernel_exec) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].loop_exec) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].get_actual) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].data_reorg) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].reduction) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].gpu_runtime_compilation) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_cpu) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].cpu_to_gpu) + ' ';
+//                result += patch::to_string(proc_times[i].gpu_times[j].gpu_to_gpu)+ ' ';
+//                for (unsigned int k = 0; k < GNUMOP; k++) {
+//                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu) + ' ';
+//                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu) + ' ';
+//                    result += patch::to_string(proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu) + ' ';
+//                }
                 result += "@end_gpu" + patch::to_string(j) + "@";
             }
             result += "\n@end_gpu@\n";
@@ -151,14 +152,18 @@ void CStatInter::to_json(json & result){
         }
         //  ---  GPU  ---
         for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
-            json op_times_json;
-//            std::cout << ">> op_times_json\n";
-            for (unsigned int k = 0; k < GNUMOP; k++) {
-                op_times_json.push_back(
+            json metrics_json;
+//            std::cout << ">> metrics_json\n";
+            for (unsigned int k = 0; k < DVMH_STAT_METRIC_CNT; ++k) {
+                metrics_json.push_back(
                         {
-                            {"cpu_to_gpu", proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu},
-                            {"gpu_to_gpu", proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu},
-                            {"gpu_to_cpu", proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu}
+                            {"countMeasures", proc_times[i].gpu_times[j].metrics[k].countMeasures},
+                            {"timeProductive", proc_times[i].gpu_times[j].metrics[k].timeProductive},
+                            {"timeLost", proc_times[i].gpu_times[j].metrics[k].timeLost},
+                            {"min", proc_times[i].gpu_times[j].metrics[k].min},
+                            {"mean", proc_times[i].gpu_times[j].metrics[k].mean},
+                            {"max", proc_times[i].gpu_times[j].metrics[k].max},
+                            {"sum", proc_times[i].gpu_times[j].metrics[k].sum}
                         });
             }
 //            std::cout << ">> gpu_times_json\n";
@@ -166,17 +171,8 @@ void CStatInter::to_json(json & result){
                     {
                         {"gpu_name", proc_times[i].gpu_times[j].gpu_name},
                         {"prod_time", proc_times[i].gpu_times[j].prod_time},
-                        {"kernel_exec", proc_times[i].gpu_times[j].kernel_exec},
-                        {"loop_exec", proc_times[i].gpu_times[j].loop_exec},
                         {"lost_time", proc_times[i].gpu_times[j].lost_time},
-                        {"get_actual", proc_times[i].gpu_times[j].get_actual},
-                        {"data_reorg", proc_times[i].gpu_times[j].data_reorg},
-                        {"reduction", proc_times[i].gpu_times[j].reduction},
-                        {"gpu_runtime_compilation", proc_times[i].gpu_times[j].gpu_runtime_compilation},
-                        {"gpu_to_cpu", proc_times[i].gpu_times[j].gpu_to_cpu},
-                        {"cpu_to_gpu", proc_times[i].gpu_times[j].cpu_to_gpu},
-                        {"gpu_to_gpu", proc_times[i].gpu_times[j].gpu_to_gpu},
-                        {"op_times", op_times_json}
+                        {"metrics", metrics_json}
                     });
         }
         //  ---  processors  ---
@@ -310,7 +306,7 @@ CStatInter::CStatInter(json source){
             col_op[i].overlap = j_col_op[i]["overlap"];
         }
     }
-
+//    std::cout << ">>  Going to proc_times\n";
     // -----  proc_times  -----
     if (source.contains("proc_times")){
         proc_times = new struct ProcTimes[nproc];
@@ -347,27 +343,28 @@ CStatInter::CStatInter(json source){
             }
             proc_times[i].gpu_times = new struct GpuTime[proc_times[i].num_gpu];
             for (int j = 0; j < proc_times[i].num_gpu; ++j){
-                json op_times_json = gpu_times_json[j]["op_times"];
                 tmp = std::string(gpu_times_json[j]["gpu_name"]);
                 proc_times[i].gpu_times[j].gpu_name = new char[tmp.length() + 1];
                 for (int k = 0; k < tmp.length(); ++k)
                     proc_times[i].gpu_times[j].gpu_name[k] = tmp[k];
                 proc_times[i].gpu_times[j].gpu_name[tmp.length()] = '\0';
                 proc_times[i].gpu_times[j].prod_time = gpu_times_json[j]["prod_time"];
-                proc_times[i].gpu_times[j].kernel_exec = gpu_times_json[j]["kernel_exec"];
-                proc_times[i].gpu_times[j].loop_exec = gpu_times_json[j]["loop_exec"];
                 proc_times[i].gpu_times[j].lost_time = gpu_times_json[j]["lost_time"];
-                proc_times[i].gpu_times[j].get_actual = gpu_times_json[j]["get_actual"];
-                proc_times[i].gpu_times[j].data_reorg = gpu_times_json[j]["data_reorg"];
-                proc_times[i].gpu_times[j].reduction = gpu_times_json[j]["reduction"];
-                proc_times[i].gpu_times[j].gpu_runtime_compilation = gpu_times_json[j]["gpu_runtime_compilation"];
-                proc_times[i].gpu_times[j].gpu_to_cpu = gpu_times_json[j]["gpu_to_cpu"];
-                proc_times[i].gpu_times[j].cpu_to_gpu = gpu_times_json[j]["cpu_to_gpu"];
-                proc_times[i].gpu_times[j].gpu_to_gpu = gpu_times_json[j]["gpu_to_gpu"];
-                for (int k = 0; k < GNUMOP; ++k){
-                    proc_times[i].gpu_times[j].op_times[k].cpu_to_gpu = op_times_json[k]["cpu_to_gpu"];
-                    proc_times[i].gpu_times[j].op_times[k].gpu_to_gpu = op_times_json[k]["gpu_to_gpu"];
-                    proc_times[i].gpu_times[j].op_times[k].gpu_to_cpu = op_times_json[k]["gpu_to_cpu"];
+
+//                std::cout << ">>  Odl times OK\n";
+
+                json metrics_json = gpu_times_json[j]["metrics"];
+
+//                std::cout << ">>  metrics_json = " << metrics_json << std::endl;
+
+                for (int m = 0; m < DVMH_STAT_METRIC_CNT; ++m){
+                    proc_times[i].gpu_times[j].metrics[m].countMeasures = metrics_json[m]["countMeasures"];
+                    proc_times[i].gpu_times[j].metrics[m].timeProductive = metrics_json[m]["timeProductive"];
+                    proc_times[i].gpu_times[j].metrics[m].timeLost = metrics_json[m]["timeLost"];
+                    proc_times[i].gpu_times[j].metrics[m].min = metrics_json[m]["min"];
+                    proc_times[i].gpu_times[j].metrics[m].mean = metrics_json[m]["mean"];
+                    proc_times[i].gpu_times[j].metrics[m].max = metrics_json[m]["max"];
+                    proc_times[i].gpu_times[j].metrics[m].sum = metrics_json[m]["sum"];
                 }
             }
         }
@@ -377,7 +374,7 @@ CStatInter::CStatInter(json source){
 }
 
 CStatInter::CStatInter(const CStatInter & si) {
-//    std::cout << ">> In CStatInter(si)\n";
+    std::cout << ">> In CStatInter(si)\n";
     isjson = si.isjson;
 	id.t = si.id.t;
 	id.nlev = si.id.nlev;
@@ -482,28 +479,13 @@ CStatInter::CStatInter(const CStatInter & si) {
             }
 //            std::cout << ">> Name OK\n";
             proc_times[i].gpu_times[j].prod_time = si.proc_times[i].gpu_times[j].prod_time;
-            proc_times[i].gpu_times[j].kernel_exec = si.proc_times[i].gpu_times[j].kernel_exec;
-            proc_times[i].gpu_times[j].loop_exec = si.proc_times[i].gpu_times[j].loop_exec;
             proc_times[i].gpu_times[j].lost_time = si.proc_times[i].gpu_times[j].lost_time;
-            proc_times[i].gpu_times[j].get_actual = si.proc_times[i].gpu_times[j].get_actual;
-            proc_times[i].gpu_times[j].data_reorg = si.proc_times[i].gpu_times[j].data_reorg;
-            proc_times[i].gpu_times[j].reduction = si.proc_times[i].gpu_times[j].reduction;
-            proc_times[i].gpu_times[j].gpu_runtime_compilation = si.proc_times[i].gpu_times[j].gpu_runtime_compilation;
-            proc_times[i].gpu_times[j].gpu_to_cpu = si.proc_times[i].gpu_times[j].gpu_to_cpu;
-            proc_times[i].gpu_times[j].cpu_to_gpu = si.proc_times[i].gpu_times[j].cpu_to_gpu;
-            proc_times[i].gpu_times[j].gpu_to_gpu = si.proc_times[i].gpu_times[j].gpu_to_gpu;
-//            std::cout << ">> Not ded\n";
-            for (unsigned int k = 0; k < GNUMOP; k++) {
-                proc_times[i].gpu_times[j].op_times[k] = si.proc_times[i].gpu_times[j].op_times[k];
+            for (int m = 0; m < DVMH_STAT_METRIC_CNT; ++m){
+                proc_times[i].gpu_times[j].metrics[m] = si.proc_times[i].gpu_times[j].metrics[m];
             }
-        }
-//            for (unsigned int j = 0; j < 4; j++) {
-//                proc_times[i].col_op[j] = si.proc_times[i].col_op[j];
-//            }//4~RED
-//        }
     }
 	next = NULL;
-//    std::cout << ">>  CStatInter(si)  OK\n";
+    std::cout << ">>  CStatInter(si)  OK\n";
 }
 
 void CStatInter::clear() {
@@ -533,6 +515,17 @@ CStatInter::~CStatInter() {
     printf("Destructor: ~CStatInter()\n");
 	//delete_tail();
 	//clear();
+}
+
+//---  Copy dvmhStatMetric to metric in CStatInter  ---//
+void init_gpu_metric(GpuMetric &metric, dvmh_stat_interval_gpu_metric *dvmhStatMetric){
+    metric.countMeasures = dvmhStatMetric->countMeasures;
+    metric.max = dvmhStatMetric->max;
+    metric.mean = dvmhStatMetric->mean;
+    metric.min = dvmhStatMetric->min;
+    metric.sum = dvmhStatMetric->sum;
+    metric.timeLost = dvmhStatMetric->timeLost;
+    metric.timeProductive = dvmhStatMetric->timeProductive;
 }
 
 CStatInter::CStatInter(CStatRead * stat, int n)
@@ -688,48 +681,10 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 				proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].gpu_name[0]='0';
 				proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].gpu_name[1] = '\0';
 			}
-			dvmh_stat_interval_gpu_metric *dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_KERNEL_EXEC];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].kernel_exec = dvmhStatMetric->timeProductive + dvmhStatMetric->timeLost;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_GET_ACTUAL];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].get_actual = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_LOOP_PORTION_TIME];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].loop_exec = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_UTIL_ARRAY_TRANSFORMATION];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].data_reorg = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_UTIL_ARRAY_REDUCTION];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].reduction = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_UTIL_RTC_COMPILATION];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].gpu_runtime_compilation = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_DTOH];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].gpu_to_cpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_HTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].cpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_DTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].gpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_SHADOW_DTOH];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GSHADOW].gpu_to_cpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_SHADOW_HTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GSHADOW].cpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_SHADOW_DTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GSHADOW].gpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REMOTE_DTOH];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREMOTE].gpu_to_cpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REMOTE_HTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREMOTE].cpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REMOTE_DTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREMOTE].gpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REDIST_DTOH];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREDISTRIBUTION].gpu_to_cpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REDIST_HTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREDISTRIBUTION].cpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_REDIST_DTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREDISTRIBUTION].gpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_IN_REG_DTOH];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREGIONIN].gpu_to_cpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_IN_REG_HTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREGIONIN].cpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
-			dvmhStatMetric = &dvmhStatGpu->metrics[DVMH_STAT_METRIC_CPY_IN_REG_DTOD];
-			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].op_times[GREGIONIN].gpu_to_gpu = dvmhStatMetric->timeLost + dvmhStatMetric->timeProductive;
+			//--- Init times  ---//
+            dvmh_stat_interval_gpu_metric *dvmhStatMetric;
+			for (int m = 0; m < DVMH_STAT_METRIC_CNT; ++m)
+                init_gpu_metric(proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].metrics[m], &dvmhStatGpu->metrics[m]);
 			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].prod_time = dvmhStatGpu->timeProductive;
 			proc_times[np - 1].gpu_times[proc_times[np - 1].num_gpu - 1].lost_time = dvmhStatGpu->timeLost;
 			//if (dvmhStatMetric->countMeasures <= 0) ????;
