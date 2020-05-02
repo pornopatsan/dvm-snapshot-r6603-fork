@@ -34,7 +34,7 @@ void CStat::to_json(json &result){
         inter.push_back(temp);
         cur = cur->next;
     }
-    result = {{"iscomp", iscomp}, {"nproc", nproc}, {"proc", proc}, {"inter", inter}};
+    result = {{"iscomp", iscomp}, {"nproc", nproc}, {"p_heading", std::string(p_heading)}, {"proc", proc}, {"inter", inter}};
 }
 
 CStat::CStat(json source){
@@ -42,6 +42,10 @@ CStat::CStat(json source){
     stat = NULL;
     iscomp = source["iscomp"];
     nproc = source["nproc"];
+    const char *tmp = ((std::string)source["p_heading"]).c_str();
+    std::cout << ">>  p_heading = " << source["p_heading"] << "  " << strlen(tmp) << "  " << tmp << std::endl;
+    for (int i = 0; i < strlen(tmp); ++i)
+        p_heading[i] = tmp[i];
     proc_info = new CProcInfo[nproc];
     int i = 0;
     for (json::iterator it = source["proc"].begin(); it != source["proc"].end() && i < nproc; ++it, ++i){
@@ -123,6 +127,7 @@ void CStat::init(char * path) {
 		err = true;
 		return;
 	}
+    stat->VMSSize(p_heading);
 	unsigned long n = stat->BeginTreeWalk();
 	if (n != 0) inter_tree = new CStatInter(stat, n);
 	proc_info = new struct CProcInfo[nproc];
@@ -172,6 +177,7 @@ int copy_for_compare(const CStat &s, CStat &r){
         strcpy(r.spath, s.spath);
     }
     r.nproc = s.nproc;
+    strcpy(r.p_heading, s.p_heading);
     r.proc_info = new CProcInfo[r.nproc];
     for (int i = 0; i < r.nproc; ++i){
         r.proc_info[i].node_name = new char[strlen(s.proc_info[i].node_name)];

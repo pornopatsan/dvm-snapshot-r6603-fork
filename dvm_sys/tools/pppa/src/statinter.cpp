@@ -480,9 +480,10 @@ CStatInter::CStatInter(const CStatInter & si) {
 //            std::cout << ">> Name OK\n";
             proc_times[i].gpu_times[j].prod_time = si.proc_times[i].gpu_times[j].prod_time;
             proc_times[i].gpu_times[j].lost_time = si.proc_times[i].gpu_times[j].lost_time;
-            for (int m = 0; m < DVMH_STAT_METRIC_CNT; ++m){
+            for (int m = 0; m < DVMH_STAT_METRIC_CNT; ++m) {
                 proc_times[i].gpu_times[j].metrics[m] = si.proc_times[i].gpu_times[j].metrics[m];
             }
+        }
     }
 	next = NULL;
     std::cout << ">>  CStatInter(si)  OK\n";

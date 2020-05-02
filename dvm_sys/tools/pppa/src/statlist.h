@@ -90,6 +90,7 @@ public:
 	~CStat() ;
 	CStatInter * inter_tree;                                //"�������" ������ ����������
 	unsigned long nproc;									//���������� ���������
+	char p_heading[80];
 	CProcInfo  * proc_info;                                 //���������� �� ����������� (��� ����, �������� �����)
     CStatRead * stat;
     char * spath;
