@@ -42,6 +42,8 @@ class ControlPoint {
     int nfiles;
     int nextfile;
 
+    bool isLoaded;
+    bool isSaved;
     bool saveLock;
     DvmhFile *fileSaveStream;
 
@@ -103,6 +105,10 @@ class ControlPoint {
 
     String getOpenMode(const String rw, bool binary=true) const {
         return this->getCpOpenMode(rw, this->isCpLocal(), this->isCpAsync(), binary);
+    }
+
+    String getSyncOpenMode(const String rw, bool binary=true) const {
+        return this->getCpOpenMode(rw, this->isCpLocal(), false, binary);
     }
 
 }; // class ControlPoint
