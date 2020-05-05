@@ -72,8 +72,8 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
     return std::make_pair(size, nmemb);
 }
 
-void ControlPoint::initControlPoint(std::string name, ControlPoint::VectorDesc varlist) {
-    this->varDescList = varlist;
+void ControlPoint::initControlPoint(std::string name, ControlPoint::cpDataPair dataPair) {
+    this->varDescList = dataPair.first;
     this->header.nextfile = 0;
     this->header.isSaved = false;
     this->isLoaded = false;
@@ -82,22 +82,22 @@ void ControlPoint::initControlPoint(std::string name, ControlPoint::VectorDesc v
     this->name = BuildName(name);
     this->directory = DIRNAME + "/" + this->name;
 
-    this->header.nVars = varlist.size();
+    this->header.nVars = dataPair.first.size();
     for (int i = 0; i < this->header.nVars; ++i) {
-        std::pair<size_t, size_t> tmp = getSizeAndNmemb(varlist[i]);
+        std::pair<size_t, size_t> tmp = getSizeAndNmemb(dataPair.first[i]);
         this->header.varSizeList[i] = tmp.first;
         this->header.varNmembList[i] = tmp.second;
     }
 }
 
-ControlPoint::ControlPoint(std::string name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
-    initControlPoint(name, varlist);
+ControlPoint::ControlPoint(std::string name, const size_t nfiles, DvmhCpMode mode, ControlPoint::cpDataPair dataPair) {
+    initControlPoint(name, dataPair);
     this->header.nfiles = nfiles;
     this->header.mode = mode;
 }
 
-ControlPoint::ControlPoint(std::string name, ControlPoint::VectorDesc varlist) {
-    initControlPoint(name, varlist);
+ControlPoint::ControlPoint(std::string name, ControlPoint::cpDataPair dataPair) {
+    initControlPoint(name, dataPair);
 }
 
 }; // namespace libdvmh
@@ -142,12 +142,27 @@ bool checkControlPointFitsHeader(ControlPoint *cp, ControlPointHeader *header) {
     return true;
 }
 
-std::vector<DvmType *> buildVarlist(DvmType *dvmDesc[], const size_t var_size) {
-    std::vector<DvmType *> varlist;
+ControlPoint::VectorDesc buildVarlist(DvmType *dvmDesc[], const size_t var_size) {
+    ControlPoint::VectorDesc varlist;
     for (size_t i = 0; i < var_size; ++i) {
         varlist.push_back(dvmDesc[i]);
     }
     return varlist;
+}
+
+ControlPoint::VectorScal buildScalarVarlist(void **addresses, const size_t *sizes, const size_t var_size) {
+    ControlPoint::VectorScal varlist;
+    for (size_t i = 0; i < var_size; ++i) {
+        varlist.push_back(std::make_pair(addresses[i], sizes[i]));
+    }
+    return varlist;
+}
+
+ControlPoint::cpDataPair buildDataPair(DvmType *dvmDesc[], const size_t n_distrib_vars,
+                                       void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars) {
+    ControlPoint::VectorDesc distrib_vars = buildVarlist(dvmDesc, n_distrib_vars);
+    ControlPoint::VectorScal scalar_vars = buildScalarVarlist(scalar_addresses, scalar_sizes, n_scalar_vars);
+    return std::make_pair(distrib_vars, scalar_vars);
 }
 
 void activateControlPoint(ControlPoint *cp) {
@@ -225,11 +240,13 @@ void loadControlPoint(ControlPoint *cp) {
 }
 
 // Deprecated
-extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
+extern "C" void dvmh_create_control_point(const char *cpName, const size_t nfiles, const int mode,
+                                          DvmType *dvmDesc[], const size_t n_distrib_vars,
+                                          void **scalar_addresses, size_t *scalar_sizes, const size_t n_scalar_vars) {
     checkOrCreateCpDirectory();
-    std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
-    ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
-    cp->isLoaded = true; // Just created CP does not need to be loaded first
+    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), datPair);
+    cp->isLoaded = true; // Just created CP does not need to be loaded firsts
     // TODO: what if cp already exists? Maybe just delete it, cause someone manually called create cp
     checkOrCreateCpDirectory(cp->directory);
     saveControlPointHeader(cp);
@@ -237,9 +254,10 @@ extern "C" void dvmh_create_control_point(const char *cpName, DvmType *dvmDesc[]
 }
 
 // Deprecated
-extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size) {
-    std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
-    ControlPoint *cp = new ControlPoint(cpName, varlist);
+extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t n_distrib_vars,
+                                        void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars) {
+    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, datPair);
     if (!checkFileExists(cp->directory) || !checkFileExists(cp->getHeaderFilename().c_str())) {
         printf("Control Point is corrupted or not found. Aborting\n");
         exit(1);
@@ -248,10 +266,12 @@ extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], 
     activateControlPoint(cp);
 }
 
-extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t var_size, const size_t nfiles, const int mode) {
+extern "C" void dvmh_create_or_bind_control_point(const char *cpName, const size_t nfiles, const int mode,
+                                                  DvmType *dvmDesc[], const size_t n_distrib_vars,
+                                                  void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars) {
     checkOrCreateCpDirectory();
-    std::vector<DvmType *> varlist = buildVarlist(dvmDesc, var_size);
-    ControlPoint *cp = new ControlPoint(cpName, varlist, nfiles, static_cast<DvmhCpMode>(mode));
+    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), datPair);
     // We need to be sure that if any process created directory, all processes should have `true`
     bool &&isCreated = checkOrCreateCpDirectory(cp->directory);
     dvmh_barrier();

@@ -15,8 +15,8 @@ struct ControlPointHeader {
     static const size_t MaxProcAxes = 64;
 
     DvmhCpMode mode;
-    int nfiles;
-    int nextfile;
+    size_t nfiles;
+    size_t nextfile;
     bool isSaved;
 
     size_t nVars;
@@ -29,6 +29,8 @@ class ControlPoint {
 
   public:
     typedef std::vector<DvmType *> VectorDesc;
+    typedef std::vector<std::pair<void *, const size_t> > VectorScal;
+    typedef std::pair<VectorDesc, VectorScal> cpDataPair;
 
   public:
     static const std::string DIRNAME;
@@ -50,10 +52,10 @@ class ControlPoint {
     ControlPointHeader header;
 
   public:
-    void initControlPoint(std::string name, VectorDesc varlist);
+    void initControlPoint(std::string name, cpDataPair dataPair);
     ControlPoint() {}
-    ControlPoint(std::string name, VectorDesc varlist, int nfiles, DvmhCpMode mode);
-    ControlPoint(std::string name, VectorDesc varlist);
+    ControlPoint(std::string name, const size_t nfiles, const DvmhCpMode mode, cpDataPair dataPair);
+    ControlPoint(std::string name, cpDataPair dataPair);
 
   public:
     int getFilesNum() const { return header.nfiles; }
