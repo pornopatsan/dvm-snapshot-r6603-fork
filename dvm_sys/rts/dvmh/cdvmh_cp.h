@@ -45,7 +45,7 @@ class ControlPoint {
 
     bool isLoaded;
     bool saveLock;
-    DvmhFile *fileSaveStream;
+    DvmhFile *saveStreamFile;
 
     ControlPointHeader header;
 

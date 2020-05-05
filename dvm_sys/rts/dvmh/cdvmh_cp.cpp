@@ -78,7 +78,7 @@ void ControlPoint::initControlPoint(std::string name, ControlPoint::VectorDesc v
     this->header.isSaved = false;
     this->isLoaded = false;
     this->saveLock = false;
-    this->fileSaveStream = nullptr;
+    this->saveStreamFile = nullptr;
     this->name = BuildName(name);
     this->directory = DIRNAME + "/" + this->name;
 
@@ -170,8 +170,8 @@ void bindControlPoint(ControlPoint *cp) {
 }
 
 void finalizeControlPointSave(ControlPoint *cp) {
-    dvmh_fclose((FILE *) cp->fileSaveStream);
-    cp->fileSaveStream = nullptr;
+    dvmh_fclose((FILE *) cp->saveStreamFile);
+    cp->saveStreamFile = nullptr;
     cp->header.isSaved = true;
     saveControlPointHeader(cp);
     dvmh_barrier();
@@ -181,7 +181,7 @@ void finalizeControlPointSave(ControlPoint *cp) {
 void waitControlPoint(ControlPoint *cp) {
     if (cp->isCpAsync()) {
         if (cp->isSaveLocked()) {
-            cp->fileSaveStream->syncOperations();
+            cp->saveStreamFile->syncOperations();
             finalizeControlPointSave(cp);
         } else {
             printf("%s\n", "Cannot wait Control Point, no operations are ongoing. Aborting");
@@ -191,6 +191,37 @@ void waitControlPoint(ControlPoint *cp) {
         printf("%s\n", "Cannot wait sync Control Point. Aborting");
         exit(1);
     }
+}
+
+void saveControlPoint(ControlPoint *cp) {
+    if (cp->isLoaded) {
+        if (cp->isSaveLocked()) { waitControlPoint(cp); }
+        cp->lockSave();
+        cp->incFileQueue();
+        cp->saveStreamFile = (DvmhFile *) dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("w").c_str());
+        for (size_t i = 0; i < cp->varDescList.size(); ++i) {
+            dvmh_smart_void_write(cp->varDescList[i], (FILE *) cp->saveStreamFile);
+        }
+        if (!cp->isCpAsync()) {
+            finalizeControlPointSave(cp);
+        }
+    } else {
+        printf("%s\n", "Load Control Point first, else some data may be lost");
+        exit(1);
+    }
+}
+
+void loadControlPoint(ControlPoint *cp) {
+    if (cp->isSaveLocked()) { waitControlPoint(cp); }
+    if (cp->header.isSaved) {
+        FILE *astream = dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("r").c_str());
+        for (size_t i = 0; i < cp->varDescList.size(); ++i) {
+            dvmh_smart_void_read(cp->varDescList[i], astream);
+        }
+        dvmh_fclose(astream);
+    }
+    cp->isLoaded = true;
+    dvmh_barrier();
 }
 
 // Deprecated
@@ -237,22 +268,7 @@ extern "C" void dvmh_create_or_bind_control_point(const char *cpName, DvmType *d
 extern "C" void dvmh_save_control_point(const char *cpName) {
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
-        ControlPoint *cp = iter->second;
-        if (cp->isLoaded) {
-            if (cp->isSaveLocked()) { waitControlPoint(cp); }
-            cp->lockSave();
-            cp->incFileQueue();
-            cp->fileSaveStream = (DvmhFile *) dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("w").c_str());
-            for (size_t i = 0; i < cp->varDescList.size(); ++i) {
-                dvmh_smart_void_write(cp->varDescList[i], (FILE *) cp->fileSaveStream);
-            }
-            if (!cp->isCpAsync()) {
-                finalizeControlPointSave(cp);
-            }
-        } else {
-            printf("%s\n", "Load Control Point first, else some data will be lost");
-            exit(1);
-        }
+        saveControlPoint(iter->second);
     } else {
         printf("%s\n", "ControlPoint not found. Try creating it first");
         exit(1);
@@ -262,17 +278,7 @@ extern "C" void dvmh_save_control_point(const char *cpName) {
 extern "C" void dvmh_load_control_point(const char *cpName) {
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
-        ControlPoint *cp = iter->second;
-        if (cp->isSaveLocked()) { waitControlPoint(cp); }
-        if (cp->header.isSaved) {
-            FILE *astream = dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("r").c_str());
-            for (size_t i = 0; i < cp->varDescList.size(); ++i) {
-                dvmh_smart_void_read(cp->varDescList[i], astream);
-            }
-            dvmh_fclose(astream);
-        }
-        cp->isLoaded = true;
-        dvmh_barrier();
+        loadControlPoint(iter->second);
     } else {
         printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point()> first");
         exit(1);
