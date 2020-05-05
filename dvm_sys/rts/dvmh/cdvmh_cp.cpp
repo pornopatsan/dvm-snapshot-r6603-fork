@@ -51,8 +51,8 @@ namespace libdvmh {
 
 std::map<std::string, ControlPoint *, std::less<std::string> > ActiveControlPoints;
 
-ControlPoint::String BuildName(const ControlPoint::String name) {
-    ControlPoint::String suffix = "";
+std::string BuildName(const std::string name) {
+    std::string suffix = "";
     for(int i = 0; i < dvmh_get_num_proc_axes(); ++i) {
         suffix += "_" + ControlPoint::NumberToString(dvmh_get_num_procs(i + 1));
     }
@@ -72,13 +72,15 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
     return std::make_pair(size, nmemb);
 }
 
-void ControlPoint::initControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist) {
+void ControlPoint::initControlPoint(std::string name, ControlPoint::VectorDesc varlist) {
     this->varDescList = varlist;
     this->header.nextfile = 0;
     this->header.isSaved = false;
     this->isLoaded = false;
     this->saveLock = false;
     this->fileSaveStream = nullptr;
+    this->name = BuildName(name);
+    this->directory = DIRNAME + "/" + this->name;
 
     this->header.nVars = varlist.size();
     for (int i = 0; i < this->header.nVars; ++i) {
@@ -86,24 +88,15 @@ void ControlPoint::initControlPoint(ControlPoint::String name, ControlPoint::Vec
         this->header.varSizeList[i] = tmp.first;
         this->header.varNmembList[i] = tmp.second;
     }
-
-//    this->axesNum = dvmh_get_num_proc_axes();
-//    this->axesSizeList.clear();
-//    for(int i = 0; i < axesNum; ++i) {
-//        this->axesSizeList.push_back(dvmh_get_num_procs(i + 1));
-//    }
-
-    this->name = BuildName(name);
-    this->directory = DIRNAME + "/" + this->name;
 }
 
-ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
+ControlPoint::ControlPoint(std::string name, ControlPoint::VectorDesc varlist, int nfiles, DvmhCpMode mode) {
     initControlPoint(name, varlist);
     this->header.nfiles = nfiles;
     this->header.mode = mode;
 }
 
-ControlPoint::ControlPoint(ControlPoint::String name, ControlPoint::VectorDesc varlist) {
+ControlPoint::ControlPoint(std::string name, ControlPoint::VectorDesc varlist) {
     initControlPoint(name, varlist);
 }
 
@@ -176,15 +169,20 @@ void bindControlPoint(ControlPoint *cp) {
     }
 }
 
+void finalizeControlPointSave(ControlPoint *cp) {
+    dvmh_fclose((FILE *) cp->fileSaveStream);
+    cp->fileSaveStream = nullptr;
+    cp->header.isSaved = true;
+    saveControlPointHeader(cp);
+    dvmh_barrier();
+    cp->unlockSave();
+}
+
 void waitControlPoint(ControlPoint *cp) {
     if (cp->isCpAsync()) {
         if (cp->isSaveLocked()) {
             cp->fileSaveStream->syncOperations();
-            dvmh_fclose((FILE *) cp->fileSaveStream);
-            cp->fileSaveStream = nullptr;
-            cp->header.isSaved = true;
-            saveControlPointHeader(cp);
-            cp->unlockSave();
+            finalizeControlPointSave(cp);
         } else {
             printf("%s\n", "Cannot wait Control Point, no operations are ongoing. Aborting");
             exit(1);
@@ -249,12 +247,7 @@ extern "C" void dvmh_save_control_point(const char *cpName) {
                 dvmh_smart_void_write(cp->varDescList[i], (FILE *) cp->fileSaveStream);
             }
             if (!cp->isCpAsync()) {
-                dvmh_fclose((FILE *) cp->fileSaveStream);
-                cp->fileSaveStream = nullptr;
-                cp->header.isSaved = true;
-                saveControlPointHeader(cp);
-                dvmh_barrier();
-                cp->unlockSave();
+                finalizeControlPointSave(cp);
             }
         } else {
             printf("%s\n", "Load Control Point first, else some data will be lost");
