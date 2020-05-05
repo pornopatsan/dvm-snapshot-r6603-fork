@@ -6,18 +6,32 @@
 
 #include "dvmh_async.h"
 
-// #include "dvmh_stdio.cpp" // TODO: do not include this
 namespace libdvmh {
 enum RWKind { rwkRead, rwkWrite }; // TODO: get original from cdmh_stdio.cpp
 enum DvmhCpMode {LOCAL, PARALLEL, LOCAL_ASYNC, PARALLEL_ASYNC};
 
+struct ControlPointHeader {
+    static const size_t MaxVars = 64;
+    static const size_t MaxProcAxes = 64;
+
+    DvmhCpMode mode;
+    int nfiles;
+    int nextfile;
+    bool isSaved;
+
+//    size_t axesNum;
+//    int axesSizeList[ControlPointHeader::MaxProcAxes];
+
+    size_t nVars;
+    int varSizeList[ControlPointHeader::MaxVars];
+    int varNmembList[ControlPointHeader::MaxVars];
+
+};
+
 class ControlPoint {
 
   public:
-    //    typedef std::vector Vector;
     typedef std::string String;
-    typedef std::vector<size_t> VectorSize;
-    typedef std::vector<String> VectorStr;
     typedef std::vector<DvmType *> VectorDesc;
 
   public:
@@ -32,36 +46,29 @@ class ControlPoint {
     String directory;
     String name;
     VectorDesc varDescList;
-    VectorSize varSizeList;
-    VectorSize varNmembList;
-
-    int axesNum;
-    VectorSize axesSizeList;
-
-    DvmhCpMode mode;
-    int nfiles;
-    int nextfile;
 
     bool isLoaded;
-    bool isSaved;
     bool saveLock;
     DvmhFile *fileSaveStream;
 
+    ControlPointHeader header;
+
   public:
+    void initControlPoint(String name, VectorDesc varlist);
     ControlPoint() {}
     ControlPoint(String name, VectorDesc varlist, int nfiles, DvmhCpMode mode);
     ControlPoint(String name, VectorDesc varlist);
 
   public:
-    int getFilesNum() const { return nfiles; }
-    int getNextFile() const { return nextfile; }
+    int getFilesNum() const { return header.nfiles; }
+    int getNextFile() const { return header.nextfile; }
     int getLastFile() const { return (this->getNextFile() - 1) % this->getFilesNum(); }
-    void incFileQueue() { nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
-    void decFileQueue() { nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
+    void incFileQueue() { header.nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
+    void decFileQueue() { header.nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
 
-    bool isCpLocal() const { return ((this->mode == LOCAL) || (this->mode == LOCAL_ASYNC)); }
-    bool isCpParallel() const { return ((this->mode == PARALLEL) || (this->mode == PARALLEL_ASYNC)); }
-    bool isCpAsync() const { return ((this->mode == LOCAL_ASYNC) || (this->mode == PARALLEL_ASYNC)); }
+    bool isCpLocal() const { return ((this->header.mode == LOCAL) || (this->header.mode == LOCAL_ASYNC)); }
+    bool isCpParallel() const { return ((this->header.mode == PARALLEL) || (this->header.mode == PARALLEL_ASYNC)); }
+    bool isCpAsync() const { return ((this->header.mode == LOCAL_ASYNC) || (this->header.mode == PARALLEL_ASYNC)); }
 
     bool isSaveLocked() { return this->saveLock; }
     void lockSave() { !this->isSaveLocked() ? ((void) (this->saveLock = true)) : exit(1); }
