@@ -24,7 +24,7 @@ int main()
 
     DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
     dvmDesc[0] = A;
-    dvmh_create_or_bind_control_point(name, dvmDesc, 1, nfiles, mode);
+    dvmh_create_or_bind_control_point(name, nfiles, mode, dvmDesc, 1, NULL, NULL, 0);
     dvmh_load_control_point(name);
     dvmh_save_control_point(name);
 

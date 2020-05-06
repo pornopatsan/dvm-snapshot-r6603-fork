@@ -23,7 +23,18 @@ void run(int val) {
 
     DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
     dvmDesc[0] = A;
-    dvmh_create_or_bind_control_point(name, dvmDesc, 1, nfiles, mode);
+
+    char B[5] = "12345"; B[val % 5] = '1';
+    double C = 3.14 + val;
+
+    void **scalarPointers = (void **) malloc(2 * sizeof(void *));
+    size_t *scalarsSizes = (size_t *) malloc(2 * sizeof(size_t *));
+    scalarPointers[0] = (void *) B;
+    scalarPointers[1] = (void *) &C;
+    scalarsSizes[0] = (size_t) 5 * sizeof(B[0]);
+    scalarsSizes[1] = (size_t) sizeof(C);
+
+    dvmh_create_or_bind_control_point(name, nfiles, mode, dvmDesc, 1, scalarPointers, scalarsSizes, 2);
     dvmh_load_control_point(name);
 
     #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
@@ -34,6 +45,11 @@ void run(int val) {
             }
         }
     }
+
+    for (int i = 0; i < 5; ++i) {
+        assert(B[i] == i + '1');
+    }
+    assert(C == 3.14);
 
     dvmh_save_control_point(name);
     dvmh_deactivate_control_point(name);

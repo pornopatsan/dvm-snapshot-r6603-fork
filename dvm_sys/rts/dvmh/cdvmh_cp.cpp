@@ -260,8 +260,8 @@ extern "C" void dvmh_create_control_point(const char *cpName, const size_t nfile
                                           DvmType *dvmDesc[], const size_t n_distrib_vars,
                                           void **scalar_addresses, size_t *scalar_sizes, const size_t n_scalar_vars) {
     checkOrCreateCpDirectory();
-    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
-    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), datPair);
+    ControlPoint::cpDataPair dataPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), dataPair);
     cp->isLoaded = true; // Just created CP does not need to be loaded firsts
     // TODO: what if cp already exists? Maybe just delete it, cause someone manually called create cp
     checkOrCreateCpDirectory(cp->directory);
@@ -272,8 +272,8 @@ extern "C" void dvmh_create_control_point(const char *cpName, const size_t nfile
 // Deprecated
 extern "C" void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t n_distrib_vars,
                                         void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars) {
-    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
-    ControlPoint *cp = new ControlPoint(cpName, datPair);
+    ControlPoint::cpDataPair dataPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, dataPair);
     if (!checkFileExists(cp->directory) || !checkFileExists(cp->getHeaderFilename().c_str())) {
         printf("Control Point is corrupted or not found. Aborting\n");
         exit(1);
@@ -286,8 +286,8 @@ extern "C" void dvmh_create_or_bind_control_point(const char *cpName, const size
                                                   DvmType *dvmDesc[], const size_t n_distrib_vars,
                                                   void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars) {
     checkOrCreateCpDirectory();
-    ControlPoint::cpDataPair datPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
-    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), datPair);
+    ControlPoint::cpDataPair dataPair = buildDataPair(dvmDesc, n_distrib_vars, scalar_addresses, scalar_sizes, n_scalar_vars);
+    ControlPoint *cp = new ControlPoint(cpName, nfiles, static_cast<DvmhCpMode>(mode), dataPair);
     // We need to be sure that if any process created directory, all processes should have `true`
     bool &&isCreated = checkOrCreateCpDirectory(cp->directory);
     dvmh_barrier();
