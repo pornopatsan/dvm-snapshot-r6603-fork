@@ -36,7 +36,10 @@ def run_test(task, grid_list):
         command = f'{USER_DIR}/dvm run {grid_str} {TESTS_WORKDIR}/{task}'
         logging.info(f'Running command:\t{command}')
         status = os.system(command)
-        yield bool(status) == bool('_fail' in task)
+        is_correct = bool(status) == bool('_fail' in task)
+        yield is_correct
+        if not is_correct:
+            return
 
 
 def main():

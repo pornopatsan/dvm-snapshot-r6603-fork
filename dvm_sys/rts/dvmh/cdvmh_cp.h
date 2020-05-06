@@ -19,9 +19,11 @@ struct ControlPointHeader {
     size_t nextfile;
     bool isSaved;
 
-    size_t nVars;
-    int varSizeList[ControlPointHeader::MaxVars];
-    int varNmembList[ControlPointHeader::MaxVars];
+    size_t nDescVars;
+    int descVarSizeList[ControlPointHeader::MaxVars];
+    int descVarNmembList[ControlPointHeader::MaxVars];
+    size_t nScalVars;
+    int scalarVarSizeList[ControlPointHeader::MaxVars];
 
 }; // class ControlPointHeader
 
@@ -29,7 +31,7 @@ class ControlPoint {
 
   public:
     typedef std::vector<DvmType *> VectorDesc;
-    typedef std::vector<std::pair<void *, const size_t> > VectorScal;
+    typedef std::vector<std::pair<void *, size_t> > VectorScal;
     typedef std::pair<VectorDesc, VectorScal> cpDataPair;
 
   public:
@@ -43,7 +45,7 @@ class ControlPoint {
   public:
     std::string directory;
     std::string name;
-    VectorDesc varDescList;
+    cpDataPair dataPair;
 
     bool isLoaded;
     bool saveLock;

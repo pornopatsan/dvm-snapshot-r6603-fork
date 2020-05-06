@@ -73,7 +73,7 @@ std::pair<size_t, size_t> getSizeAndNmemb(DvmType dvmDesc[]) {
 }
 
 void ControlPoint::initControlPoint(std::string name, ControlPoint::cpDataPair dataPair) {
-    this->varDescList = dataPair.first;
+    this->dataPair = dataPair;
     this->header.nextfile = 0;
     this->header.isSaved = false;
     this->isLoaded = false;
@@ -82,11 +82,15 @@ void ControlPoint::initControlPoint(std::string name, ControlPoint::cpDataPair d
     this->name = BuildName(name);
     this->directory = DIRNAME + "/" + this->name;
 
-    this->header.nVars = dataPair.first.size();
-    for (int i = 0; i < this->header.nVars; ++i) {
+    this->header.nDescVars = dataPair.first.size();
+    this->header.nScalVars = dataPair.second.size();
+    for (size_t i = 0; i < this->header.nDescVars; ++i) {
         std::pair<size_t, size_t> tmp = getSizeAndNmemb(dataPair.first[i]);
-        this->header.varSizeList[i] = tmp.first;
-        this->header.varNmembList[i] = tmp.second;
+        this->header.descVarSizeList[i] = tmp.first;
+        this->header.descVarNmembList[i] = tmp.second;
+    }
+    for (size_t i = 0; i < this->header.nScalVars; ++i) {
+        this->header.scalarVarSizeList[i] = dataPair.second[i].second;
     }
 }
 
@@ -133,9 +137,15 @@ void saveControlPointHeader(const ControlPoint *cp)
 }
 
 bool checkControlPointFitsHeader(ControlPoint *cp, ControlPointHeader *header) {
-    if (cp->header.nVars != header->nVars) { return false; }
-    for (size_t i = 0; i < header->nVars; ++i) {
-        if (cp->header.varSizeList[i] != header->varSizeList[i] || cp->header.varNmembList[i] != header->varNmembList[i]) {
+    if (cp->header.nDescVars != header->nDescVars) { return false; }
+    for (size_t i = 0; i < header->nDescVars; ++i) {
+        if (cp->header.descVarSizeList[i] != header->descVarSizeList[i] || cp->header.descVarNmembList[i] != header->descVarNmembList[i]) {
+            return false;
+        }
+    }
+    if (cp->header.nScalVars != header->nScalVars) { return false; }
+    for (size_t i = 0; i < header->nScalVars; ++i) {
+        if (cp->header.scalarVarSizeList[i] != header->scalarVarSizeList[i]) {
             return false;
         }
     }
@@ -214,8 +224,11 @@ void saveControlPoint(ControlPoint *cp) {
         cp->lockSave();
         cp->incFileQueue();
         cp->saveStreamFile = (DvmhFile *) dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("w").c_str());
-        for (size_t i = 0; i < cp->varDescList.size(); ++i) {
-            dvmh_smart_void_write(cp->varDescList[i], (FILE *) cp->saveStreamFile);
+        for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
+            dvmh_smart_void_write(cp->dataPair.first[i], (FILE *) cp->saveStreamFile);
+        }
+        for (size_t i = 0; i < cp->dataPair.second.size(); ++i) {
+            dvmh_void_fwrite(cp->dataPair.second[i].first, 1, cp->dataPair.second[i].second, (FILE *) cp->saveStreamFile);
         }
         if (!cp->isCpAsync()) {
             finalizeControlPointSave(cp);
@@ -230,8 +243,11 @@ void loadControlPoint(ControlPoint *cp) {
     if (cp->isSaveLocked()) { waitControlPoint(cp); }
     if (cp->header.isSaved) {
         FILE *astream = dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("r").c_str());
-        for (size_t i = 0; i < cp->varDescList.size(); ++i) {
-            dvmh_smart_void_read(cp->varDescList[i], astream);
+        for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
+            dvmh_smart_void_read(cp->dataPair.first[i], astream);
+        }
+        for (size_t i = 0; i < cp->dataPair.second.size(); ++i) {
+            dvmh_void_fread(cp->dataPair.second[i].first, 1, cp->dataPair.second[i].second, astream);
         }
         dvmh_fclose(astream);
     }
