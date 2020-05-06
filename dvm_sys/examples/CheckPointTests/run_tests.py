@@ -18,7 +18,7 @@ TESTS_DATA = TESTS_WORKDIR + '/data'
 def parse_args():
     args = argparse.ArgumentParser()
     args.add_argument('--compile-only', action='store_true')
-    args.add_argument('--test-regex', default=r'.*', help='regexp to filter to test names and run a sample of tests')
+    args.add_argument('--test-regex', default=r'test.*', help='regexp to filter test names and run a sample of tests')
     return args.parse_args()
 
 
@@ -36,7 +36,10 @@ def run_test(task, grid_list):
         command = f'{USER_DIR}/dvm run {grid_str} {TESTS_WORKDIR}/{task}'
         logging.info(f'Running command:\t{command}')
         status = os.system(command)
-        yield bool(status) == bool('_fail' in task)
+        is_correct = bool(status) == bool('_fail' in task)
+        yield is_correct
+        if not is_correct:
+            return
 
 
 def main():

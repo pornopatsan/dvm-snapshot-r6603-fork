@@ -6,19 +6,33 @@
 
 #include "dvmh_async.h"
 
-// #include "dvmh_stdio.cpp" // TODO: do not include this
 namespace libdvmh {
 enum RWKind { rwkRead, rwkWrite }; // TODO: get original from cdmh_stdio.cpp
 enum DvmhCpMode {LOCAL, PARALLEL, LOCAL_ASYNC, PARALLEL_ASYNC};
 
+struct ControlPointHeader {
+    static const size_t MaxVars = 64;
+    static const size_t MaxProcAxes = 64;
+
+    DvmhCpMode mode;
+    size_t nfiles;
+    size_t nextfile;
+    bool isSaved;
+
+    size_t nDescVars;
+    int descVarSizeList[ControlPointHeader::MaxVars];
+    int descVarNmembList[ControlPointHeader::MaxVars];
+    size_t nScalVars;
+    int scalarVarSizeList[ControlPointHeader::MaxVars];
+
+}; // class ControlPointHeader
+
 class ControlPoint {
 
   public:
-    //    typedef std::vector Vector;
-    typedef std::string String;
-    typedef std::vector<size_t> VectorSize;
-    typedef std::vector<String> VectorStr;
     typedef std::vector<DvmType *> VectorDesc;
+    typedef std::vector<std::pair<void *, size_t> > VectorScal;
+    typedef std::pair<VectorDesc, VectorScal> cpDataPair;
 
   public:
     static const std::string DIRNAME;
@@ -29,71 +43,77 @@ class ControlPoint {
     }
 
   public:
-    String directory;
-    String name;
-    VectorDesc varDescList;
-    VectorSize varSizeList;
-    VectorSize varNmembList;
+    std::string directory;
+    std::string name;
+    cpDataPair dataPair;
 
-    int axesNum;
-    VectorSize axesSizeList;
+    bool isLoaded;
+    bool saveLock;
+    DvmhFile *saveStreamFile;
 
-    DvmhCpMode mode;
-    int nfiles;
-    int nextfile;
+    ControlPointHeader header;
 
   public:
+    void initControlPoint(std::string name, cpDataPair dataPair);
     ControlPoint() {}
-    ControlPoint(String name, VectorDesc varlist, int nfiles, DvmhCpMode mode);
-    ControlPoint(String name, VectorDesc varlist);
+    ControlPoint(std::string name, const size_t nfiles, const DvmhCpMode mode, cpDataPair dataPair);
+    ControlPoint(std::string name, cpDataPair dataPair);
 
   public:
-    int getFilesNum() const { return nfiles; }
-    int getNextFile() const { return nextfile; }
+    int getFilesNum() const { return header.nfiles; }
+    int getNextFile() const { return header.nextfile; }
     int getLastFile() const { return (this->getNextFile() - 1) % this->getFilesNum(); }
-    void incFileQueue() { nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
-    void decFileQueue() { nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
+    void incFileQueue() { header.nextfile = (this->getNextFile() + 1) % this->getFilesNum(); }
+    void decFileQueue() { header.nextfile = (this->getNextFile() - 1) % this->getFilesNum(); }
 
-    String getNextFilename() const {
-        if (this->mode == LOCAL) {
+    bool isCpLocal() const { return ((this->header.mode == LOCAL) || (this->header.mode == LOCAL_ASYNC)); }
+    bool isCpParallel() const { return ((this->header.mode == PARALLEL) || (this->header.mode == PARALLEL_ASYNC)); }
+    bool isCpAsync() const { return ((this->header.mode == LOCAL_ASYNC) || (this->header.mode == PARALLEL_ASYNC)); }
+
+    bool isSaveLocked() { return this->saveLock; }
+    void lockSave() { !this->isSaveLocked() ? ((void) (this->saveLock = true)) : exit(1); }
+    void unlockSave() { this->isSaveLocked() ? ((void) (this->saveLock = false)) : exit(1); }
+
+    std::string getNextFilename() const {
+        if (this->isCpLocal()) {
             return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return directory + "/" + ControlPoint::NumberToString(this->getNextFile()) + ".txt";
         } else {
             exit(1);
         }
     }
-    String getLastFilename() const {
-        if (this->mode == LOCAL) {
+    std::string getLastFilename() const {
+        if (this->isCpLocal()) {
             return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return directory + "/" + ControlPoint::NumberToString(this->getLastFile()) + ".txt";
         } else {
             exit(1);
         }
     }
-    String getHeaderFilename() const {
-        if (this->mode == LOCAL) {
+    std::string getHeaderFilename() const {
+        if (this->isCpLocal()) {
             return this->directory + "/Header" + "_" + "%d" + ".txt";
-        } else if (this->mode == PARALLEL){
+        } else if (this->isCpParallel()) {
             return this->directory + "/Header" + ".txt";
         } else {
             exit(1);
         }
     }
 
-    String getOpenMode(const String &rw, bool async=false, bool binary=true) const {
-        String res = rw;
+    std::string getCpOpenMode(const std::string rw, bool local, bool async, bool binary) const {
+        std::string res = rw;
         if (binary) { res += "b"; }
         if (async) { res += "s"; }
-        if (this->mode == LOCAL) {
-            res += "l";
-        } else if (this->mode == PARALLEL){
-            res += "p";
-        } else {
-            exit(1);
-        }
+        res += (local ? "l" : "p");
         return res;
+    }
+    std::string getOpenMode(const std::string rw, bool binary=true) const {
+        return this->getCpOpenMode(rw, this->isCpLocal(), this->isCpAsync(), binary);
+    }
+    std::string getSyncOpenMode(const std::string rw, bool binary=true) const {
+        return this->getCpOpenMode(rw, this->isCpLocal(), false, binary);
     }
 
 }; // class ControlPoint
