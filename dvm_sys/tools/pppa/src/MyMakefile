@@ -1,0 +1,49 @@
+CXX=clang++ -g -O2
+COPT=-c -I../../Zlib/include -g
+ZLIB	= zlib
+ZLIBDIR	= ../../Zlib/Release
+
+OBJS=\
+	inter.o  \
+	potensyn.o  \
+	statread.o  \
+	treeinter.o \
+	statprintf.o \
+    statlist.o \
+    statinter.o \
+    interface.o \
+    stat.o \
+    LibraryImport.o \
+    libLibraryImport.jnilib \
+
+#$(BINDIR)/$(EXECUTABLES): $(OBJS)
+#	clang++ -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
+
+all:  libLibraryImport.jnilib
+	@echo "*** COMPILING EXECUTABLE $(EXECUTABLES) DONE"
+
+clean:
+	rm -f libLibraryImport.jnilib LibraryImport.o
+cleanall:
+	rm -f $(OBJS)
+
+libLibraryImport.jnilib: potensyn.o inter.o statread.o treeinter.o statinter.o statlist.o interface.o stat.o
+	clang++ -shared -fPIC -I /Library/Java/JavaVirtualMachines/jdk1.8.0_211.jdk/Contents/Home/include potensyn.o inter.o statread.o treeinter.o statinter.o statlist.o interface.o stat.o ../../Zlib/*.o LibraryImport.cpp -o libLibraryImport.jnilib
+potensyn.o:
+	$(CXX) $(COPT) potensyn.cpp
+inter.o:
+	$(CXX) $(COPT) inter.cpp
+statread.o:
+	$(CXX) $(COPT) statread.cpp
+treeinter.o:
+	$(CXX) $(COPT) treeinter.cpp
+statinter.o:
+	$(CXX) $(COPT) -std=c++11 statinter.cpp
+statlist.o:
+	$(CXX) $(COPT) -std=c++11 statlist.cpp
+interface.o:
+	$(CXX) $(COPT) -std=c++11 interface.cpp -fdeclspec
+stat.o:
+	$(CXX) $(COPT) -std=c++11 stat.cpp
+#LibraryImport.o:
+#	gcc LibraryImport.c -I /Library/Developer/CommandLineTools/SDKs/MacOSX10.14.sdk/System/Library/Frameworks/JavaVM.framework/Versions/A/Headers -fdeclspec

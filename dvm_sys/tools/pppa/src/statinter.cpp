@@ -532,7 +532,7 @@ void init_gpu_metric(GpuMetric &metric, dvmh_stat_interval_gpu_metric *dvmhStatM
 CStatInter::CStatInter(CStatRead * stat, int n)
 {
     isjson = false;
-	printf("begin init %d\n", n);
+//	printf("begin init %d\n", n);
 	qproc = stat->QProc();
 	//������ ��������� �������� ���������
 	stat->ReadIdent(&id);
@@ -573,7 +573,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 	stat->MinMaxSum(PRSYN, mins, nprocmins, maxs, nprocmaxs, sums);
 	stat->MinMaxSum(PRVAR, minv, nprocminv, maxv, nprocmaxv, sumv);
 	stat->MinMaxSum(PROVER, minov, nprocminov, maxov, nprocmaxov, sumov);
-	printf("main charecteristics\n");
+//	printf("main charecteristics\n");
 	//������ �������� ��������������
 	nproc = n;
 	prod_cpu = sum[CPUUSR];
@@ -615,13 +615,13 @@ CStatInter::CStatInter(CStatRead * stat, int n)
     op_group = new OpGrp[qproc][StatGrpCount];
 //    for (int i = 0; i < qproc; ++i)
 //        op_group[i] = new OpGrp[StatGrpCount];
-	printf("group\n");
+//	printf("group\n");
 	for (unsigned long j = 0; j < qproc; j++) {
 		double prod[StatGrpCount], lost[StatGrpCount], sumprod = 0.0, sumlost = 0.0;
 		double calls[StatGrpCount], sumcalls = 0.0;
-		printf("stat call\n");
+//		printf("stat call\n");
 		stat->GrpTimes(prod, lost, calls, j + 1);
-		printf("begin loop\n");
+//		printf("begin loop\n");
 		for (int i = 0; i < StatGrpCount - 1; i++) {
 			sumprod = sumprod + prod[i];
 			sumlost = sumlost + lost[i];
@@ -634,11 +634,11 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 		op_group[j][StatGrpCount - 1].prod = sumprod;
 		op_group[j][StatGrpCount - 1].lost_time = sumlost;
 	}
-	printf("proc %d\n", qproc);
+//	printf("proc %d\n", qproc);
 	proc_times = new struct ProcTimes[qproc];
-	printf("struct\n");
+//	printf("struct\n");
 	stat->ReadProcS(proc_times);
-	printf("procs call\n");
+//	printf("procs call\n");
 	for (unsigned long np = 1; np <= qproc; ++np)
 	{
 		proc_times[np-1].num_threads = 0;
@@ -657,7 +657,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 			proc_times[np - 1].th_times[i].sys_time = dvmhStatInterval->threads[i].system_time;
 		}
 	}
-	printf("gpu\n");
+//	printf("gpu\n");
 	for (unsigned long np = 1; np <= qproc; ++np)
 	{
 		dvmh_stat_interval        *dvmhStatInterval = stat->getDvmhStatIntervalByProcess(np);
@@ -691,14 +691,14 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 			//if (dvmhStatMetric->countMeasures <= 0) ????;
 		}
 	}
-	printf("next\n");
+//	printf("next\n");
 	n = stat->TreeWalk();
-	printf("next %d\n", n);
+//	printf("next %d\n", n);
 	if (n != 0)
 	{
 		next = new CStatInter(stat, n);
 	}
 	else
 		next = NULL;
-	printf("end inter\n");
+//	printf("end inter\n");
 }
