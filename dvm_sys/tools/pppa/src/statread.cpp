@@ -993,14 +993,14 @@ BOOL CStatRead::ReadProc(typeprint t, unsigned long *pnumb, int qnumb, short fmt
 
 void CStatRead::ReadProcS(ProcTimes *pt)
 {
-	printf("readprocs\n");
+//	printf("readprocs\n");
 	for (unsigned long i = 0; i < proccount; i++) {
 		// read time characteristic
 		double time;
-		printf("readtime\n");
+//		printf("readtime\n");
 		pic[i]->ReadTime((typetime)(LOST), time);
 		pt[i].lost_time = time;
-		printf("readtime\n");
+//		printf("readtime\n");
 		pic[i]->ReadTime((typetime)(INSUFUSR), time);
 		pt[i].insuf_user = time;
 		pic[i]->ReadTime((typetime)(INSUF), time);
@@ -1075,7 +1075,7 @@ void CStatRead::ReadProcS(ProcTimes *pt)
 		pt[i].col_op[SH].overlap = time;
 		pic[i]->ReadTime(COM, (typecom)(RA), time);
 		pt[i].col_op[RA].overlap = time;
-		printf("readtime\n");
+//		printf("readtime\n");
 	}
 }
 
