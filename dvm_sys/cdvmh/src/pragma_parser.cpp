@@ -807,6 +807,51 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::eod), 306, COLUMN);
         fileCtx.addPragma(fileID.getHashValue(), curPragma);
+    } else if (tokStr == "checkpoint") {
+        // CHECKPOINT
+        // XXX: Experimental directive for working with checkpoints
+        // Syntax: dvm checkpoint [save|load] cpName [...]
+        PP.LexNonComment(Tok);
+        std::string tokStr = Tok.getIdentifierInfo()->getName();
+        if (tokStr == "save") {
+            PragmaCheckpointSave *curPragma = new PragmaCheckpointSave();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+        } else if (tokStr == "load") {
+            PragmaCheckpointLoad *curPragma = new PragmaCheckpointLoad();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+        } else if (Tok.isAnyIdentifier()) {
+            PragmaCheckpointDeclare *curPragma = new PragmaCheckpointDeclare();
+            curPragma->copyCommonInfo(this->curPragma);
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+
+            PP.LexNonComment(Tok);
+            tokStr = Tok.getIdentifierInfo()->getName();
+            checkDirErrN(PragmaCheckpointDeclare::isTokenMode(tokStr), 482, COLUMN);
+            curPragma->mode = tokStr;
+
+            PP.LexNonComment(Tok);
+            tokStr = Tok.getIdentifierInfo()->getName();
+//            checkDirErrN(Tok.isNumber(), 3224, COLUMN);
+            curPragma->nFiles = tokStr;
+
+            PP.LexNonComment(Tok);
+        } else {
+            checkDirErrN(false, 309, tokStr.c_str());
+//            checkDirErrN(false, 481, COLUMN);
+        }
     } else {
         checkDirErrN(false, 309, tokStr.c_str());
     }
