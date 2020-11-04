@@ -16,9 +16,9 @@ OBJS=\
     statinter.o \
     interface.o \
     stat.o \
-    integration.o \
-    integration.dll \
-    Source.o \
+#    integration.o \
+#    integration.dll \
+#    Source.o \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
 	clang++ -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
@@ -49,9 +49,9 @@ interface.o:
 	$(CXX) $(COPT) -std=c++11 interface.cpp -fdeclspec
 stat.o:
 	$(CXX) $(COPT) -std=c++11 stat.cpp
-Source.o:
-	$(CXX) $(COPT) -std=c++11 ../../../testing/Source.cpp -fdeclspec
-integration.o:
-	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
-integration.dll:
-	clang++ -shared -o integration.dll *.o ../../Zlib/*.o
+#Source.o:
+#	$(CXX) $(COPT) -std=c++11 ../../../testing/Source.cpp -fdeclspec
+#integration.o:
+#	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
+#integration.dll:
+#	clang++ -shared -o integration.dll *.o ../../Zlib/*.o
