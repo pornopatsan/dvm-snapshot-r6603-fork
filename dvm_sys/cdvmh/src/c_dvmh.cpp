@@ -96,10 +96,11 @@ int main(int argc, char *argv[]) {
                 fileCtx.isDebugPass = true;
 
                 PassContext debugPassCtx(fileCtx);
-                debugPassCtx.getPP()->AddPragmaHandler(new DvmPragmaHandler(fileCtx, *debugPassCtx.getCompiler(), *debugPassCtx.getRewr()));
-                DebugConsumer dbgConsumer(fileCtx, *debugPassCtx.getCompiler(), *debugPassCtx.getRewr());
+                Rewriter *rewr = debugPassCtx.getRewr();
+                debugPassCtx.getPP()->AddPragmaHandler(new DvmPragmaHandler(fileCtx, *debugPassCtx.getCompiler(), *rewr));
+                DebugConsumer dbgConsumer(fileCtx, *debugPassCtx.getCompiler(), *rewr);
                 debugPassCtx.parse(&dbgConsumer);
-                const RewriteBuffer *debugBuf = debugPassCtx.getRewr()->getRewriteBufferFor(
+                const RewriteBuffer *debugBuf = rewr->getRewriteBufferFor(
                                                 debugPassCtx.getCompiler()->getSourceManager().getMainFileID());  
                 std::stringstream originalFile;
                 originalFile << readFile(file.fileName);
@@ -119,24 +120,28 @@ int main(int argc, char *argv[]) {
 
             PassContext passCtx(fileCtx);
 
+            Rewriter *mainRewr = passCtx.getRewr("main");
+            //Rewriter *blankHandlersRewr = passCtx.getRewr("blankHandlers");
             IncludeCollector *includeCollector = new IncludeCollector(fileCtx, *passCtx.getPP());
             MacroCollector *macroCollector = new MacroCollector(fileCtx);
+            //PPDirectiveCollector *ppDirectiveCollector = new PPDirectiveCollector(*passCtx.getCompiler());
 #if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 6
             passCtx.getPP()->addPPCallbacks(includeCollector);
             passCtx.getPP()->addPPCallbacks(macroCollector);
+            //passCtx.getPP()->addPPCallbacks(ppDirectiveCollector);
 #else
             passCtx.getPP()->addPPCallbacks(std::unique_ptr<IncludeCollector>(includeCollector));
             passCtx.getPP()->addPPCallbacks(std::unique_ptr<MacroCollector>(macroCollector));
+            //passCtx.getPP()->addPPCallbacks(std::unique_ptr<PPDirectiveCollector>(ppDirectiveCollector));
 #endif
-            passCtx.getPP()->AddPragmaHandler(new DvmPragmaHandler(fileCtx, *passCtx.getCompiler(), *passCtx.getRewr()));
-            //passCtx.getPP()->addPPCallbacks(new IncludeRewriter(fileCtx, *passCtx.getRewr()));
+            passCtx.getPP()->AddPragmaHandler(new DvmPragmaHandler(fileCtx, *passCtx.getCompiler(), *mainRewr));
+            //passCtx.getPP()->addPPCallbacks(new IncludeRewriter(fileCtx, *mainRewr));
 
-            ConverterConsumer astConsumer(fileCtx, *passCtx.getCompiler(), *passCtx.getRewr());
+            ConverterConsumer astConsumer(fileCtx, *passCtx.getCompiler(), *mainRewr);
             passCtx.parse(&astConsumer);
 
             // Figure out which files to expand, which to leave included, and which inclusion directives to alter, merge all to the main rewrite buffer
-            IncludeExpanderAndRewriter(fileCtx, includeCollector->inclusions, *passCtx.getRewr()).work();
-            const RewriteBuffer *rewriteBuf = passCtx.getRewr()->getRewriteBufferFor(passCtx.getCompiler()->getSourceManager().getMainFileID());
+            const RewriteBuffer *rewriteBuf = IncludeExpanderAndRewriter(fileCtx, includeCollector->inclusions, *mainRewr).work();
             if (!rewriteBuf)
                 fileCtx.setConvertedText(readFile(file.fileName), false);
             else
@@ -230,8 +235,17 @@ int main(int argc, char *argv[]) {
 
             {
                 // Handlers
+                std::string blankBeforeRma = fileCtx.genBlankHandlersText();
+                if (opts.emitBlankHandlers) {
+                    std::ofstream outFile((file.outBlankName + "_before_rma").c_str());
+                    outFile << blankBeforeRma;
+                }
+
                 BlankHandlerConverter conv(fileCtx);
-                std::string blankHandlers = conv.genRmas(fileCtx.genBlankHandlersText());
+                std::string blankHandlers;
+                if (opts.emitBlankHandlers || opts.useBlank) {
+                    blankHandlers = conv.genRmas(blankBeforeRma);
+                }
 
                 // Output blank handlers
                 if (opts.emitBlankHandlers) {

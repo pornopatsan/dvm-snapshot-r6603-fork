@@ -399,6 +399,24 @@ inline __device__ Complex<T> __shfl_down(const Complex<T> &c1, const unsigned de
     return ret;
 }
 #endif
+
+template <typename T>
+#if __CUDACC_VER_MAJOR__ >= 9
+inline __device__ Complex<T> __shfl_sync(unsigned mask, const Complex<T> &c1, const int src) {
+    Complex<T> ret;
+    ret.x = __shfl_sync(0xFFFFFF, c1.x, src);
+    ret.y = __shfl_sync(0xFFFFFF, c1.y, src);
+    return ret;
+}
+#else
+inline __device__ Complex<T> __shfl(const Complex<T> &c1, const int src) {
+
+    Complex<T> ret;
+    ret.x = __shfl(c1.x, src);
+    ret.y = __shfl(c1.y, src);
+    return ret;
+}
+#endif
 // Arithmetic operators
 
 /// operator +
@@ -588,3 +606,193 @@ inline __host__ __device__ Complex<float> cmpxf(const Complex<T> &c1)
 template <typename T>
 inline __host__ __device__ Complex<double> cmpxd(const Complex<T> &c1)
 { return Complex<double>((double)c1.x, (double)c1.y); }
+
+
+/// Atomic operations
+//Atomic ADD
+__device__ __inline__ float __dvmh_atomic_add(float *addr, float val) { return atomicAdd(addr, val); }
+__device__ __inline__ int __dvmh_atomic_add(int *addr, int val) { return atomicAdd(addr, val); }
+__device__ __inline__ unsigned int __dvmh_atomic_add(unsigned int *addr, unsigned int val) { return atomicAdd(addr, val); }
+__device__ __inline__ unsigned long long __dvmh_atomic_add(unsigned long long *addr, unsigned long long val) { return atomicAdd(addr, val); }
+
+__device__ __inline__ double __dvmh_atomic_add(double *addr, double val) 
+{
+#if (__CUDA_ARCH__ < 600)
+    unsigned long long* address_as_ull = (unsigned long long*)addr;
+    unsigned long long old = *address_as_ull, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed, __double_as_longlong(val + __longlong_as_double(assumed)));
+    // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+    return __longlong_as_double(old);
+#else
+    return atomicAdd(addr, val);
+#endif
+}
+
+//Atomic MIN, MAX
+__device__ __inline__ int __dvmh_atomic_min(int *addr, int val) { return atomicMin(addr, val); }
+__device__ __inline__ unsigned int __dvmh_atomic_min(unsigned int *addr, unsigned int val) { return atomicMin(addr, val); }
+
+__device__ __inline__ int __dvmh_atomic_max(int *addr, int val) { return atomicMax(addr, val); }
+__device__ __inline__ unsigned int __dvmh_atomic_max(unsigned int *addr, unsigned int val) { return atomicMax(addr, val); }
+
+__device__ __inline__ unsigned long long __dvmh_atomic_min(unsigned long long *addr, unsigned long long val) 
+{
+#if (__CUDA_ARCH__ < 350)
+    unsigned long long old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, min(val, assumed));
+    } while (assumed != old);
+    return old;
+#else   
+    return atomicMin(addr, val); 
+#endif
+}
+
+__device__ __inline__ long long __dvmh_atomic_min(long long *addr, long long val) 
+{
+#if (__CUDA_ARCH__ < 350)
+    long long old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = (long long)atomicCAS((unsigned long long*)addr, (unsigned long long)assumed, (unsigned long long)min(val, assumed));
+    } while (assumed != old);
+    return old;
+#else
+    return atomicMin(addr, val); 
+#endif
+}
+
+__device__ __inline__ unsigned long long __dvmh_atomic_max(unsigned long long *addr, unsigned long long val) 
+{
+#if (__CUDA_ARCH__ < 350)
+    unsigned long long old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, max(val, assumed));
+    } while (assumed != old);
+    return old;
+#else
+    return atomicMax(addr, val); 
+#endif
+}
+
+__device__ __inline__ long long __dvmh_atomic_max(long long *addr, long long val) 
+{
+#if (__CUDA_ARCH__ < 350)
+    long long old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = (long long)atomicCAS((unsigned long long*)addr, (unsigned long long)assumed, (unsigned long long)max(val, assumed));
+    } while (assumed != old);
+    return old;
+#else
+    return atomicMax(addr, val); 
+#endif
+}
+
+__device__ __inline__ float __dvmh_atomic_min(float *addr, float val) 
+{
+    float old = (val >= 0) ? 
+                __int_as_float(atomicMin((int *)addr, __float_as_int(val))) : 
+                __uint_as_float(atomicMax((unsigned int *)addr, __float_as_uint(val)));
+    return old;
+}
+
+__device__ __inline__ float __dvmh_atomic_max(float *addr, float val) 
+{
+    float old = (val >= 0) ? 
+                __int_as_float(atomicMax((int *)addr, __float_as_int(val))) : 
+                __uint_as_float(atomicMin((unsigned int *)addr, __float_as_uint(val)));
+    return old;
+}
+
+__device__ __inline__ double __dvmh_atomic_min(double *addr, double val) 
+{
+    double old = (val >= 0) ? 
+                 __longlong_as_double(__dvmh_atomic_min((long long *)addr, __double_as_longlong(val))) : 
+                 __longlong_as_double(__dvmh_atomic_max((unsigned long long *)addr, (unsigned long long) __double_as_longlong(val)));
+    return old;
+}
+
+__device__ __inline__ double __dvmh_atomic_max(double *addr, double val) 
+{
+    double old = (val >= 0) ? 
+                 __longlong_as_double(__dvmh_atomic_max((long long *)addr, __double_as_longlong(val))) : 
+                 __longlong_as_double(__dvmh_atomic_min((unsigned long long *)addr, (unsigned long long) __double_as_longlong(val)));
+    return old;
+}
+
+//Atomic prod, TODO
+__device__ __inline__ int __dvmh_atomic_prod(int *addr, int val) 
+{
+    int old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, val * assumed);
+    } while (assumed != old);
+    return old;
+}
+
+__device__ __inline__ long long __dvmh_atomic_prod(unsigned long long *addr, unsigned long long val) 
+{
+    unsigned long long old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, val * assumed);
+    } while (assumed != old);
+    return old;
+}
+
+__device__ __inline__ float __dvmh_atomic_prod(float *addr, float val) { return 0; }
+__device__ __inline__ float __dvmh_atomic_prod(double *addr, double val) { return 0; }
+
+//Atomic Bitwise
+__device__ __inline__ int __dvmh_atomic_and(int *addr, int val) { return atomicAnd(addr, val); }
+__device__ __inline__ int __dvmh_atomic_or(int *addr, int val) { return atomicOr(addr, val); }
+__device__ __inline__ int __dvmh_atomic_neqv(int *addr, int val) 
+{
+    int old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, (old != val));
+    } while (assumed != old);
+    return old;
+}
+
+__device__ __inline__ int __dvmh_atomic_eqv(int *addr, int val) 
+{
+    int old = *addr, assumed;
+    do 
+    {
+        assumed = old;
+        old = atomicCAS(addr, assumed, (old == val));
+    } while (assumed != old);
+    return old;
+}
+
+//simple XOR_SHIFT random (rng_xor128)
+template<typename dType>
+__device__ __inline__ void __dvmh_rand(dType &retVal, uint4 &state)
+{
+    unsigned int t;
+    t = state.x ^ (state.x << 11);
+
+    state.x = state.y;
+    state.y = state.z;
+    state.z = state.w;
+
+    state.w = (state.w ^ (state.w >> 19)) ^ (t ^ (t >> 8));
+    retVal = (dType)state.w / (dType)UINT_MAX;
+}

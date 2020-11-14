@@ -827,7 +827,7 @@ on the current processor, otherwice - returns zero.
   }
 
   /* skip realign if launched only on 1 proc */
-  if ((DVM_VMS->ProcCount == 1)&&(DArr->AMView != NULL))
+  if ((DVM_VMS->ProcCount == 1)&&(DArr->AMView != NULL)&&(AllowRedisRealnBypass))
   {
     if(RTL_TRACE)
         dvm_trace(ret_realn_,"IsLocal=%ld\n", (DvmType)1);

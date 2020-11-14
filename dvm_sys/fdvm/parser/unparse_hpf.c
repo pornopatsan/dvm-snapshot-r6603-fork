@@ -43,13 +43,23 @@ static int  FlagOn[MAXLEVEL][MAXFLAG];
 static int Buf_pointer = 0;
 static char UnpBuf[MAXLENGHTBUF];
 static char *Buf_address;
+#ifdef __SPF_BUILT_IN_PARSER
+static int CommentOut = 0;
+#else
 int CommentOut = 0;
+#endif
 int Pointer = 0;
 char *hpfname;
 #define C_Initialized 1
 #define Fortran_Initialized 2
 static int Parser_Initiated = 0;
+
+#ifdef __SPF_BUILT_IN_PARSER
+static PTR_FILE current_file = NULL;
+#else
 PTR_FILE current_file=NULL;
+#endif
+
 PTR_LLND On_Clause=NULL;
 PTR_LLND ReductionList=NULL;
 PTR_LLND NewSpecList=NULL;
@@ -279,6 +289,10 @@ for(;TaskRegion;temp=TaskRegion,TaskRegion=FUNC_NEXT(TaskRegion))
 	FUNC_NEXT(temp)=NULL;
 	FUNC_FIRST(temp)=NULL;
 	FUNC_LAST(temp)=NULL;
+#ifdef __SPF
+    removeFromCollection(FUNC_REF(temp));
+    removeFromCollection(temp);
+#endif
 	free(FUNC_REF(temp));
 	free(temp);
 	}
@@ -348,6 +362,10 @@ if (temp)
     FUNC_NEXT(temp)=NULL;
     FUNC_FIRST(temp)=NULL;
     FUNC_LAST(temp)=NULL;
+#ifdef __SPF
+    removeFromCollection(FUNC_REF(temp));
+    removeFromCollection(temp);
+#endif
     free(FUNC_REF(temp));
     free(temp);
     }
@@ -422,8 +440,11 @@ for (symb = current_file->head_symb; symb ; symb = SYMB_NEXT (symb))
 
 /* manage the unparse buffer */
 
-void
-DealWith_Rid(typei, flg)
+#ifdef __SPF_BUILT_IN_PARSER
+void DealWith_Rid_temp(typei, flg)
+#else
+void DealWith_Rid(typei, flg)
+#endif
      PTR_TYPE typei;
      int flg;  /* if 1 then do virtual */
 { int j;
@@ -518,7 +539,11 @@ DealWith_Rid(typei, flg)
     }
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+int is_overloaded_type_temp(bif)
+#else
 int is_overloaded_type(bif)
+#endif
    PTR_BFND bif;
 {
    PTR_LLND ll;
@@ -530,7 +555,11 @@ int is_overloaded_type(bif)
    else return 0;
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+PTR_TYPE Find_Type_For_Bif_temp(bif)
+#else
 PTR_TYPE Find_Type_For_Bif(bif)
+#endif
      PTR_BFND bif;
 {
   PTR_TYPE type = NULL;
@@ -574,8 +603,11 @@ PTR_TYPE Find_Type_For_Bif(bif)
   return type;
 }
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+int Find_Protection_For_Bif_temp(bif)
+#else
 int Find_Protection_For_Bif(bif)
+#endif
      PTR_BFND bif;
 {
   int protect = 0;
@@ -610,7 +642,11 @@ int Find_Protection_For_Bif(bif)
   return protect;
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+PTR_TYPE Find_BaseType_temp(ptype)
+#else
 PTR_TYPE Find_BaseType(ptype)
+#endif
      PTR_TYPE ptype;
 {
   PTR_TYPE pt;
@@ -654,7 +690,11 @@ PTR_TYPE Find_BaseType(ptype)
   return pt;
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+PTR_TYPE Find_BaseType2_temp(ptype)
+#else
 PTR_TYPE Find_BaseType2(ptype)         /* breaks out of the loop for pointers and references   BW */
+#endif
      PTR_TYPE ptype;
 {
   PTR_TYPE pt;
@@ -700,8 +740,11 @@ PTR_TYPE Find_BaseType2(ptype)         /* breaks out of the loop for pointers an
 }
 
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+char* create_unp_str_temp(str)
+#else
 char *create_unp_str(str)
+#endif
      char *str;
 {
   char *pt;
@@ -715,8 +758,11 @@ char *create_unp_str(str)
   return pt;
 }     
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+char* alloc_str_temp(size)
+#else
 char *alloc_str(size)
+#endif
      int size;
 {
   char *pt;
@@ -727,7 +773,11 @@ char *alloc_str(size)
   return pt;
 }     
 
+#ifdef __SPF_BUILT_IN_PARSER
+int Reset_Unparser_temp()
+#else
 int Reset_Unparser()
+#endif
 {
   int i,j;
 
@@ -751,8 +801,11 @@ int Reset_Unparser()
 
 
 /* function to manage the unparse buffer */
-
+#ifdef __SPF_BUILT_IN_PARSER
+int BufPutChar_temp(c)
+#else
 int BufPutChar(c)
+#endif
      char c;
 {
   if (Buf_pointer >= MAXLENGHTBUF)
@@ -765,7 +818,11 @@ int BufPutChar(c)
   return 1;
 }
 
-int BufPutString(s,len)
+#ifdef __SPF_BUILT_IN_PARSER
+int BufPutString_temp(s,len)
+#else
+int BufPutString(s, len)
+#endif
      char *s;
      int len;
 {
@@ -789,8 +846,11 @@ int BufPutString(s,len)
   return 1;
 }
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+int BufPutInt_temp(i)
+#else
 int BufPutInt(i)
+#endif
      int i;
 {
   int length;
@@ -809,7 +869,11 @@ int BufPutInt(i)
   return 1;
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+int Get_Flag_val_temp(str, i)
+#else
 int Get_Flag_val(str, i)
+#endif
      char  *str;
      int *i;
 {
@@ -847,7 +911,11 @@ int Get_Flag_val(str, i)
 
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+void Treat_Flag_temp(str, i, val)
+#else
 void Treat_Flag(str, i, val)
+#endif
      char  *str;
      int *i;
      int val;     
@@ -887,8 +955,11 @@ void Treat_Flag(str, i, val)
       *i += con;      
 }
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+void PushPop_Flag_temp(str, i, val)
+#else
 void PushPop_Flag(str, i, val)
+#endif
      char  *str;
      int *i;
      int val;     
@@ -935,8 +1006,11 @@ void PushPop_Flag(str, i, val)
 
 char * Tool_Unparse_Type();
 
-char *
-Tool_Unparse_Symbol (symb)
+#ifdef __SPF_BUILT_IN_PARSER
+char* Tool_Unparse_Symbol_temp(symb)
+#else
+char *Tool_Unparse_Symbol (symb)
+#endif
      PTR_SYMB symb;
 {
   PTR_TYPE ov_type;
@@ -1029,8 +1103,11 @@ typedef struct
 #define COMP_DIFF  1
 
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+void Get_Type_Operand_temp(str, iptr, ptype, Op)
+#else
 void Get_Type_Operand (str, iptr, ptype,Op)
+#endif
      char *str;
      int *iptr;
      PTR_TYPE ptype;
@@ -1077,7 +1154,11 @@ void Get_Type_Operand (str, iptr, ptype,Op)
       }
 }
 
+#ifdef __SPF_BUILT_IN_PARSER
+void Get_LL_Operand_temp(str, iptr, ll, Op)
+#else
 void Get_LL_Operand (str, iptr, ll, Op)
+#endif
      char *str;
      int *iptr;
      PTR_LLND ll;
@@ -1211,8 +1292,11 @@ void Get_LL_Operand (str, iptr, ll, Op)
       }
 }
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+void Get_Bif_Operand_temp(str, iptr, bif, Op)
+#else
 void Get_Bif_Operand (str, iptr, bif,Op)
+#endif
      char *str;
      int *iptr;
      PTR_BFND bif;
@@ -1420,9 +1504,11 @@ void Get_Bif_Operand (str, iptr, bif,Op)
       }
 }
 
-
-int
-GetComp (str, iptr)
+#ifdef __SPF_BUILT_IN_PARSER
+int GetComp_temp(str, iptr)
+#else
+int GetComp (str, iptr)
+#endif
      char *str;
      int *iptr;
 {
@@ -1445,8 +1531,11 @@ GetComp (str, iptr)
   return Comp;
 }
 
-int
-Eval_Type_Condition(str, ptype)
+#ifdef __SPF_BUILT_IN_PARSER
+int Eval_Type_Condition_temp(str, ptype)
+#else
+int Eval_Type_Condition(str, ptype)
+#endif
      char *str;
      PTR_TYPE ptype;
 {
@@ -1522,9 +1611,11 @@ Eval_Type_Condition(str, ptype)
         }
 }
 
-
-int
-Eval_LLND_Condition(str, ll)
+#ifdef __SPF_BUILT_IN_PARSER
+int Eval_LLND_Condition_temp(str, ll)
+#else
+int Eval_LLND_Condition(str, ll)
+#endif
      char *str;
      PTR_LLND ll;
 {
@@ -1601,9 +1692,11 @@ Eval_LLND_Condition(str, ll)
         }
 }
 
-
-int
-Eval_Bif_Condition(str, bif)
+#ifdef __SPF_BUILT_IN_PARSER
+int Eval_Bif_Condition_temp(str, bif)
+#else
+int Eval_Bif_Condition(str, bif)
+#endif
      char *str;
      PTR_BFND bif;
 {
@@ -1679,9 +1772,11 @@ Eval_Bif_Condition(str, bif)
         }
 }
 
-
-int
-SkipToEndif (str)
+#ifdef __SPF_BUILT_IN_PARSER
+int SkipToEndif_temp(str)
+#else
+int SkipToEndif (str)
+#endif
      char *str;
 {
   int ifcount_local = 1;
@@ -1711,8 +1806,11 @@ SkipToEndif (str)
 
 char *Tool_Unparse2_LLnode (); 
 
-char *
-Tool_Unparse_Type (ptype)
+#ifdef __SPF_BUILT_IN_PARSER
+char* Tool_Unparse_Type_temp(ptype)
+#else
+char *Tool_Unparse_Type (ptype)
+#endif
      PTR_TYPE ptype;
      /*int def;*/        /* def = 1 : defined type */
                      /*   def = 0 : named type */
@@ -1998,9 +2096,11 @@ Tool_Unparse_Type (ptype)
   return  Buf_address;
 }
 
-
-char *
-Tool_Unparse2_LLnode(ll)
+#ifdef __SPF_BUILT_IN_PARSER
+char* Tool_Unparse2_LLnode_temp(ll)
+#else
+char *Tool_Unparse2_LLnode(ll)
+#endif
      PTR_LLND ll;
 {
   int variant;
@@ -2127,7 +2227,13 @@ Tool_Unparse2_LLnode(ll)
             } else
           if (strncmp(&(str[i]),"NEWSPEC", strlen("NEWSPEC"))== 0)
             {
-	      if (NewSpecList) free(NewSpecList);
+              if (NewSpecList)
+              {
+#ifdef __SPF
+                  removeFromCollection(NewSpecList);
+#endif
+                  free(NewSpecList);
+              }
               NewSpecList=NODE_OPERAND0(ll);
               i += strlen("NEWSPEC");
             } else
@@ -2525,9 +2631,11 @@ Tool_Unparse2_LLnode(ll)
   return Buf_address;
 }
 
-char *
-
-Tool_Unparse_Bif(bif)
+#ifdef __SPF_BUILT_IN_PARSER
+char* Tool_Unparse_Bif_temp(bif)
+#else
+char *Tool_Unparse_Bif(bif)
+#endif
      PTR_BFND bif;
 {
   int variant;
@@ -2578,6 +2686,9 @@ Tool_Unparse_Bif(bif)
       name[i-1]='\0';
       Buf_pointer=temp;
       function_name=make_funcsymb(name);
+#ifdef __SPF
+      removeFromCollection(name);
+#endif
       free(name);
       new_node=ALLOC(func_call);
       FUNC_FIRST(new_node)=bif;
@@ -4815,6 +4926,9 @@ while((ptr=llnd))
     llnd = NODE_OPERAND1(llnd);
     NODE_OPERAND0(ptr)=NULL;
     NODE_OPERAND1(ptr)=NULL;
+#ifdef __SPF
+    removeFromCollection(ptr);
+#endif
     free(ptr);
    }
 return (NULL);

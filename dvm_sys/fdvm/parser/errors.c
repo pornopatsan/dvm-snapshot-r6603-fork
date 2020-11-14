@@ -18,6 +18,10 @@
 
 static char buff[100];
 
+#ifdef __SPF_BUILT_IN_PARSER
+extern void ExitFromParser(const int c);
+#endif
+
 void format_num (int num, char num3s[])
 {
  if(num>99)
@@ -36,14 +40,16 @@ void format_num (int num, char num3s[])
  *	  s - the message to be printed out
  *        num  - error message number
  */
-void 
-fatal(s,num)
-	char   *s;
-        int num;
-{char num3s[4];
-   format_num(num,num3s);
-   (void)fprintf(stderr, "Error %s on line %d of %s: %s\n", num3s,yylineno, infname, s);
-	exit(3);
+void fatal(char* s, int num)
+{
+    char num3s[4];
+    format_num(num, num3s);
+    (void)fprintf(stderr, "Error %s on line %d of %s: %s\n", num3s, yylineno, infname, s);
+#ifdef __SPF_BUILT_IN_PARSER
+    ExitFromParser(3);
+#else
+    exit(3);
+#endif
 }
 
 
@@ -89,14 +95,16 @@ fatali(t, d)
  * input:
  *	  s - the message to be printed out
  */
-void 
-err_fatal(s, num)
-	char   *s;
-        int num;
-{  char num3s[4];
-   format_num(num,num3s);
-   (void)fprintf(stderr, "Error %s: %s\n", num3s, s);
-	exit(3);
+void err_fatal(char* s, int num)
+{
+    char num3s[4];
+    format_num(num, num3s);
+    (void)fprintf(stderr, "Error %s: %s\n", num3s, s);
+#ifdef __SPF_BUILT_IN_PARSER
+    ExitFromParser(3);
+#else
+    exit(3);
+#endif
 }
 
 

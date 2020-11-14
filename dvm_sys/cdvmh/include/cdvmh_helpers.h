@@ -410,7 +410,7 @@ public:
             DvmhDiagIndexer<n, n, ElemT, PtrT, IndexT>(aData, aCoefs, aDiagInfo, xIdx, yIdx) {}
 };
 
-__device__ double sqrt(int v) { return sqrt((double)v); }
+static __device__ double sqrt(int v) { return sqrt((double)v); }
 
 #endif
 

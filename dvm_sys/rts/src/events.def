@@ -670,9 +670,6 @@
 #define   Event618                   618
 #define   Event619                   619
 
-#define   call_copy_                 620  //io stat
-#define   ret_copy_                  621  //io stat
-
 /** @see dvmh_events.def */
 
 #endif   /* _EVENTS_DEF_   */    /*E0005*/

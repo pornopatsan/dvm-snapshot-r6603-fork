@@ -26,4 +26,7 @@ rest=
 if [ "$restart" = "1" ]; then
     rest="-restart"
 fi
+if [ "$quantum" != "0" ]; then
+    rest="$rest -quantum $quantum"
+fi
 do_cmd /common/runmvs/bin/mpirun -np $npp -resource gpu=4 -machinefile "$machine_file" -maxtime $maxtime $rest "$@"

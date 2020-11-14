@@ -11,8 +11,6 @@
 
 #ifdef __SPF
 SgFile *current_file;    //current file
-int current_file_id;     //number of current file 
-extern std::pair<std::string, int> currProcessing;
 #endif
 
 using std::map;
@@ -23,6 +21,7 @@ using std::pair;
 //---------------------------------------------------------------------------------
 
 #define NEW  1
+#define STATIC 1
 
 graph_node *cur_node;
 graph_node *node_list;
@@ -43,6 +42,7 @@ int isStatementFunction(SgSymbol *s);
 int isHeaderNode(graph_node *gnode);
 int isDeadNode(graph_node *gnode);
 int isNoBodyNode(graph_node *gnode);
+void PrototypeOfFunctionFromOtherFile(graph_node *node, SgStatement *after);
 graph_node_list  *addToNodeList(graph_node_list *pnode, graph_node *gnode);
 graph_node_list  *delFromNodeList(graph_node_list *pnode, graph_node *gnode);
 graph_node_list  *isInNodeList(graph_node_list *pnode, graph_node *gnode);
@@ -76,14 +76,68 @@ SgSymbol * GetProcedureHeaderSymbol(SgSymbol *s)
     return(GRAPHNODE(s)->symb);
 }
 
-int IsPureProcedure(SgSymbol *s)
+int FromOtherFile(SgSymbol *s)
 {
-    SgSymbol *shedr;
-    shedr = GetProcedureHeaderSymbol(s);
-    if (shedr)
-        return(shedr->attributes() & PURE_BIT);
+    if (!ATTR_NODE(s))
+       return(1);
+    graph_node *gnode = GRAPHNODE(s);
+    if(!gnode->st_header || current_file_id != gnode->file_id)
+       return(1);
+    else
+       return(0);
+} 
+
+int IsInternalProcedure(SgSymbol *s)
+{
+    if (!ATTR_NODE(s))
+        return 0;
+    graph_node *gnode = GRAPHNODE(s);
+    if(gnode->st_header &&  gnode->st_header->controlParent()->variant() != GLOBAL && gnode->st_header->controlParent()->variant() != MODULE_STMT)
+        return 1;
     else
         return 0;
+}
+
+SgStatement *hasInterface(SgSymbol *s)
+{
+      return (ATTR_NODE(s) ? GRAPHNODE(s)->st_interface : NULL);
+}
+
+void SaveInterface(SgSymbol *s, SgStatement *interface)
+{
+    if (ATTR_NODE(s) &&  !GRAPHNODE(s)->st_interface)
+        GRAPHNODE(s)->st_interface = interface; 
+}
+
+int findParameterNumber(SgSymbol *s, char *name) 
+{
+    int i;
+    int n = ((SgFunctionSymb *) s)->numberOfParameters();
+    for(i=0; i<n; i++)
+        if(!strcmp(((SgFunctionSymb *) s)->parameter(i)->identifier(), name))
+            return i;
+    return -1;
+}
+
+int isInParameter(SgSymbol *s, int i)
+{
+    return (s && ((SgFunctionSymb *) s)->parameter(i) && (((SgFunctionSymb *) s)->parameter(i)->attributes() & IN_BIT) ? 1 : 0);
+}
+ 
+SgSymbol *ProcedureSymbol(SgSymbol *s)
+{
+    if (FromOtherFile(s)) 
+    {  
+        SgStatement *header = Interface(s);
+        return( header ? header->symbol() : NULL);
+    }
+    return (GetProcedureHeaderSymbol(s));
+}
+
+int IsPureProcedure(SgSymbol *s)
+{
+    SgSymbol *sproc = ProcedureSymbol(s);
+    return ( sproc ? sproc->attributes() & PURE_BIT : 0 );
 }
 
 int IsElementalProcedure(SgSymbol *s)
@@ -112,12 +166,22 @@ int isUserFunction(SgSymbol *s)
 }
 
 int IsNoBodyProcedure(SgSymbol *s)
-{ //SgSymbol *shedr;
+{ 
     if (!ATTR_NODE(s))
         return 0;
     return(GRAPHNODE(s)->st_header == NULL);
 }
 
+void MarkAsRoutine(SgSymbol *s)
+{
+    graph_node *gnode;
+
+    if (!ATTR_NODE(s))
+        return;
+    gnode = GRAPHNODE(s);
+    gnode->is_routine = 1;
+    return;
+}
 
 void MarkAsCalled(SgSymbol *s)
 {
@@ -126,8 +190,8 @@ void MarkAsCalled(SgSymbol *s)
     if (!ATTR_NODE(s))
         return;
     gnode = GRAPHNODE(s);
-    if (gnode->st_header)   //  for nobody procedure (for intrinsic functions and ...) gnode->st_header== NULL
-        gnode->count++;
+    //if (gnode->st_header)   //  for nobody procedure (for intrinsic functions and ...) gnode->st_header== NULL
+    gnode->count++;
     for (gedge = gnode->to_called; gedge; gedge = gedge->next)
         MarkAsCalled(gedge->to->symb);
     return;
@@ -177,23 +241,27 @@ void InsertCalledProcedureCopies()
     SgStatement *first_kernel_const = after->lexNext();
 
     for (ndl = node_list; ndl; ndl = ndl->next)
-    if (ndl->count)
-    {
-        if (ndl->st_header)
+        if (ndl->count)
         {
-            ndl->st_copy = InsertProcedureCopy(ndl->st_header, ndl->st_header->symbol(), after); //C_Cuda ? mod_gpu : mod_gpu->lexNext());
-            n++;
-        }
-        ndl->count = 0;
-        //ndl->st_copy = NULL;
-    }
+            if (ndl->st_header && current_file_id == ndl->file_id)  //procedure from current_file
+            {
+                ndl->st_copy = InsertProcedureCopy(ndl->st_header, ndl->st_header->symbol(), ndl->is_routine, after); //C_Cuda ? mod_gpu : mod_gpu->lexNext());
+                n++;
+            }
+            else     //procedure from other file
+                PrototypeOfFunctionFromOtherFile(ndl,after);
 
+            ndl->count = 0;
+            ndl->st_interface = NULL;
+            //ndl->st_copy = NULL;
+        }
+       
     if (options.isOn(C_CUDA) && mod_gpu->lexNext()->variant() == COMMENT_STAT)
         mod_gpu->lexNext()->extractStmt(); //extracting empty statement (COMMENT_STAT) 
 
     if (options.isOn(RTC) && options.isOn(C_CUDA) && n != 0)
         ACC_RTC_AddFunctionsToKernelConsts(first_kernel_const);
-
+    cuda_functions = n;
 }
 
 SgSymbol* getReturnSymbol(SgStatement *st_header, SgSymbol *s)
@@ -208,6 +276,13 @@ void replaceAttribute(SgStatement *header)
 {
         SgExpression *e = new SgExpression(ACC_ATTRIBUTES_OP, new SgExpression(ACC_DEVICE_OP), NULL, NULL);
         header->setExpression(2, *e);
+}
+
+int isInterfaceStatement(SgStatement *stmt)
+{
+    if (stmt->variant() == INTERFACE_STMT || stmt->variant() == INTERFACE_ASSIGNMENT || stmt->variant() == INTERFACE_OPERATOR)
+	return 1; 
+    return 0;	
 }
 
 void ReplaceInterfaceBlocks(SgStatement *header)
@@ -236,12 +311,14 @@ void ReplaceInterfaceBlocks(SgStatement *header)
     } 
 }
 
+
 int HasDerivedTypeVariables(SgStatement *header)
 {
     SgSymbol *s;
     SgSymbol *s_last = LastSymbolOfFunction(header);
+    
     for (s = header->symbol()->next(); s != s_last->next(); s = s->next())
-    {                   
+    {                  
         if( s->type() && s->type()->variant()==T_DERIVED_TYPE)     
         {  // !!! not implemented
            err_p("Derived type variables", header->symbol()->identifier(), 999);
@@ -251,7 +328,7 @@ int HasDerivedTypeVariables(SgStatement *header)
     return 0;
 }
 
-SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, SgStatement *after)
+SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, int is_routine, SgStatement *after)
 {
     //insert copy of procedure after statement 'after'
     SgStatement *new_header, *end_st;
@@ -260,40 +337,27 @@ SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, SgStat
     new_header = after->lexNext(); // new procedure header  //new_sproc->body()
     SYMB_SCOPE(new_sproc->thesymb) = mod_gpu->thebif;
     new_header->setControlParent(mod_gpu);
+    SgSymbol *returnSymbol = getReturnSymbol(new_header, new_sproc);
 
     if (options.isOn(C_CUDA))
     {
         int flagHasDerivedTypeVariables = HasDerivedTypeVariables(new_header); 
-
-        SgFunctionRefExp *fe = new SgFunctionRefExp(*new_sproc);
-        new_header->setSymbol(*new_sproc);
-        new_header->setExpression(0, *fe);
-        fe->setSymbol(*new_sproc);
-        SgSymbol *returnSymbol = getReturnSymbol(new_header, new_sproc);
-        if (new_sproc->variant() == PROCEDURE_NAME)
-            new_sproc->setType(C_VoidType());
-        else                     // FUNCTION_NAME
-        {
-            //new_sproc->setType(C_Type(new_sproc->type()));
-            new_sproc->setType(C_Type(returnSymbol->type()));
-        }
-        fe->setType(new_sproc->type());
-        BIF_LL3(new_header->thebif) = NULL;
-        new_header->addDeclSpec(BIT_CUDA_DEVICE);
-        //new_header->addDeclSpec(BIT_STATIC); 
+       
         end_st = new_header->lastNodeOfStmt();
         ConvertArrayReferences(new_header->lexNext(), end_st);  //!!!! 
-        fe->setLhs(FunctionDummyList(new_sproc));
+
+        TranslateProcedureHeader_To_C(new_header);
+
         private_list = NULL;
 
         ExtractDeclarationStatements(new_header);
         SgSymbol *s_last = LastSymbolOfFunction(new_header);
-        if (new_sproc->variant() == FUNCTION_NAME)
-        {
+        if (sproc->variant() == FUNCTION_NAME)
+        {  
             SgSymbol *sfun = &new_sproc->copy();
-            fe->setSymbol(sfun);
+            new_header->expr(0)->setSymbol(sfun); //fe->setSymbol(sfun);
             SYMB_IDENT(new_sproc->thesymb) = FunctionResultIdentifier(new_sproc);
-
+           
             InsertReturnBeforeEnd(new_header, end_st);
         }
 
@@ -301,15 +365,11 @@ SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, SgStat
         std::vector < std::stack < SgStatement*> > zero = std::vector < std::stack < SgStatement*> >(0);
         cur_func = after;
         Translate_Fortran_To_C(new_header, end_st, zero, 0);   //TranslateProcedure_Fortran_To_C(after->lexNext());
-        if (new_sproc->variant() == FUNCTION_NAME)
-        {
+         
+        if (sproc->variant() == FUNCTION_NAME)
+        {   
             new_header->insertStmtAfter(*Declaration_Statement(new_sproc), *new_header);
             ChangeReturnStmts(new_header, end_st, returnSymbol);
-        }
-        else
-        {
-            //SYMB_CODE(new_sproc->thesymb) = FUNCTION_NAME;
-            new_header->setVariant(FUNC_HEDR);
         }
         if(!flagHasDerivedTypeVariables) //!!! derived data type is not supported          
             MakeFunctionDeclarations(new_header, s_last);
@@ -318,21 +378,21 @@ SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, SgStat
         private_list = NULL;
         // generate prototype of function and insert it before 'after'
         if (options.isOn(RTC) == false)
-            doPrototype(new_header, mod_gpu);
+            doPrototype(new_header, mod_gpu, is_routine ? !STATIC : STATIC);
 
     }
-    else
+    else       //Fortran Cuda
     {
         replaceAttribute(new_header);
         new_header->addComment("\n");  // add comment (empty line) to new procedure header
         ReplaceInterfaceBlocks(new_header);
     }
-
+    
     return(new_header);
 }
 
 SgStatement *FunctionPrototype(SgSymbol *sf)
-{
+{                                  
     SgExpression *fref = new SgFunctionRefExp(*sf);
     fref->setSymbol(*sf);
     fref->setType(*sf->type());
@@ -343,16 +403,66 @@ SgStatement *FunctionPrototype(SgSymbol *sf)
 }
 
 
-void doPrototype(SgStatement *func_hedr, SgStatement *block_header)
+void doPrototype(SgStatement *func_hedr, SgStatement *block_header, int static_flag)
 {
     SgSymbol *sf = func_hedr->expr(0)->symbol();
     SgStatement *st = FunctionPrototype(sf);
     if (func_hedr->expr(0)->lhs())
         st->expr(0)->lhs()->setLhs(func_hedr->expr(0)->lhs()->copy());
     st->addDeclSpec(BIT_CUDA_DEVICE);
-    st->addDeclSpec(BIT_STATIC);
+    if (static_flag)
+        st->addDeclSpec(BIT_STATIC);
 
     block_header->insertStmtAfter(*st, *block_header);        //before->insertStmtAfter(*st,*before->controlParent());
+}
+
+SgStatement  *TranslateProcedureHeader_To_C(SgStatement *new_header)
+{
+    SgSymbol *new_sproc =  new_header->symbol();
+    SgFunctionRefExp *fe = new SgFunctionRefExp(*new_sproc);
+    fe->setSymbol(*new_sproc);
+    new_header->setExpression(0, *fe);
+    SgSymbol *returnSymbol = getReturnSymbol(new_header, new_sproc);
+    if (new_sproc->variant() == PROCEDURE_NAME)
+        new_sproc->setType(C_VoidType());
+    else                     // FUNCTION_NAME
+    {
+       //new_sproc->setType(C_Type(new_sproc->type()));
+        new_sproc->setType(C_Type(returnSymbol->type()));
+    }
+    fe->setType(new_sproc->type());
+    fe->setLhs(FunctionDummyList(new_sproc));
+    BIF_LL3(new_header->thebif) = NULL; 
+    new_header->addDeclSpec(BIT_CUDA_DEVICE);
+    new_header->setVariant(FUNC_HEDR); 
+    return new_header;
+}
+
+void PrototypeOfFunctionFromOtherFile(graph_node *node, SgStatement *after)
+{
+    if (options.isOn(RTC)) return;
+    if(!node->st_interface) return;
+
+    SgStatement *interface = node->st_interface;
+    //SgSymbol *sproc = interface->symbol()
+    //SgSymbol *new_sproc = new SgSymbol(sproc->variant(), sproc->identifier(), sproc->type(), current_file->firstStatement(),);
+
+    SgSymbol *sh = &(interface->symbol()->copyLevel1());     
+    SYMB_SCOPE(sh->thesymb) = current_file->firstStatement()->thebif;
+    SgStatement *new_hedr = &(interface->copy()); 
+    new_hedr->setSymbol(*sh);
+    TranslateProcedureHeader_To_C(new_hedr);
+    doPrototype(new_hedr, mod_gpu, !STATIC);
+    
+    //current_file->firstStatement()->insertStmtAfter(*new_hedr, *current_file->firstStatement()); 
+    //SYMB_FUNC_HEDR(sh->thesymb) = new_hedr->thebif; 
+
+
+    //node->st_interface->setLexNext(*node->st_interface->lastNodeOfStmt());
+    //SgStatement *hedr_st = InsertProcedureCopy(node->st_interface, node->st_interface->symbol(), after);
+    //hedr_st->extractStmt();
+    node->st_interface = NULL;
+    return;
 }
 
 SgExpression *FunctionDummyList(SgSymbol *s)
@@ -547,7 +657,10 @@ void ExtractDeclarationStatements(SgStatement *header)
     SgStatement *stmt = header->lexNext();
     SgExprListExp *e;
     SgExpression *list, *it;
-    
+
+    if(stmt->variant()==CONTROL_END)
+        return;
+
     while (stmt && !isSgExecutableStatement(stmt)) //is Fortran specification statement
     {   
         cur_st = stmt;     
@@ -797,9 +910,10 @@ void MakeFunctionDeclarations(SgStatement *header, SgSymbol *s_last)
         if (IS_DUMMY(s))
         {
             if (flags & (IN_BIT | OUT_BIT | INOUT_BIT))
-                continue;
-            else
+                ;
+            else if(!options.isOn(NO_PURE_FUNC))
                 err_p("Dummy argument need to have INTENT attribute in PURE procedure", name, 617);
+            continue;
         }
 
         if (flags & SAVE_BIT)
@@ -891,9 +1005,6 @@ void FileStructure(SgFile *file)
     stat = file->firstStatement(); // file header   
     for (stat = stat->lexNext(); stat; stat = stat->lexNext())
     {
-#if __SPF
-		currProcessing.second = stat->lineNumber();
-#endif		
         if (stat->variant() == INTERFACE_STMT || stat->variant() == INTERFACE_ASSIGNMENT || stat->variant() == INTERFACE_OPERATOR)
         {
             stat = stat->lastNodeOfStmt(); //InterfaceBlock(stat);  
@@ -922,12 +1033,7 @@ void doCallGraph(SgFile *file)
     // grab the first statement in the file.
     stat = file->firstStatement(); // file header  
 	for (stat = stat->lexNext(); stat; stat = end_of_unit->lexNext())
-	{
-#if __SPF
-		currProcessing.second = stat->lineNumber();
-#endif
 		end_of_unit = ProgramUnit(stat);
-	}
 
     // add the attribute (last statement of file) to first statement of file
     SgStatement **last = new (SgStatement *);
@@ -1168,6 +1274,8 @@ graph_node *NodeForSymbInGraph(SgSymbol *s, SgStatement *stheader)
             {
                 ndl->st_header = stheader;
                 ndl->symb = s;
+                ndl->file = current_file;
+                ndl->file_id = current_file_id;
             }
             /*  else   //if(s->thesymb->decl == NULL)
               {   Err_g("Call graph error '%s' ", s->identifier(), 1);
@@ -1188,8 +1296,8 @@ graph_node *NewGraphNode(SgSymbol *s, SgStatement *header_st)
     gnode->id = ++gcount;
     gnode->next = node_list;
     node_list = gnode;
-    gnode->file = current_file;
-    gnode->file_id = current_file_id;
+    gnode->file = header_st ? current_file : NULL;
+    gnode->file_id = header_st ? current_file_id : -1;
     gnode->st_header = header_st;
     gnode->symb = s;
     gnode->name = new char[strlen(s->identifier()) + 1];
@@ -1221,7 +1329,8 @@ graph_node *NewGraphNode(SgSymbol *s, SgStatement *header_st)
     gnode->tmplt = 0;
     gnode->clone = 0;
     gnode->count = 0;
-
+    gnode->is_routine = 0;
+    gnode->st_interface = NULL;
     //printf("%s --- %d %d\n",gnode->name,gnode->id,gnode->type);
     return(gnode);
 }

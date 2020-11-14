@@ -217,7 +217,8 @@ public:
     void performSetActualOne(int dev, const Interval realBlock[]);
     void setActual(DvmhPieces *p);
     void setActual(const Interval indexes[]);
-    void setActualShadow(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[]);
+    void setActualEdges(int dev, const Interval curLocalPart[], const ShdWidth curShdWidths[], DvmhPieces **piecesDone = 0);
+    void setActualShadow(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[], DvmhPieces **piecesDone = 0);
     void setActualIndirectShadow(int dev, int axis, const std::string &shadowName);
     void shadowComputed(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[]);
     void updateShadowProfile(bool cornerFlag, ShdWidth curShdWidths[]);

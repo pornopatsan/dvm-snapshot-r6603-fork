@@ -8,10 +8,13 @@
 
 #include "pass_ctx.h"
 #include "messages.h"
+#include "converter.h"
 
 namespace cdvmh {
 
-void BlankPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken) {
+// BlankPragmaHandler
+
+void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &FirstToken) {
     SourceLocation loc = FirstToken.getLocation();
     loc = comp.getSourceManager().getFileLoc(loc);
     FileID fileID = comp.getSourceManager().getFileID(loc);
@@ -162,14 +165,60 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer 
             PP.LexNonComment(Tok);
             checkIntErrN(Tok.is(tok::r_paren), 914);
         } else if (clauseName == "remote_access") {
-            int depth = 1;
-            while (Tok.isNot(tok::r_paren) || depth > 1) {
-                if (Tok.is(tok::l_paren))
-                    depth++;
-                if (Tok.is(tok::r_paren))
-                    depth--;
+            while (Tok.isAnyIdentifier()) {
+                ClauseBlankRma clause;
+                tokStr = Tok.getIdentifierInfo()->getName();
+                clause.origName = tokStr;
                 PP.LexNonComment(Tok);
+                while (!Tok.is(tok::l_paren)) {
+                    PP.LexNonComment(Tok);
+                }
+                PP.LexNonComment(Tok);
+                while (Tok.is(tok::l_square)) {
+                    PP.LexNonComment(Tok);
+                    if (Tok.is(tok::r_square)) {
+                        clause.indexExprs.push_back("");
+                    } else if (Tok.isAnyIdentifier()) {
+                        tokStr = Tok.getIdentifierInfo()->getName();
+                        clause.indexExprs.push_back(tokStr);
+                        PP.LexNonComment(Tok);
+                    } else {
+                        // Zero constant
+                        tokStr = PP.getSpelling(Tok);
+                        checkIntErrN(tokStr == "0", 914);
+                        clause.indexExprs.push_back(tokStr);
+                        PP.LexNonComment(Tok);
+                    }
+                    checkIntErrN(Tok.is(tok::r_square), 914);
+                    PP.LexNonComment(Tok);
+                }
+                checkIntErrN(Tok.is(tok::comma), 914);
+                PP.LexNonComment(Tok);
+                checkIntErrN(Tok.isAnyIdentifier(), 914);
+                tokStr = Tok.getIdentifierInfo()->getName();
+                checkIntErrN(tokStr == "appearances", 914);
+                PP.LexNonComment(Tok);
+                checkIntErrN(Tok.is(tok::l_paren), 914);
+                PP.LexNonComment(Tok);
+                while (!Tok.is(tok::r_paren)) {
+                    tokStr = PP.getSpelling(Tok);
+                    checkIntErrN(isNumber(tokStr), 914);
+                    clause.appearances.push_back(toNumber(tokStr));
+                    PP.LexNonComment(Tok);
+                    checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
+                    if (Tok.is(tok::comma))
+                        PP.LexNonComment(Tok);
+                }
+                PP.LexNonComment(Tok);
+                checkIntErrN(Tok.is(tok::r_paren), 914);
+                curPragma->rmas.push_back(clause);
+                PP.LexNonComment(Tok);
+                checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
+                if (Tok.is(tok::comma)) {
+                    PP.LexNonComment(Tok);
+                }
             }
+            checkIntErrN(Tok.is(tok::r_paren), 914);
         } else {
             checkIntErrN(false, 914);
         }
@@ -182,6 +231,123 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer 
     checkIntErrN(Tok.is(tok::eod), 914);
     pragmas[line] = curPragma;
 }
+
+// BlankRemoteVisitor
+
+bool BlankRemoteVisitor::VisitFunctionDecl(FunctionDecl *f) {
+    FileID fileID = srcMgr.getFileID(f->getBeginLoc());
+    int pragmaLine = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(f->getBeginLoc())) - 1;
+    PragmaHandlerStub *curPragma = ph->getPragmaAtLine(pragmaLine);
+    std::string funcName = f->getName();
+    bool isHandler = curPragma != 0;
+    if (!isHandler || curPragma->rmas.empty()) {
+        return true;
+    }
+    this->curPragma = curPragma;
+    parLoopBodyExprCounter = 0;
+    inParLoopBody = false;
+    parLoopBodyStmt = 0;
+    CompoundStmt *body = cast<CompoundStmt>(f->getBody());
+    for (Stmt **it = body->body_begin(); it != body->body_end(); it++) {
+        CompoundStmt *candidate = llvm::dyn_cast<CompoundStmt>(*it);
+        if (candidate) {
+            parLoopBodyStmt = candidate;
+            break;
+        }
+    }
+
+    std::set<std::string> prohibitedNames;
+    CollectNamesVisitor collectNamesVisitor(comp);
+    collectNamesVisitor.TraverseStmt(body);
+    prohibitedNames = collectNamesVisitor.getNames();
+    for (std::set<std::string>::iterator it = curPragma->dvmArrays.begin(); it != curPragma->dvmArrays.end(); it++)
+        prohibitedNames.insert(*it);
+    for (std::set<std::string>::iterator it = curPragma->regArrays.begin(); it != curPragma->regArrays.end(); it++)
+        prohibitedNames.insert(*it);
+    for (std::set<std::string>::iterator it = curPragma->scalars.begin(); it != curPragma->scalars.end(); it++)
+        prohibitedNames.insert(*it);
+
+    std::string weirdRmasList;
+    for (int i = 0; i < (int)curPragma->rmas.size(); i++) {
+        std::string substName = getUniqueName(curPragma->rmas[i].origName + "_rma", &prohibitedNames, &seenMacroNames);
+        curPragma->rmas[i].substName = substName;
+        prohibitedNames.insert(substName);
+        weirdRmasList = ", " + substName;
+    }
+    trimList(weirdRmasList);
+
+    SourceLocation lineBegLoc = srcMgr.translateLineCol(fileID, pragmaLine, 1);
+    const char *lineBeg = srcMgr.getBufferData(fileID).data() + srcMgr.getFileOffset(lineBegLoc);
+    const char *lineEnd = strchr(lineBeg, '\n');
+    SourceLocation lineEndLoc = lineBegLoc.getLocWithOffset(lineEnd - lineBeg);
+    rewr.InsertTextAfter(lineEndLoc, ", weird_rma(" + weirdRmasList + ")");
+
+    // TODO: Need to insert them to formal parameters as well :(
+    int numParams = f->getNumParams();
+    std::string rmaFormalParams;
+    for (int i = 0; i < (int)curPragma->rmas.size(); i++) {
+        ClauseBlankRma &clause = curPragma->rmas[i];
+        int found = -1;
+        for (int j = 0; j < numParams; j++) {
+            const ParmVarDecl *pvd = f->getParamDecl(j);
+            std::string paramName = pvd->getIdentifier()->getName().str();
+            if (clause.origName == paramName) {
+                found = j;
+                break;
+            }
+        }
+        checkIntErrN(found >= 0, 914);
+        const ParmVarDecl *pvd = f->getParamDecl(found);
+        VarState varState;
+        fillVarState(pvd, false, comp, &varState);
+        rmaFormalParams += ", " + varState.baseTypeStr + " " + clause.substName;
+        for (int j = 0; j < (int)clause.indexExprs.size(); j++) {
+            rmaFormalParams += "[DVMH_VARIABLE_ARRAY_SIZE]";
+        }
+    }
+    const ParmVarDecl *pvd = f->getParamDecl(numParams - 1);
+    SourceLocation endLoc = pvd->getEndLoc();
+    endLoc = Lexer::getLocForEndOfToken(endLoc, 0, srcMgr, comp.getLangOpts());
+    rewr.InsertTextAfter(endLoc, rmaFormalParams);
+
+    return true;
+}
+
+bool BlankRemoteVisitor::TraverseStmt(Stmt *s) {
+    if (s == parLoopBodyStmt) {
+        inParLoopBody = true;
+    }
+    bool res = base::TraverseStmt(s);
+    if (s == parLoopBodyStmt) {
+        inParLoopBody = false;
+    }
+    return res;
+}
+
+bool BlankRemoteVisitor::VisitExpr(Expr *e) {
+    if (inParLoopBody) {
+        parLoopBodyExprCounter++;
+
+        bool found = false;
+        for (int i = 0; !found && i < (int)curPragma->rmas.size(); i++) {
+            for (int j = 0; !found && j < (int)curPragma->rmas[i].appearances.size(); j++) {
+                if (curPragma->rmas[i].appearances[j] == parLoopBodyExprCounter) {
+                    found = true;
+                    std::string subst;
+                    subst += curPragma->rmas[i].substName;
+                    for (int k = 0; k < (int)curPragma->rmas[i].indexExprs.size(); k++) {
+                        subst += "[" + curPragma->rmas[i].indexExprs[k] + "]";
+                    }
+                    rewr.ReplaceText(e->getSourceRange(), subst);
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+// Blank2HostVisitor
 
 bool Blank2HostVisitor::VisitFunctionDecl(FunctionDecl *f) {
     FileID fileID = srcMgr.getFileID(f->getBeginLoc());
@@ -202,6 +368,7 @@ bool Blank2HostVisitor::VisitFunctionDecl(FunctionDecl *f) {
         const char *lineBeg = srcMgr.getBufferData(fileID).data() + srcMgr.getFileOffset(lineBegLoc);
         const char *lineEnd = strchr(lineBeg, '\n');
         rewr.RemoveText(lineBegLoc, lineEnd - lineBeg + 1);
+        // call genHandler
     } else {
         if (isHandler) {
             // Cut it
@@ -217,26 +384,27 @@ bool Blank2HostVisitor::TraverseFunctionDecl(FunctionDecl *f) {
     return res;
 }
 
+
+// BlankHandlerConverter
+
 BlankHandlerConverter::BlankHandlerConverter(const SourceFileContext &aFileCtx): fileCtx(aFileCtx), opts(fileCtx.getProjectCtx().getOptions()) {
     // Nothing to do here
 }
 
 std::string BlankHandlerConverter::genRmas(const std::string &src) {
-    // TODO: implement
     std::string res = src;
     std::string fn = prepareFile(src);
-#if 0
     {
         PassContext passCtx(fn);
+        Rewriter *rewr = passCtx.getRewr();
         BlankPragmaHandler *pragmaHandler = new BlankPragmaHandler(*passCtx.getCompiler());
         passCtx.getPP()->AddPragmaHandler(pragmaHandler);
-        Blank2RmaBlankConsumer astConsumer(*passCtx.getCompiler(), *passCtx.getRewr(), pragmaHandler);
+        BlankRemoteConsumer astConsumer(*passCtx.getCompiler(), *rewr, pragmaHandler, fileCtx.seenMacroNames);
         passCtx.parse(&astConsumer);
-        const RewriteBuffer *rewriteBuf = passCtx.getRewr()->getRewriteBufferFor(passCtx.getRewr()->getSourceMgr().getMainFileID());
+        const RewriteBuffer *rewriteBuf = rewr->getRewriteBufferFor(rewr->getSourceMgr().getMainFileID());
         if (rewriteBuf)
             res = std::string(rewriteBuf->begin(), rewriteBuf->end());
     }
-#endif
     remove(fn.c_str());
     return res;
 }
@@ -246,11 +414,12 @@ std::string BlankHandlerConverter::genHostHandlers(const std::string &src, bool 
     std::string fn = prepareFile(src);
     {
         PassContext passCtx(fn);
+        Rewriter *rewr = passCtx.getRewr();
         BlankPragmaHandler *pragmaHandler = new BlankPragmaHandler(*passCtx.getCompiler());
         passCtx.getPP()->AddPragmaHandler(pragmaHandler);
-        Blank2HostConsumer astConsumer(*passCtx.getCompiler(), *passCtx.getRewr(), pragmaHandler, fileCtx.getHostReqMap(), withHeading);
+        Blank2HostConsumer astConsumer(*passCtx.getCompiler(), *rewr, pragmaHandler, fileCtx.getHostReqMap(), withHeading);
         passCtx.parse(&astConsumer);
-        const RewriteBuffer *rewriteBuf = passCtx.getRewr()->getRewriteBufferFor(passCtx.getRewr()->getSourceMgr().getMainFileID());
+        const RewriteBuffer *rewriteBuf = rewr->getRewriteBufferFor(rewr->getSourceMgr().getMainFileID());
         if (rewriteBuf)
             res = std::string(rewriteBuf->begin(), rewriteBuf->end());
     }

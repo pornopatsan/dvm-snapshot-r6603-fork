@@ -33,6 +33,7 @@ OBJS = acc.o \
 	   aks_analyzeLoops.o \
 	   aks_structs.o \
 	   calls.o \
+           checkpoint.o \
 	   debug.o \
 	   dvm.o \
 	   funcall.o \
@@ -104,6 +105,10 @@ aks_structs.o: aks_structs.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVM
 calls.o: calls.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
 	$(DVMINCLUDE)/dvm.h
 	$(CXX) $(CFLAGS) calls.cpp
+
+checkpoint.o: checkpoint.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) checkpoint.cpp
 	
 debug.o: debug.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
 	$(DVMINCLUDE)/dvm.h

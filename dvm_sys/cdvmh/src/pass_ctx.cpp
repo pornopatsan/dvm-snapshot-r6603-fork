@@ -33,7 +33,9 @@ namespace cdvmh {
 
 void PassContext::clear() {
     if (compiler) {
-        delete rewr;
+        for (std::map<std::string, Rewriter *>::iterator it = rewriters.begin(); it != rewriters.end(); it++) {
+            delete it->second;
+        }
         delete compiler;
         compiler = 0;
     }
@@ -180,12 +182,12 @@ void PassContext::setup() {
         }
     }
 
- #if CLANG_VERSION_MAJOR < 4
+#if CLANG_VERSION_MAJOR < 4
     CompilerInvocation *invocation = new CompilerInvocation;
 #else
     std::shared_ptr<CompilerInvocation> invocation(new CompilerInvocation());
 #endif
-    clang::CompilerInvocation::CreateFromArgs(*invocation, modifiedArgs, modifiedArgs + argsSize, *Diagnostics);
+    clang::CompilerInvocation::CreateFromArgs(*invocation, llvm::ArrayRef<char *>(modifiedArgs, argsSize), *Diagnostics);
 
     for (int i = 0; i < argsSize; i++)
         delete[] modifiedArgs[i];
@@ -194,7 +196,7 @@ void PassContext::setup() {
     compiler = new CompilerInstance();
     compiler->createDiagnostics();
     compiler->setInvocation(invocation);
-#if  CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 5
+#if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 5
     TargetOptions *pto = new TargetOptions();
 #else
     std::shared_ptr<TargetOptions> pto(new TargetOptions());
@@ -204,9 +206,7 @@ void PassContext::setup() {
     compiler->setTarget(pti); // Ownership will be transferred due to usage of reference count inside CompilerInstance
     compiler->createFileManager();
     compiler->createSourceManager(compiler->getFileManager());
-    rewr = new Rewriter();
-    rewr->setSourceMgr(compiler->getSourceManager(), compiler->getLangOpts());
-    
+
     if (isDebugRemapping) {
         clang::PreprocessorOptions &PPOpts = compiler->getPreprocessorOpts();
         PPOpts.clearRemappedFiles();
@@ -226,7 +226,7 @@ void PassContext::setup() {
 
     compiler->createASTContext();
 
-    const FileEntry *pFile = compiler->getFileManager().getFile(cdvFileName);
+    auto pFile = compiler->getFileManager().getFile(cdvFileName);
 #if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 5
     compiler->getSourceManager().createMainFileID(pFile);
 #else
@@ -238,6 +238,18 @@ void PassContext::parse(ASTConsumer *consumer) {
     compiler->getDiagnosticClient().BeginSourceFile(compiler->getLangOpts(), &compiler->getPreprocessor());
     clang::ParseAST(*preprocessor, consumer, compiler->getASTContext());
     compiler->getDiagnosticClient().EndSourceFile();
+}
+
+Rewriter *PassContext::getRewr(std::string name) {
+    std::map<std::string, Rewriter *>::iterator it = rewriters.find(name);
+    if (it != rewriters.end()) {
+        return it->second;
+    } else {
+        Rewriter *rewr =  new Rewriter();
+        rewr->setSourceMgr(compiler->getSourceManager(), compiler->getLangOpts());
+        rewriters[name] = rewr;
+        return rewr;
+    }
 }
 
 }

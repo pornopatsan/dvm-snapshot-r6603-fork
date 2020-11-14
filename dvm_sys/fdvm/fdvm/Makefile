@@ -35,7 +35,7 @@ LDFLAGS	=
 
 LIBS = $(LIBDIR)/libSage++.a $(LIBDIR)/libsage.a $(LIBDIR)/libdb.a 
 DVM = f_dvm
-OBGS = dvm.o funcall.o stmt.o io.o help.o debug.o hpf.o omp.o ompdebug.o acc.o acc_analyzer.o acc_across_analyzer.o calls.o acc_f2c.o acc_f2c_handlers.o acc_across.o aks_structs.o aks_analyzeLoops.o acc_data.o acc_rtc.o acc_utilities.o parloop.o
+OBGS = dvm.o funcall.o stmt.o io.o help.o debug.o hpf.o omp.o ompdebug.o acc.o acc_analyzer.o acc_across_analyzer.o calls.o acc_f2c.o acc_f2c_handlers.o acc_across.o aks_structs.o aks_analyzeLoops.o acc_data.o acc_rtc.o acc_utilities.o parloop.o checkpoint.o
 # ***********************************************************
 f: DVM
 
@@ -91,6 +91,10 @@ aks_structs.o: aks_structs.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVM
 calls.o: calls.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
 	$(DVMINCLUDE)/dvm.h
 	$(CXX) $(CFLAGS) calls.cpp
+
+checkpoint.o: checkpoint.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
+	$(DVMINCLUDE)/dvm.h
+	$(CXX) $(CFLAGS) checkpoint.cpp
 	
 debug.o: debug.cpp $(DVMINCLUDE)/fdvm.h $(DVMINCLUDE)/libnum.h $(DVMINCLUDE)/libdvm.h \
 	$(DVMINCLUDE)/dvm.h

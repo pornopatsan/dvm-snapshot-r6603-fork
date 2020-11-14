@@ -1,26 +1,23 @@
-#For Tester (demo.dvm-system.org) PLATFORM (with OpenMP)
+#For Tester (tester.dvm-system.org) PLATFORM (with OpenMP)
 # for DVM tools
- CC="icc -g -O3 "
- CXX="icpc -g -O3 "
- LINKER="icpc -g"
- LLVMCONFIG="llvm-config"
+ CC='cc -g -O2'
+ CXX='c++ -g -O2'
+ LINKER='c++ -g'
+ LLVMCONFIG='llvm-config'
 # for parallel programs
- PCC="mpicc -g -O3  -fopenmp"
- PCXX="mpicxx -g -O3  -fopenmp"
- PFORT="mpif77 -g -O3  -fopenmp"
- PLINKER="mpicxx -g -fopenmp"
- PFLINKER="mpif77 -g -fopenmp"
- CUDA_PATH="/opt/cuda/latest"
- NVCC="$CUDA_PATH/bin/nvcc -arch=sm_20 -DCUDA_FERMI_ARCH -O3 -DPGI_COMPILE_BITCODE"
- PGI_PATH="/opt/pgi/linux86-64/2017"
- NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=8.0 -O2 -ta=nvidia:keepgpu,cc35,nollvm"
+ PCC='mpicc -g -O2 -fopenmp'
+ PCXX='mpic++ -g -O2 -fopenmp'
+ PFORT='mpif90 -g -O2 -fopenmp'
+ PLINKER='mpic++ -g -fopenmp'
+ PFLINKER='mpif90 -g -fopenmp'
+ ADD_LIBS=''
+ CUDA_PATH='/usr'
 # launch settings
- dvmrun="runmpi"
+ dvmrun='runmpi'
 # DVMH options for default preset
- DVMH_PPN=12
- DVMH_NUM_THREADS=0
- DVMH_NUM_CUDAS=1
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
 # machine configuration for more predefined presets
- CPUS_PER_NODE=12
- CUDAS_PER_NODE=2
-
+ CPUS_PER_NODE=8
+ CUDAS_PER_NODE=1
+ NODES_COUNT=1

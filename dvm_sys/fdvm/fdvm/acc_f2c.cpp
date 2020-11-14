@@ -15,10 +15,8 @@ using std::make_pair;
 // for non linear array list
 struct PrivateArrayInfo
 {
-    char *name;
-    vector<int> ddot;
+    string name;
     int dimSize;
-    vector<SgExpression*> ddotExp;
     vector<SgExpression*> correctExp;
     int typeRed;
     reduction_operation_list *rsl;
@@ -89,9 +87,11 @@ static map<string, vector<SgLabel*> > labelsExitCycle;
 static set<int> unSupportedVars;
 static int cond_generator;
 static SgStatement* curTranslateStmt;
+static map<string, SgSymbol*> autoTfmReplacing;
 
 static map<SgStatement*, vector<SgStatement*> > insertBefore;
 static map<SgStatement*, vector<SgStatement*> > insertAfter;
+
 static map<SgStatement*, SgStatement*> replaced;
 static int arrayGenNum;
 
@@ -111,6 +111,48 @@ void printfSpaces(int num)
         printf(" ");
 }
 #endif
+
+static void saveInsertBeforeAfter(map<SgStatement*, vector<SgStatement*> > &after, map<SgStatement*, vector<SgStatement*> > &before)
+{
+    if (!options.isOn(AUTO_TFM))
+        return;
+    
+    before = insertBefore;
+    insertBefore.clear();
+
+    after = insertAfter;
+    insertAfter.clear();    
+}
+
+static void restoreInsertBeforeAfter(map<SgStatement*, vector<SgStatement*> >& after, map<SgStatement*, vector<SgStatement*> >& before)
+{
+    if (!options.isOn(AUTO_TFM))
+        return;
+    
+    insertBefore = before;
+    insertAfter = after;
+}
+
+static void copyToStack(stack<SgStatement*> &newBody, const map<SgStatement*, vector<SgStatement*> > &cont)
+{
+    if (!options.isOn(AUTO_TFM))
+        return;
+
+    if (cont.size())
+        for (map<SgStatement*, vector<SgStatement*> >::const_iterator itI = cont.begin(); itI != cont.end(); itI++)
+            for (int z = 0; z < itI->second.size(); ++z)
+                newBody.push(itI->second[z]);
+}
+
+static bool isInPrivate(const string& arr)
+{
+    for (int z = 0; z < arrayInfo.size(); ++z)
+    {
+        if (arrayInfo[z].name == arr)
+            return true;
+    }
+    return false;
+}
 
 static char* getNestCond()
 {
@@ -151,6 +193,7 @@ static bool inNewVars(const char *name)
 static void addInListIfNeed(SgSymbol *tmp, int type, reduction_operation_list *tmpR)
 {
     stack<SgExpression*> allArraySub;
+    stack<pair<SgExpression*, SgExpression*> > allArraySubConv;
     if (tmp)
     {
         if (isSgArrayType(tmp->type()))
@@ -161,46 +204,38 @@ static void addInListIfNeed(SgSymbol *tmp, int type, reduction_operation_list *t
                 PrivateArrayInfo t;
                 t.dimSize = isSgArrayType(tmp->type())->dimension();
 
+                int rank = 0;
                 while (dimList)
                 {
                     allArraySub.push(dimList->lhs());
+                    allArraySubConv.push(make_pair(LowerShiftForArrays(tmp, rank), UpperShiftForArrays(tmp, rank)));
+                    ++rank;
                     dimList = dimList->rhs();
                 }
+
                 dimList = isSgArrayType(tmp->type())->getDimList();
+                rank = 0;
+
                 while (dimList)
                 {
                     SgExpression *ex = allArraySub.top();
-                    if (ex->variant() == DDOT && ex->lhs())
-                    {
-                        t.ddot.push_back(true);
-                        t.ddotExp.push_back(&ex->copy());
-                        if (ex->lhs()->variant() == INT_VAL)
-                        {
-                            if (ex->lhs()->valueInteger() != 0)
-                                t.correctExp.push_back(new SgValueExp(ex->lhs()->valueInteger()));
-                            else
-                                t.correctExp.push_back(new SgValueExp(0));
-                        }
-                        else
-                            t.correctExp.push_back(ex->lhs());
-                    }
-                    else
-                    {
-                        t.ddot.push_back(false);
-                        t.ddotExp.push_back(NULL);
-                        t.correctExp.push_back(new SgValueExp(1));
-                    }
+                    bool ddot = false;
+                    if (ex->variant() == DDOT && ex->lhs() || IS_ALLOCATABLE(tmp))
+                        ddot = true;
+                    t.correctExp.push_back(LowerShiftForArrays(tmp, rank));
 
-                    // swap array's dimentions
+                    // swap array's dimentionss
                     if (inNewVars(tmp->identifier()))
                     {
-                        if (t.ddot[t.ddot.size() - 1])
-                            dimList->setLhs(*allArraySub.top()->rhs() - *allArraySub.top()->lhs() + *new SgValueExp(1));
+                        if (ddot)
+                            dimList->setLhs(*allArraySubConv.top().second - *allArraySubConv.top().first + *new SgValueExp(1));
                         else
-                            dimList->setLhs(allArraySub.top());
+                            dimList->setLhs(allArraySubConv.top().first);
                     }
 
                     allArraySub.pop();
+                    allArraySubConv.pop();
+                    ++rank;
                     dimList = dimList->rhs();
                 }
                 t.name = tmp->identifier();
@@ -213,9 +248,44 @@ static void addInListIfNeed(SgSymbol *tmp, int type, reduction_operation_list *t
     }
 }
 
-void swapDimentionsInprivateList(void)
+static void addRandStateIfNeeded(const string& name)
 {
-    stack<SgExpression*> allArraySub;
+    SgExpression* list = private_list;
+    while (list)
+    {
+        if (list->lhs()->symbol()->identifier() == name)
+            return;
+        list = list->rhs();
+    }
+
+    SgSymbol* uint4_t = new SgSymbol(TYPE_NAME, "uint4", *(current_file->firstStatement()));
+
+    SgFieldSymb* sx = new SgFieldSymb("x", *SgTypeInt(), *uint4_t);
+    SgFieldSymb* sy = new SgFieldSymb("y", *SgTypeInt(), *uint4_t);
+    SgFieldSymb* sz = new SgFieldSymb("z", *SgTypeInt(), *uint4_t);
+    SgFieldSymb* sw = new SgFieldSymb("w", *SgTypeInt(), *uint4_t);
+
+    SYMB_NEXT_FIELD(sx->thesymb) = sy->thesymb;
+    SYMB_NEXT_FIELD(sy->thesymb) = sz->thesymb;
+    SYMB_NEXT_FIELD(sz->thesymb) = sw->thesymb;
+    SYMB_NEXT_FIELD(sw->thesymb) = NULL;
+
+    SgType* tstr = new SgType(T_STRUCT);
+    TYPE_COLL_FIRST_FIELD(tstr->thetype) = sx->thesymb;
+    uint4_t->setType(tstr);
+
+    SgType* td = new SgType(T_DERIVED_TYPE);
+    TYPE_SYMB_DERIVE(td->thetype) = uint4_t->thesymb;
+    TYPE_SYMB(td->thetype) = uint4_t->thesymb;
+
+    newVars.push_back(new SgSymbol(VARIABLE_NAME, name.c_str(), td, mod_gpu));
+    SgExprListExp* e = new SgExprListExp(*new SgVarRefExp(newVars.back()));
+    e->setRhs(private_list);
+    private_list = e;
+}
+
+void swapDimentionsInprivateList()
+{
     SgExpression *tmp = private_list;
     arrayInfo.clear();
 
@@ -387,7 +457,8 @@ SgStatement* getInterfaceForCall(SgSymbol* s)
     SgStatement* searchStmt = cur_func->lexNext();
     SgStatement* tmp;
     string funcName = string(s->identifier());
-    enum {SEARCH_INTERFACE,CHECK_INTERFACE, FIND_NAME, SEARCH_INTERNAL,SEARCH_CONTAINS,UNSUCCESS};    int mode = SEARCH_CONTAINS;
+    enum {SEARCH_INTERFACE,CHECK_INTERFACE, FIND_NAME, SEARCH_INTERNAL,SEARCH_CONTAINS,UNSUCCESS};
+    int mode = SEARCH_CONTAINS;
     
     //search internal function
     while(searchStmt&& mode!=UNSUCCESS)
@@ -485,97 +556,101 @@ SgStatement* getInterfaceForCall(SgSymbol* s)
 //
 //}
 
-SgExpression* switchArgumentsByKeyword(SgExpression *funcCall, SgStatement *funcInterface)
+SgExpression* switchArgumentsByKeyword(const string& name, SgExpression* funcCall, SgStatement* funcInterface)
 {
     //get list of arguments names
     vector<string> listArgsNames;
-    SgFunctionSymb *s = (SgFunctionSymb *)funcInterface->symbol();
-    vector<SgExpression*> resultExprCall(s->numberOfParameters(), (SgExpression *)NULL);
+    SgFunctionSymb* s = (SgFunctionSymb*)funcInterface->symbol();
+    vector<SgExpression*> resultExprCall(s->numberOfParameters(), (SgExpression*)NULL);
     int useKeywords = false;
     int useOptional = false;
     int useArray = false;
 
-    for(int i = 0; i < s->numberOfParameters(); ++i)
+    for (int i = 0; i < s->numberOfParameters(); ++i)
     {
         listArgsNames.push_back(s->parameter(i)->identifier());
-        if(s->parameter(i)->attributes()&OPTIONAL_BIT)
+        if (s->parameter(i)->attributes() & OPTIONAL_BIT)
             useOptional = true;
     }
 
     SgExpression* parseExpr;
-    if(funcCall->variant() == FUNC_CALL)
+    if (funcCall->variant() == FUNC_CALL)
         parseExpr = funcCall->lhs();
     else
         parseExpr = funcCall;
 
     int curArgumentPos = 0;
-    while(parseExpr)
+    while (parseExpr)
     {
-        if(parseExpr->lhs()->variant() == KEYWORD_ARG)
+        if (parseExpr->lhs()->variant() == KEYWORD_ARG)
         {
             useKeywords = true;
             int newPos = 0;
             string keyword = string(((SgKeywordValExp*)parseExpr->lhs()->lhs())->value());
-            while(listArgsNames[newPos] != keyword )
+            while (listArgsNames[newPos] != keyword)
                 newPos++;
 
             resultExprCall[newPos] = parseExpr->lhs()->rhs();
-        }        
-        else if(useKeywords)            
-            Error("Position argument after keyword", "", 900, cur_st);
+        }
+        else if (useKeywords)
+            Error("Position argument after keyword", "", 900, first_do_par);
         else
             resultExprCall[curArgumentPos] = parseExpr->lhs();
         curArgumentPos++;
         parseExpr = parseExpr->rhs();
     }
 
-    //check asuumed form array
-    for(int i = 0; i < resultExprCall.size(); ++i)
+    //check assumed form array
+    for (int i = 0; i < resultExprCall.size(); ++i)
     {
-        SgSymbol *sarg = s->parameter(i);
-        if(isSgArrayType(sarg->type()))
+        SgSymbol* sarg = s->parameter(i);
+        if (isSgArrayType(sarg->type()))
         {
             int needChanged = true;
-            SgArrayType *arrT = (SgArrayType*)sarg->type();
+            SgArrayType* arrT = (SgArrayType*)sarg->type();
             int dims = arrT->dimension();
-            SgExprListExp *dimList = (SgExprListExp*)arrT->getDimList();
-            while(dimList && dimList->rhs())
+            SgExpression* dimList = arrT->getDimList();
+            while (dimList)
             {
-                if(dimList->lhs()->variant() != DDOT)
+                if (dimList->lhs()->variant() != DDOT)
                 {
                     needChanged = false;
                     break;
                 }
-                else if(dimList->lhs()->rhs())
+                else if (dimList->lhs()->rhs())
                 {
                     needChanged = false;
                     break;
                 }
-                dimList =(SgExprListExp*) dimList->rhs();
+                dimList = dimList->rhs();
             }
 
-            if(needChanged)
+            if (needChanged)
             {
                 useArray = true;
 
-                SgArrayType *argType = (SgArrayType*)resultExprCall[i]->symbol()->type();
-                SgExprListExp *argInfo = (SgExprListExp*)argType->getDimList();
-                SgExpression *tmp;
+                SgArrayType* argType = (SgArrayType*)resultExprCall[i]->symbol()->type();
+                SgExprListExp* argInfo = (SgExprListExp*)argType->getDimList();
+                SgExpression* tmp;
                 int argDims = argType->dimension();
 
                 //TODO: 
-                if(argDims != dims)
-                    Error("Count of formal and actual arguments are not equal", "", 900, cur_st);
-
-                SgExpression *argList = NULL;
-                for(int j = 6; j >= 0; --j)
+                if (argDims != dims)
                 {
-                    if(argInfo->elem(j) == NULL)
+                    char buf[256];
+                    sprintf(buf, "Dimention of the %d formal and actual parameters of '%s' call is not equal", i, name.c_str());
+                    Error(buf, "", 900, first_do_par);
+                }
+
+                SgExpression* argList = NULL;
+                for (int j = 6; j >= 0; --j)
+                {
+                    if (argInfo->elem(j) == NULL)
                         continue;
 
                     //TODO: not checked!!                    
-                    SgExpression *val = Calculate(&(*UpperBound(resultExprCall[i]->symbol(), j) - *LowerBound(resultExprCall[i]->symbol(), j) + *LowerBound(s->parameter(i), j)));
-                    if(val != NULL)
+                    SgExpression* val = Calculate(&(*UpperBound(resultExprCall[i]->symbol(), j) - *LowerBound(resultExprCall[i]->symbol(), j) + *LowerBound(s->parameter(i), j)));
+                    if (val != NULL)
                         tmp = new SgExprListExp(*val);
                     else
                         tmp = new SgExprListExp(*new SgValueExp(int(0)));
@@ -583,7 +658,7 @@ SgExpression* switchArgumentsByKeyword(SgExpression *funcCall, SgStatement *func
                     tmp->setRhs(argList);
                     argList = tmp;
                     val = LowerBound(s->parameter(i), j);
-                    if(val != NULL)
+                    if (val != NULL)
                         tmp = new SgExprListExp(*val);
                     else
                         tmp = new SgExprListExp(*new SgValueExp(int(0)));
@@ -591,16 +666,16 @@ SgExpression* switchArgumentsByKeyword(SgExpression *funcCall, SgStatement *func
                     argList = tmp;
                 }
 
-                SgArrayRefExp *arrRef = new SgArrayRefExp(*resultExprCall[i]->symbol());
+                SgArrayRefExp* arrRef = new SgArrayRefExp(*resultExprCall[i]->symbol());
                 for (int j = 0; j < dims; ++j)
                     arrRef->addSubscript(*new SgValueExp(0));
 
                 tmp = new SgExprListExp(SgAddrOp(*arrRef));
                 tmp->setRhs(argList);
                 argList = tmp;
-                SgSymbol *aa = s->parameter(i);
+                SgSymbol* aa = s->parameter(i);
 
-                SgTypeRefExp *typeExpr = new SgTypeRefExp(*C_Type(s->parameter(i)->type()));
+                SgTypeRefExp* typeExpr = new SgTypeRefExp(*C_Type(s->parameter(i)->type()));
                 resultExprCall[i] = new SgFunctionCallExp(*((new SgDerivedTemplateType(typeExpr, new SgSymbol(TYPE_NAME, "s_array")))->typeName()), *argList);
                 resultExprCall[i]->setRhs(typeExpr);
             }
@@ -608,18 +683,18 @@ SgExpression* switchArgumentsByKeyword(SgExpression *funcCall, SgStatement *func
     }
 
     //change position in call expression if argument passed by keyword
-    if(useKeywords || useOptional || useArray )
+    if (useKeywords || useOptional || useArray)
     {
         int mask = 0;
         SgExpression* maskExpr = new SgValueExp(int(0));
         int bit = 1;
         //change arg -> point to arg when arg is optional
-        for(int i = 0; i < resultExprCall.size() - 1; ++i)
+        for (int i = 0; i < resultExprCall.size() - 1; ++i)
         {
             SgSymbol* tmps = s->parameter(i);
 
             //TODO: WTF ???!
-            if((s->parameter(i)->attributes() & OPTIONAL_BIT) && resultExprCall[i]!=NULL)
+            if ((s->parameter(i)->attributes() & OPTIONAL_BIT) && resultExprCall[i] != NULL)
             {
                 /*if(resultExprCall[i]->variant() == VAR_REF && resultExprCall[i]->symbol()->attributes()&OPTIONAL_BIT )
                 {
@@ -631,38 +706,38 @@ SgExpression* switchArgumentsByKeyword(SgExpression *funcCall, SgStatement *func
                             pos = j;
                             break;
                         }
-                        maskExpr = &(*maskExpr | (((*new SgVarRefExp(fName->parameter(0)) >> (*new SgValueExp(pos))) & *new SgValueExp(1)) << *new SgValueExp(i)));  
+                        maskExpr = &(*maskExpr | (((*new SgVarRefExp(fName->parameter(0)) >> (*new SgValueExp(pos))) & *new SgValueExp(1)) << *new SgValueExp(i)));
                 }
                 else*/
-                   // maskExpr = Calculate(&(*maskExpr | *new SgValueExp(int(1<<i))));
+                // maskExpr = Calculate(&(*maskExpr | *new SgValueExp(int(1<<i))));
             }
-            else if((s->parameter(i)->attributes() & OPTIONAL_BIT) && resultExprCall[i] == NULL)
+            else if ((s->parameter(i)->attributes() & OPTIONAL_BIT) && resultExprCall[i] == NULL)
             {
                 SgTypeRefExp* typeExpr = new SgTypeRefExp(*C_Type(s->parameter(i)->type()));
-                resultExprCall[i] = new SgFunctionCallExp(*((new SgDerivedTemplateType(typeExpr, new SgSymbol(TYPE_NAME, "optArg")))->typeName()));             
+                resultExprCall[i] = new SgFunctionCallExp(*((new SgDerivedTemplateType(typeExpr, new SgSymbol(TYPE_NAME, "optArg")))->typeName()));
                 resultExprCall[i]->setRhs(new SgExprListExp(*typeExpr));
-            }               
+            }
         }
 
-        SgExprListExp *expr =new SgExprListExp();
-        SgExprListExp *tmp = expr;
-        SgExprListExp *tmp2;
+        SgExprListExp* expr = new SgExprListExp();
+        SgExprListExp* tmp = expr;
+        SgExprListExp* tmp2;
         //insert info-argument at first position
 
         //insert rguments
-        for(int i = 0; i < resultExprCall.size() - 1; ++i)
+        for (int i = 0; i < resultExprCall.size() - 1; ++i)
         {
             tmp->setLhs(resultExprCall[i]);
             tmp->setRhs(new SgExprListExp());
-            tmp=(SgExprListExp*)tmp->rhs();
+            tmp = (SgExprListExp*)tmp->rhs();
         }
 
         tmp->setLhs(resultExprCall[resultExprCall.size() - 1]);
-        if(funcCall->variant() == FUNC_CALL)
+        if (funcCall->variant() == FUNC_CALL)
             funcCall->setLhs(expr);
-        else funcCall = expr;
+        else
+            funcCall = expr;
     }
-
     return funcCall;
 }
 
@@ -704,9 +779,7 @@ void createNewFCall(SgExpression *expr, SgExpression *&retExp, const char *name,
     if (nArgs != 0)
     {
         for (int i = 0; i < nArgs; ++i)
-        {
             ((SgFunctionCallExp*)retExp)->addArg(*Arg[i]);
-        }
     }
     else
         ((SgFunctionCallExp*)retExp)->addArg(*expr);
@@ -715,7 +788,6 @@ void createNewFCall(SgExpression *expr, SgExpression *&retExp, const char *name,
 static SgExpression* convertDvmAssign(SgExpression *copy, const vector<pair<SgSymbol*, SgSymbol*> >& symbs)
 {
     SgExpression* list = copy->lhs()->lhs();
-    
     stack<SgExpression*> pointersToMul;
     while (list)
     {
@@ -791,23 +863,30 @@ static pair<SgSymbol*, pair<vector<SgStatement*>, vector<SgStatement*> > > creat
         dumS *= dimSizes[symbs.size() - z];
     }
     
+    SgExpression* copyDvmArrayElems = convertDvmAssign(&dvmArray->copy(), symbs);
+    const string key(copyDvmArrayElems->unparse());
+
+    if (autoTfmReplacing.find(key) != autoTfmReplacing.end())
+        return make_pair(autoTfmReplacing[key], make_pair(ret, retInv));
+
     arrayRef->addSubscript(*subs);
     ret.push_back(makeSymbolDeclaration(array));
 
     if (in)
     {
-        inner = new SgAssignStmt(*arrayRef, *convertDvmAssign(&dvmArray->copy(), symbs));
+        inner = new SgAssignStmt(*arrayRef, copyDvmArrayElems->copy());
         forSt = createFor(dimSizes, symbs, inner);
         ret.push_back(forSt);
     }
 
     if (out)
     {
-        inner = new SgAssignStmt(*convertDvmAssign(&dvmArray->copy(), symbs), arrayRef->copy());
+        inner = new SgAssignStmt(copyDvmArrayElems->copy(), arrayRef->copy());
         forStInv = createFor(dimSizes, symbs, inner);
         retInv.push_back(forStInv);
     }
-    
+
+    autoTfmReplacing[key] = array;    
     return make_pair(array, make_pair(ret, retInv));
 }
 
@@ -829,7 +908,20 @@ static vector<int> fillBitsOfArgs(SgProgHedrStmt *hedr)
     return bitsOfArgs;
 }
 
-static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
+static bool isPrivate(const string& array)
+{
+    SgExpression* exp = private_list;
+    while (exp)
+    {
+        if (exp->lhs()->symbol()->identifier() == array)
+            return true;
+        exp = exp->rhs();
+    }
+    return false;
+}
+
+//#define DEB
+static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs, bool isFunction)
 {
     bool ret = true;
 
@@ -853,12 +945,30 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
     vector<int> argsBits;
     if (canFoundinterface == false)
     {
+#if DEB
+        map<string, vector<graph_node*>> tmp;
+        for (graph_node* ndl = node_list; ndl; ndl = ndl->next)
+            tmp[ndl->name].push_back(ndl);
+#endif 
         for (graph_node *ndl = node_list; ndl; ndl = ndl->next)
         {
             if (ndl->name == name && current_file == ndl->file)
             {
-                CreateIntefacePrototype(ndl->st_header);
-                argsBits = fillBitsOfArgs(isSgProgHedrStmt(ndl->st_header));
+                if (ndl->st_header == NULL)
+                {
+                    Error("Can not find procedure header %s", name.c_str(), 900, first_do_par);
+                    ret = false;
+                }
+                else
+                {
+                    CreateIntefacePrototype(ndl->st_header);
+                    argsBits = fillBitsOfArgs(isSgProgHedrStmt(ndl->st_header));
+                }
+            }
+            else if(ndl->name == name && ndl->st_interface)
+            {
+                  CreateIntefacePrototype(ndl->st_interface);
+                  argsBits = fillBitsOfArgs(isSgProgHedrStmt(ndl->st_interface));
             }
         }
 
@@ -880,7 +990,7 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
     
     if (canFoundinterface)
     {
-        bool found = false;        
+        bool found = false;
 
         //TODO: add support of many interfaces with the same count of parameters
         for (int k = 0; k < it->second.size(); ++k)
@@ -902,7 +1012,7 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
         {
             SgExpression *argInCall = listArgs;
             for (int i = 0; i < num; ++i, argInCall = argInCall->rhs())
-            {                                
+            {
                 if (argInCall->lhs() == NULL)
                 {
                     Error("Internal inconsistency in F->C convertation", "", 900, first_do_par);
@@ -911,17 +1021,29 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                 }
                 
                 SgType *typeInCall;
+                SgSymbol* parS = NULL;
                 if (argInCall->lhs()->symbol()) // simple argument
+                {
                     typeInCall = argInCall->lhs()->symbol()->type();
+                    parS = argInCall->lhs()->symbol();
+#ifdef DEB
+                    printf("simple type of typeInCall %d, %s\n", typeInCall->variant(), argInCall->lhs()->symbol()->identifier());
+#endif
+                }
                 else                      // expression
+                {
                     typeInCall = argInCall->lhs()->type();
+#ifdef DEB
+                    printf("expression type of typeInCall %d\n", typeInCall->variant());
+#endif
+                }
                 SgType *typeInProt = (*prototype)[i];
                 SgType* typeInProtSave = (*prototype)[i];
                 
                 int countOfSubscrInCall = 0;
                 int dimSizeInProt = 0;
                 if (argInCall->lhs()->variant() == ARRAY_REF)
-                {                    
+                {
                     SgExpression *subs = argInCall->lhs()->lhs();
                     while (subs)
                     {
@@ -929,20 +1051,35 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                         subs = subs->rhs();
                     }
 
-                    SgArrayType* inCall = isSgArrayType(typeInCall);
+                    SgArrayType* inCall = isSgArrayType(typeInCall);                    
                     SgArrayType* inProt = isSgArrayType(typeInProt);
                     if (countOfSubscrInCall == 0)
                     {
                         if (inCall == NULL || inProt == NULL) // inconsistency
-                            typeInCall = NULL;
+                        {
+                            if (isSgPointerType(typeInCall) && inProt)
+                                typeInCall = typeInProt;
+                            else
+                            {
+                                typeInCall = NULL;
+#ifdef DEB
+                                printf("typeInCall NULL 1\n");
+#endif
+                            }
+                        }
                         else if (inCall->dimension() != inProt->dimension())
+                        {
                             typeInCall = NULL;
+#ifdef DEB
+                            printf("typeInCall NULL 2\n");
+#endif
+                        }
                         else
                             typeInCall = typeInProt;
                     }
                     else
                     {
-                        //TODO: not supported yet                        
+                        //TODO: not supported yet
                         if (inCall && inProt)
                         {
                             if (inCall->dimension() != inProt->dimension()) // TODO
@@ -952,17 +1089,48 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                             }
                             else
                             {
+                                const int arrayDim = isPrivate(argInCall->lhs()->symbol()->identifier()) ? inCall->dimension() : 1;
+
                                 if (isSgArrayType(typeInProt)) // inconsistency
+                                {
                                     typeInCall = NULL;
-                                else if (inCall->dimension() - countOfSubscrInCall == 0)
+#ifdef DEB
+                                    printf("typeInCall NULL 3\n");
+#endif
+                                }
+                                else if (arrayDim - countOfSubscrInCall == 0)
                                     typeInCall = typeInProt;
                                 else // TODO
+                                {
                                     typeInCall = NULL;
+#ifdef DEB
+                                    printf("typeInCall NULL 4\n");
+#endif
+                                }
                             }
                         }
-                        else if (isSgArrayType(typeInProt)) // inconsistency
+                        else if (inProt) // inconsistency
+                        {
                             typeInCall = NULL;
-                    }                    
+#ifdef DEB
+                            printf("typeInCall NULL 5\n");
+#endif
+                        }
+                        else if (inCall)
+                        {
+                            const int arrayDim = isPrivate(argInCall->lhs()->symbol()->identifier()) ? inCall->dimension() : 1;
+
+                            if (arrayDim - countOfSubscrInCall == 0)
+                                typeInCall = typeInProt;
+                            else
+                            {
+                                typeInCall = NULL;
+#ifdef DEB
+                                printf("typeInCall NULL 6\n");
+#endif
+                            }
+                        }
+                    }
                 }
                 else
                 {
@@ -973,12 +1141,22 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                         if (typeInProt->variant() == typeInCall->variant())
                         {
                             if (typeInProt->hasBaseType() && !typeInCall->hasBaseType()) // inconsistency
+                            {
                                 typeInCall = NULL;
+#ifdef DEB
+                                printf("typeInCall NULL 7\n");
+#endif
+                            }
 
                             if (typeInProt->hasBaseType() && typeInCall)
                             {
                                 if (typeInProt->baseType()->variant() != typeInCall->baseType()->variant()) // inconsistency
+                                {
                                     typeInCall = NULL;
+#ifdef DEB
+                                    printf("typeInCall NULL 8\n");
+#endif
+                                }
                                 else
                                 {
                                     typeInProt = typeInProt->baseType();
@@ -997,14 +1175,24 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                                         if (string(typeInProt->length()->unparse()) == string(typeInCall->length()->unparse()))
                                             typeInCall = typeInProt;
                                         else
+                                        {
                                             typeInCall = NULL; // TODO
+#ifdef DEB
+                                            printf("typeInCall NULL 9\n");
+#endif
+                                        }
                                     }
                                     else if (typeInProt->selector() && typeInCall->selector())
                                     {
                                         if (string(typeInProt->selector()->unparse()) == string(typeInCall->selector()->unparse()))
                                             typeInCall = typeInProt;
                                         else
+                                        {
                                             typeInCall = NULL; // TODO
+#ifdef DEB
+                                            printf("typeInCall NULL 10\n");
+#endif
+                                        }
                                     }
                                     else
                                         ; //TODO
@@ -1033,8 +1221,9 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                 {
                     if (countOfSubscrInCall == 0)
                     {
-                        SgArrayRefExp *arr = (SgArrayRefExp*)(argInCall->lhs());
+                        SgExpression *arr = argInCall->lhs();
                         SgType *type = arr->symbol()->type();
+
                         if (type->hasBaseType())
                             argInCall->setLhs(*new SgCastExp(*C_PointerType(C_Type(type->baseType())), *arr));
                         else
@@ -1044,12 +1233,15 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                     {
                         if (dimSizeInProt == 0)
                         {
-                            SgExpression* arrayRef = argInCall->lhs();
-                            convertExpr(arrayRef, arrayRef);
+                            if (isFunction)
+                            {
+                                SgExpression* arrayRef = argInCall->lhs();
+                                convertExpr(arrayRef, arrayRef);
+                            }
                         }
                         else
                         {
-                            if (options.isOn(AUTO_TFM))
+                            if (options.isOn(AUTO_TFM) && !isInPrivate(argInCall->lhs()->symbol()->identifier()))
                             {
                                 //TODO: ranges, ex. (-1:2)
 
@@ -1073,6 +1265,7 @@ static bool matchPrototype(SgSymbol *funcSymb, SgExpression *&listArgs)
                                     std::reverse(dimSizes.begin(), dimSizes.end());
                                     bool ifIn = true;
                                     bool ifOut = true;
+
                                     pair<SgSymbol*, pair<vector<SgStatement*>, vector<SgStatement*> > > conv = createForCopy(dimSizes, argInCall->lhs(), ifIn, ifOut);
 
                                     if ( (argsBits[i] & IN_BIT) || (argsBits[i] & INOUT_BIT))
@@ -1189,13 +1382,13 @@ void convertExpr(SgExpression *expr, SgExpression* &retExp)
                     if(inter)
                     {
                         //switch arguments by keyword
-                        expr = (SgFunctionCallExp *)switchArgumentsByKeyword(tmpF, inter);
+                        expr = switchArgumentsByKeyword(name, tmpF, inter);
                         //check ommited arguments
                         //transform fact to formal
                     }
 
                     SgExpression *tmp = expr->lhs();
-                    matchPrototype(tmpF->funName(), tmp);
+                    matchPrototype(tmpF->funName(), tmp, true);
 
                     retExp->setLhs(expr->lhs());
                     retExp->setRhs(expr->rhs());
@@ -1313,7 +1506,7 @@ void convertExpr(SgExpression *expr, SgExpression* &retExp)
             char *strName = expr->symbol()->identifier();
             for (; idx < arrayInfo.size(); ++idx)
             {
-                if (strcmp(arrayInfo[idx].name, strName) == 0)
+                if (arrayInfo[idx].name == strName)
                 {
                     ifInPrivateList = true;
                     break;
@@ -1342,8 +1535,8 @@ void convertExpr(SgExpression *expr, SgExpression* &retExp)
                     int k = 0;
                     for (int i = 0; i < dim; ++i)
                     {
-                        if (arrayInfo[idx].correctExp[k])
-                            tmp->setLhs(*allArraySub.top() - *arrayInfo[idx].correctExp[k]);
+                        if (arrayInfo[idx].correctExp[dim - 1 - k])
+                            tmp->setLhs(*allArraySub.top() - *arrayInfo[idx].correctExp[dim - 1 - k]);
                         else
                             tmp->setLhs(*allArraySub.top());
                         allArraySub.pop();
@@ -1383,44 +1576,41 @@ void convertExpr(SgExpression *expr, SgExpression* &retExp)
             retExp = &expr->copy();
         else if (var == NEQV_OP)
         {
-            SgExpression *eqv_op = new SgExpression(XOR_OP);
-            eqv_op->setLhs(*lhs);
-            eqv_op->setRhs(*rhs);
-            retExp = eqv_op;
+#ifdef INTEL_LOGICAL_TYPE
+            retExp  = new SgExpression(XOR_OP, lhs, rhs);
+#else
+            retExp = &(*lhs != *rhs);
+#endif
         }
         else if (var == EQV_OP)
         {
-            SgExpression *eqv_op = new SgExpression(XOR_OP);
-            SgExpression *bit_ne = new SgExpression(BIT_COMPLEMENT_OP);
-
-            eqv_op->setLhs(*lhs);
-            eqv_op->setRhs(*rhs);
-
-            bit_ne->setLhs(eqv_op);
-            retExp = bit_ne;
+#ifdef INTEL_LOGICAL_TYPE
+            retExp = new SgExpression(BIT_COMPLEMENT_OP, new SgExpression(XOR_OP, lhs, rhs), NULL);
+#else
+        retExp = &(*lhs == *rhs);
+#endif
         }
         else if (var == AND_OP)
-        {
-            SgExpression *and_op = new SgExpression(BITAND_OP);
-            and_op->setLhs(*lhs);
-            and_op->setRhs(*rhs);
-            retExp = and_op;
-        }
+            retExp = new SgExpression(BITAND_OP, lhs, rhs);
         else if (var == OR_OP)
-        {
-            SgExpression *or_op = new SgExpression(BITOR_OP);
-            or_op->setLhs(*lhs);
-            or_op->setRhs(*rhs);
-            retExp = or_op;
-        }
+            retExp = new SgExpression(BITOR_OP, lhs, rhs);
         else if (var == NOT_OP)
         {
-            SgExpression *bit_ne = new SgExpression(BIT_COMPLEMENT_OP);
-            bit_ne->setLhs(*lhs);
-            retExp = bit_ne;
+#ifdef INTEL_LOGICAL_TYPE
+            retExp = new SgExpression(BIT_COMPLEMENT_OP, lhs, NULL);
+#else
+            retExp = new SgExpression(NE_OP, lhs, new SgKeywordValExp("true"));
+#endif
         }
         else if (var == BOOL_VAL)
-            retExp = new SgValueExp(((SgValueExp*)expr)->boolValue());
+        {         
+            bool val = ((SgValueExp*)expr)->boolValue();
+#ifdef INTEL_LOGICAL_TYPE
+            retExp = val ? new SgExpression(BIT_COMPLEMENT_OP, new SgValueExp(0), NULL) : new SgValueExp(0);
+#else
+            retExp = new SgKeywordValExp(val ? "true" : "false");
+#endif
+        }
         else
         {
             // known vars: ADD_OP, SUBT_OP, MULT_OP, DIV_OP, MINUS_OP, UNARY_ADD_OP, CONST_REF, EXPR_LIST, 
@@ -1432,7 +1622,108 @@ void convertExpr(SgExpression *expr, SgExpression* &retExp)
     }
 }
 
-static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retSts, vector < stack < SgStatement*> > &copyBlock, int countOfCopy, int lvl)
+static SgExpression* convertReductionAddressForAtomic(SgExpression* exp)
+{
+    SgExpression* ref = exp->copyPtr();
+    ref->setLhs(NULL);
+
+    SgExpression* idx = exp->lhs()->copyPtr();
+
+    return new SgExpression(ADD_OP, ref, idx);
+}
+
+//TODO: need to check bitwise operations
+static SgExpression* splitReductionForAtomic(SgExpression* lhs, SgExpression* rhs, const int num_red)
+{
+    SgExpression* args = NULL;
+    if (!lhs || !rhs)
+    {
+        Error("Internal inconsistency in F->C onvertation", "", 900, first_do_par);
+        return NULL;
+    }
+
+    string left(lhs->unparse());
+    set<int> op;
+    if (num_red == 1) // sum
+    {
+        op.insert(ADD_OP);
+        op.insert(SUBT_OP);
+    }
+    else if (num_red == 2)  // product
+        op.insert(MULT_OP);
+    else if (num_red == 3)  // max
+        op.insert(FUNC_CALL);
+    else if (num_red == 4)  // min
+        op.insert(FUNC_CALL);
+    else if (num_red == 5)  // and
+        op.insert(BITAND_OP);
+    else if (num_red == 6)  // or
+        op.insert(BITOR_OP);
+    else if (num_red == 7)  // neqv
+        op.insert(XOR_OP);
+    else if (num_red == 8)  // eqv
+    {
+        if (rhs->variant() == BIT_COMPLEMENT_OP)
+            rhs = rhs->lhs();
+        op.insert(XOR_OP);
+    }
+
+    if (op.size())
+    {
+        if (op.find(rhs->variant()) != op.end())
+        {
+            SgExpression* l_part = rhs->lhs();
+            SgExpression* r_part = rhs->rhs();
+            if (rhs->variant() == FUNC_CALL)
+            {
+                if (rhs->lhs())
+                {
+                    if (rhs->lhs()->lhs())
+                        l_part = rhs->lhs()->lhs();
+                    if (rhs->lhs()->rhs() && rhs->lhs()->rhs()->lhs())
+                        r_part = rhs->lhs()->rhs()->lhs();
+                }
+            }
+
+            if (l_part && r_part)
+            {
+                string Lpart(l_part->unparse());
+                string Rpart(r_part->unparse());
+
+                bool ok = false;
+                if (Lpart == left)
+                    ok = true;
+                else if (Rpart == left)
+                {
+                    std::swap(l_part, r_part);
+                    ok = true;
+                }
+
+                if (ok)
+                {
+                    if (rhs->variant() == SUBT_OP)
+                        r_part = new SgExpression(MINUS_OP, r_part, NULL);
+
+                    SgExpression* arg1 = convertReductionAddressForAtomic(l_part);
+                    SgExpression* arg2 = r_part;
+
+                    args = new SgExpression(EXPR_LIST, arg1, new SgExpression(EXPR_LIST, arg2, NULL));
+                }
+            }
+        }
+    }
+
+    if (args == NULL)
+    {
+        string right(rhs->unparse());
+        Error("Can not match reduction template for this pattern: %s", (left + " = " + right).c_str(), 900, first_do_par);
+    }
+
+    return args;
+}
+
+static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retSts, vector < stack < SgStatement*> > &copyBlock, 
+                        int countOfCopy, int lvl, const map<string, int>& redArraysWithUnknownSize)
 {
     bool needReplace = false;
     SgStatement *labSt = NULL;
@@ -1453,6 +1744,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
     {
         SgExpression *lhs = st->expr(0);
         SgExpression *rhs = st->expr(1);
+
 #if TRACE
         printfSpaces(lvl_convert_st);
         printf("convert assign node\n");
@@ -1465,8 +1757,46 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
         printfSpaces(lvl_convert_st);
         printf("end of convert assign node\n");
 #endif
-        retSt = new SgCExpStmt(SgAssignOp(*lhs, *rhs));
-        needReplace = true;
+        if (lhs->variant() == ARRAY_REF && redArraysWithUnknownSize.find(lhs->symbol()->identifier()) != redArraysWithUnknownSize.end())
+        {
+            const string arrayName = lhs->symbol()->identifier();
+            const int num_red = redArraysWithUnknownSize.find(arrayName)->second;
+            string atomicName = "NULL";
+
+            if (num_red == 1) // sum
+                atomicName = "__dvmh_atomic_add";
+            else if (num_red == 2)  // product
+                atomicName = "__dvmh_atomic_prod";
+            else if (num_red == 3)  // max
+                atomicName = "__dvmh_atomic_max";
+            else if (num_red == 4)  // min
+                atomicName = "__dvmh_atomic_min";
+            else if (num_red == 5)  // and
+                atomicName = "__dvmh_atomic_and";
+            else if (num_red == 6)  // or
+                atomicName = "__dvmh_atomic_or";
+            else if (num_red == 7)  // neqv
+                atomicName = "__dvmh_atomic_neqv";
+            else if (num_red == 8)  // eqv
+                atomicName = "__dvmh_atomic_eqv";
+
+            if (atomicName == "NULL")
+            {
+                Error("Unsupported reduction type by unknown(large) array size", "", 900, first_do_par);
+                retSt = new SgCExpStmt(SgAssignOp(*lhs, *rhs));
+            }
+            else
+            {
+                SgFunctionSymb* fCall = new SgFunctionSymb(FUNCTION_NAME, atomicName.c_str(), *SgTypeInt(), *kernel_st);
+
+                SgExpression* args = splitReductionForAtomic(lhs, rhs, num_red);
+                if (args)
+                    retSt = new SgCExpStmt(*new SgFunctionCallExp(*fCall, *args));
+            }
+        }
+        else
+            retSt = new SgCExpStmt(SgAssignOp(*lhs, *rhs));
+        needReplace = true;        
     }
     else if (st->variant() == CONT_STAT)
     {
@@ -1531,7 +1861,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
         printf("convert logicif node\n");
         lvl_convert_st += 2;
 #endif
-        convertStmt(body, t, copyBlock, countOfCopy, lvl + 1);
+        convertStmt(body, t, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
         lvl_convert_st-=2;
         printfSpaces(lvl_convert_st);
@@ -1560,7 +1890,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
                 printf("convert if node\n");
                 lvl_convert_st += 2;
 #endif
-                convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+                convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
                 lvl_convert_st-=2;
                 printfSpaces(lvl_convert_st);
@@ -1577,7 +1907,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             if (tmp->variant() == CONTROL_END)
             {
                 pair<SgStatement*, SgStatement*> convSt;
-                convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+                convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
                 if (convSt.second)
                     bodySts.push(convSt.second);
             }
@@ -1664,7 +1994,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
                     printf("convert if node\n");
                     lvl_convert_st += 2;
 #endif
-                    convertStmt(tb, tmp, copyBlock, countOfCopy, lvl + 1);
+                    convertStmt(tb, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
                     lvl_convert_st-=2;
                     printfSpaces(lvl_convert_st);
@@ -1690,7 +2020,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
                 printf("convert if node\n");
                 lvl_convert_st += 2;
 #endif
-                convertStmt(fb, tmp, copyBlock, countOfCopy, lvl + 1);
+                convertStmt(fb, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
                 lvl_convert_st-=2;
                 printfSpaces(lvl_convert_st);
@@ -1707,7 +2037,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             if (fb->variant() == CONTROL_END)
             {
                 pair<SgStatement*, SgStatement*> tmp;
-                convertStmt(fb, tmp, copyBlock, countOfCopy, lvl + 1);
+                convertStmt(fb, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
                 if (tmp.second)
                     bodyFalse.push(tmp.second);
             }
@@ -1818,17 +2148,23 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             printf("convert for node\n");
             lvl_convert_st += 2;
 #endif
-            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+            map<SgStatement*, vector<SgStatement*> > save_insertBefore, save_insertAfter;            
+            saveInsertBeforeAfter(save_insertAfter, save_insertBefore);
+
+            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
             lvl_convert_st-=2;
             printfSpaces(lvl_convert_st);
             printf("end of convert for node\n");
 #endif
+            copyToStack(bodySt, insertBefore);
             if (tmp.second)
                 bodySt.push(tmp.second);
             if (tmp.first)
                 bodySt.push(tmp.first);
-
+            copyToStack(bodySt, insertAfter);
+            
+            restoreInsertBeforeAfter(save_insertAfter, save_insertBefore);            
             setControlLexNext(inDo);
         }
 
@@ -1840,23 +2176,34 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             printf("convert for node\n");
             lvl_convert_st += 2;
 #endif
-            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+            map<SgStatement*, vector<SgStatement*> > save_insertBefore, save_insertAfter;
+            saveInsertBeforeAfter(save_insertAfter, save_insertBefore);
+            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
             lvl_convert_st-=2;
             printfSpaces(lvl_convert_st);
             printf("end of convert for node\n");
 #endif
+            copyToStack(bodySt, insertBefore);
             if (tmp.second)
                 bodySt.push(tmp.second);
             if (tmp.first)
                 bodySt.push(tmp.first);
+            copyToStack(bodySt, insertAfter);
+            restoreInsertBeforeAfter(save_insertAfter, save_insertBefore);
         }
         else
         {
             pair<SgStatement*, SgStatement*> tmp;
-            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+
+            map<SgStatement*, vector<SgStatement*> > save_insertBefore, save_insertAfter;
+            saveInsertBeforeAfter(save_insertAfter, save_insertBefore);
+            convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
+            copyToStack(bodySt, insertBefore);
             if (tmp.second)
                 bodySt.push(tmp.second);
+            copyToStack(bodySt, insertAfter);
+            restoreInsertBeforeAfter(save_insertAfter, save_insertBefore);
         }
 
         SgExprListExp *tt = new SgExprListExp();
@@ -1954,7 +2301,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             printf("convert while node\n");
             lvl_convert_st += 2;
 #endif
-            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
             lvl_convert_st -= 2;
             printfSpaces(lvl_convert_st);
@@ -1976,7 +2323,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             printf("convert while node\n");
             lvl_convert_st += 2;
 #endif
-            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
             lvl_convert_st -= 2;
             printfSpaces(lvl_convert_st);
@@ -1990,7 +2337,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
         else
         {
             pair<SgStatement*, SgStatement*> tmp;
-            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1);
+            (void)convertStmt(inDo, tmp, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
             if (tmp.second)
                 bodySt.push(tmp.second);
         }
@@ -2054,7 +2401,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
                 printf("convert switch node\n");
                 lvl_convert_st+=2;
 #endif
-                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
                 lvl_convert_st -= 2;
                 printfSpaces(lvl_convert_st);
@@ -2072,7 +2419,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             if (tmp->variant() == CONTROL_END)
             {
                 pair<SgStatement*, SgStatement*> convSt;
-                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
                 if (convSt.second)
                     bodyQueue.push_back(convSt.second);
             }
@@ -2103,7 +2450,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
             printf("convert switch node\n");
             lvl_convert_st+=2;
 #endif
-            (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+            (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
             lvl_convert_st -= 2;
             printfSpaces(lvl_convert_st);
@@ -2127,7 +2474,7 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
                 printf("convert switch node\n");
                 lvl_convert_st+=2;
 #endif
-                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1);
+                (void)convertStmt(tmp, convSt, copyBlock, countOfCopy, lvl + 1, redArraysWithUnknownSize);
 #if TRACE
                 lvl_convert_st -= 2;
                 printfSpaces(lvl_convert_st);
@@ -2287,23 +2634,38 @@ static bool convertStmt(SgStatement* &st, pair<SgStatement*, SgStatement*> &retS
         printf("convert call node\n");
         lvl_convert_st += 2;
 #endif
-        SgExpression *lhs = st->expr(0);
+        SgExpression *lhs = st->expr(0);                
+        convertExpr(lhs, lhs);
+
         if (lhs == NULL)
             retSt = new SgCExpStmt(*new SgFunctionCallExp(*st->symbol()));
         else
         {
-            SgStatement *inter = getInterfaceForCall(st->symbol());
-            if (inter)
+            if (st->symbol()->identifier() == string("random_number"))
             {
+                if (lhs->variant() != EXPR_LIST || lhs->lhs() == NULL || lhs->lhs()->variant() != VAR_REF)
+                    Error("Unsupported random_number call", "", 900, first_do_par);
                 
-                //switch arguments by keyword
-                lhs = (SgFunctionCallExp *)switchArgumentsByKeyword(lhs, inter);
-                //check ommited arguments
-                //transform fact to formal
+                //rand state
+                lhs->setRhs(new SgExpression(EXPR_LIST, new SgVarRefExp(*new SgSymbol(VARIABLE_NAME, "__dvmh_rand_state")), NULL));
+                addRandStateIfNeeded("__dvmh_rand_state");
+
+                retSt = new SgCExpStmt(*new SgFunctionCallExp(*new SgSymbol(VARIABLE_NAME, "__dvmh_rand"), *lhs));                
             }
-            
-            matchPrototype(st->symbol(), lhs);
-            retSt = new SgCExpStmt(*new SgFunctionCallExp(*st->symbol(), *lhs));
+            else
+            {
+                SgStatement* inter = getInterfaceForCall(st->symbol());
+                if (inter)
+                {
+                    //switch arguments by keyword
+                    lhs = switchArgumentsByKeyword(st->symbol()->identifier(), lhs, inter);
+                    //check ommited arguments
+                    //transform fact to formal
+                }
+
+                matchPrototype(st->symbol(), lhs, false);
+                retSt = new SgCExpStmt(*new SgFunctionCallExp(*st->symbol(), *lhs));
+            }
         }
 #if TRACE
         lvl_convert_st -= 2;
@@ -2752,10 +3114,16 @@ void Translate_Fortran_To_C(SgStatement *Stmt)
 #if TRACE
     printf("START: CONVERTION OF BODY ON LINE %d\n", number_of_loop_line);
 #endif
+    map<string, int> redArraysWithUnknownSize;
+    SgExpression* er = red_list;
+    for (reduction_operation_list* rsl = red_struct_list; rsl; rsl = rsl->next, er = er->rhs())
+        if (rsl->redvar_size < 0)
+            redArraysWithUnknownSize[rsl->redvar->identifier()] = RedFuncNumber(er->lhs()->lhs());
 
     SgStatement *copyFSt = Stmt;
     vector<stack<SgStatement*> > copyBlock;
     labelsExitCycle.clear();
+    autoTfmReplacing.clear();
     labels_num.clear();
     cond_generator = 0;
     unSupportedVars.clear();
@@ -2767,7 +3135,7 @@ void Translate_Fortran_To_C(SgStatement *Stmt)
     printf("convert Stmt\n");
     lvl_convert_st += 2;
 #endif
-    needReplace = convertStmt(copyFSt, tmp, copyBlock, 0, 0);
+    needReplace = convertStmt(copyFSt, tmp, copyBlock, 0, 0, redArraysWithUnknownSize);
 #if TRACE
     lvl_convert_st-=2;
     printfSpaces(lvl_convert_st);
@@ -2805,9 +3173,16 @@ void Translate_Fortran_To_C(SgStatement *firstStmt, SgStatement *lastStmt, vecto
     lvl_convert_st += 2;
 #endif
 
+    map<string, int> redArraysWithUnknownSize;
+    SgExpression* er = red_list;
+    for (reduction_operation_list* rsl = red_struct_list; rsl; rsl = rsl->next, er = er->rhs())
+        if (rsl->redvar_size < 0)
+            redArraysWithUnknownSize[rsl->redvar->identifier()] = RedFuncNumber(er->lhs()->lhs());
+
     SgStatement *copyFSt = firstStmt->lexNext();
     vector<SgStatement*> forRemove;        
     labelsExitCycle.clear();
+    autoTfmReplacing.clear();
     labels_num.clear();
     unSupportedVars.clear();
     insertAfter.clear();
@@ -2828,7 +3203,7 @@ void Translate_Fortran_To_C(SgStatement *firstStmt, SgStatement *lastStmt, vecto
         printf("convert Stmt\n");
         lvl_convert_st += 2;
 #endif        
-        needReplace = convertStmt(copyFSt, tmp, copyBlock, countOfCopy, 0);        
+        needReplace = convertStmt(copyFSt, tmp, copyBlock, countOfCopy, 0, redArraysWithUnknownSize);
 #if TRACE
         lvl_convert_st-=2;
         printfSpaces(lvl_convert_st);
@@ -2888,7 +3263,6 @@ void Translate_Fortran_To_C(SgStatement *firstStmt, SgStatement *lastStmt, vecto
             }
         }
     }
-    
 #if TRACE
     lvl_convert_st -= 2;
     printf("END: CONVERTION OF BODY ON LINE %d\n", number_of_loop_line);

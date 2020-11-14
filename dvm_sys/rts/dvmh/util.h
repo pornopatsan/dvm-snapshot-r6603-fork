@@ -307,4 +307,5 @@ protected:
 // TODO: Find a place for this
 extern bool needToCollectTimes;
 
+const char* getMpiRank();
 }

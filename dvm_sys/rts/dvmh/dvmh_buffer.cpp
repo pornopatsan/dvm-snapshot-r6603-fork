@@ -292,7 +292,8 @@ DvmhBuffer *DvmhBuffer::dumpPiece(const Interval piece[], bool allowInplace) con
     bool inPlace = allowInplace && canDumpInplace(piece);
     if (!inPlace) {
         res = new DvmhBuffer(rank, typeSize, 0, piece);
-        res->pageLock();
+        if (dvmhSettings.pageLockHostMemory)
+            res->pageLock();
         copyTo(res);
     } else {
 #ifdef NON_CONST_AUTOS

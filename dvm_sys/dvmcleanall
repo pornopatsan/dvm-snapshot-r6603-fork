@@ -5,6 +5,7 @@ rm -fr bin
 rm -fr include
 rm -fr par
 rm -fr lib
+rm -fr user
 rm -fr demo
 rm -fr doc
 rm -fr dist

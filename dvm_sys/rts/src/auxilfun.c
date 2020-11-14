@@ -1096,18 +1096,6 @@ to another processors. The function returns zero.
 }
 
 
-void  __callstd bcopy_(void)  //io stat
-{
-  DVMFTimeStart(call_acsend_);
-  return;
-}
-
-void  __callstd ecopy_(void)  //io stat
-{
-  DVMFTimeFinish(ret_acsend_);
-  return;
-}
-
 
 void  __callstd biof_(void)
 {

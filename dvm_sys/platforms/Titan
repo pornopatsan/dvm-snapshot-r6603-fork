@@ -10,7 +10,7 @@
  PFORT="/opt/mpi/bin64/mpiifort -g -O2 -no-scalar-rep -qopenmp"
  PLINKER="/opt/mpi/bin64/mpiicpc -g -qopenmp"
  PFLINKER="/opt/mpi/bin64/mpiifort -g -qopenmp"
- CUDA_PATH="/opt/cuda/current"
+ CUDA_PATH="/opt/cuda/cuda-8.0/"
 # NVCC="$CUDA_PATH/bin/nvcc --generate-code arch=compute_35,code=sm_35 -O2 -lineinfo -DCUDA_NO_SM_20_INTRINSICS -DPGI_COMPILE_BITCODE"
 # PGI_PATH="/opt/pgi/linux86-64/2018"
 # NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=9.1 -O2 -ta=nvidia:keepgpu,cc35,nollvm"

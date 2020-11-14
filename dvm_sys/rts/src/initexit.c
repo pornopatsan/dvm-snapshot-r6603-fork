@@ -1301,7 +1301,15 @@ void  StatInit(void)
      ( RTL_CALL, setpsw_(NULL, NULL, CoordWeightList, NULL) );
 
      /* */    /*E0103*/
-
+#ifdef _MPI_STUBS_
+//TODO: duplicated in dvmh/utils.cpp file, need to unite
+//TODO: need to add other compilers
+        const char * envR = getenv("PMI_RANK"); /* OMPI_COMM_WORLD_LOCAL_RANK for OpenMPI? */
+        if (envR) {
+            SYSTEM(strcat, (StatFileName, "_"))
+            SYSTEM(strcat, (StatFileName, envR))
+        } 
+#endif
      #ifdef _DVM_ZLIB_
 
      if(StatCompressLevel >= 0)

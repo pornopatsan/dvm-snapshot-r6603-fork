@@ -151,9 +151,16 @@ public:
     }
     void setCudaBlock(int xSize, int ySize = 1, int zSize = 1);
     void addToAcross(DvmhShadow oldGroup, DvmhShadow newGroup);
-    void addToAcross(DvmhData *data, ShdWidth widths[], bool cornerFlag = false);
+    void addToAcross(bool isOut, DvmhData *data, ShdWidth widths[], bool cornerFlag = false);
     void addConsistent(DvmhData *data, DvmhAxisAlignRule axisRules[]);
     void addRemoteAccess(DvmhData *data, DvmhAxisAlignRule axisRules[]);
+    void addArrayCorrespondence(DvmhData *data, DvmType loopAxes[]);
+    bool fillLoopDataRelations(const LoopBounds curLoopBounds[], DvmhData *data, bool forwardDirection[], Interval roundedPart[], bool leftmostPart[],
+            bool rightmostPart[]) const;
+    static void fillAcrossInOutWidths(int dataRank, const ShdWidth shdWidths[], const bool forwardDirection[], const bool leftmostPart[],
+        const bool rightmostPart[], ShdWidth inWidths[], ShdWidth outWidths[]);
+    void splitAcrossNew(DvmhShadow *newIn, DvmhShadow *newOut) const;
+    HybridVector<int, 10> getArrayCorrespondence(DvmhData *data, bool loopToArray = false) const;
     void prepareExecution();
     void executePart(const LoopBounds part[]);
     AggregateEvent *executePartAsync(const LoopBounds part[], DvmhEvent *depSrc = 0, AggregateEvent *endEvent = 0);
@@ -162,14 +169,19 @@ public:
     ~DvmhLoop();
 protected:
     enum ShadowComputeStage {COMPUTE_PREPARE, COMPUTE_DONE};
+    void checkAndFixArrayCorrespondence();
     void renewDependencyMask();
     static void shadowComputeOneRData(DvmhDistribSpace *dspace, const ShdWidth dspaceShdWidths[], ShadowComputeStage stage, DvmhData *data,
             DvmhRegionData *rdata);
     void handleShadowCompute(ShadowComputeStage stage);
+    bool fillComputePart(DvmhData *data, Interval computePart[], const LoopBounds curLoopBounds[]) const;
+    void getActualShadowsForAcrossOut() const;
+    void updateAcrossProfiles() const;
     bool mapPartOnDevice(const LoopBounds part[], int device, LoopBounds res[]) const;
     bool dividePortion(LoopBounds partialBounds[], int totalCount, int curIndex, LoopBounds curBounds[]) const;
 protected:
     Phase phase;
+    std::map<DvmhData *, HybridVector<int, 10> > loopArrayCorrespondence; // index - number of arrays's dimension, value is in [-loopRank..+loopRank].
 };
 
 class HandlerOptimizationParams {

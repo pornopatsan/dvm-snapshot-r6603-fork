@@ -671,10 +671,6 @@ void  events(void)
   trc_event( Event617                   )
   trc_event( Event618                   )
   trc_event( Event619                   )
-  
-  trc_event( call_copy_                 )  //io stat
-  trc_event( ret_copy_                  )  //io stat
- 
  
   return;
 }

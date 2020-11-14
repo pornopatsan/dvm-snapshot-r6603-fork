@@ -192,6 +192,7 @@ public:
         checkInternalNvrtc(nvrtcGetProgramLogSize(prog, &logSize));
         if (logSize > 1 && (compileResult != NVRTC_SUCCESS || dvmhSettings.logLevel >= DEBUG)) {
             char *log = new char[logSize];
+
             if (logSize < 1024)
                 dvmh_log(DEBUG, "NVRTC: log size = %.2f Bytes", float(logSize));
             else if (logSize < 1024 * 1024)
@@ -200,10 +201,10 @@ public:
                 dvmh_log(DEBUG, "NVRTC: log size = %.2f MB", logSize / (1024.0f * 1024.0f));
 
             checkInternalNvrtc(nvrtcGetProgramLog(prog, log));
-
             dvmh_log(compileResult == NVRTC_SUCCESS ? DEBUG : FATAL, "NVRTC: Compilation log:");
             char *newLog = new char[logSize];
-            for (int i = 0, k = 0; i < (int)logSize; i++) {
+            int k = 0;
+            for (int i = 0; i < (int)logSize; i++) {
                 if (log[i] == '\n') {
                     newLog[k] = '\0';
                     dvmh_log(compileResult == NVRTC_SUCCESS ? DEBUG : FATAL, "%s", newLog);
@@ -214,6 +215,8 @@ public:
                     k++;
                 }
             }
+            if (k != 0)
+                dvmh_log(compileResult == NVRTC_SUCCESS ? DEBUG : FATAL, "%s", newLog);
             delete[] newLog;
             delete[] log;
 

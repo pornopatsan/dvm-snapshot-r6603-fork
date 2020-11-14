@@ -312,16 +312,31 @@ bool HostDevice::pageLock(void *addr, UDvmType size) {
     if (size == 0)
         return true;
 #ifdef HAVE_CUDA
+    double lockTime = dvmhTime();
+    bool retVal = true;
     std::map<void *, UDvmType>::iterator it = pageLocked.find(addr);
     if (it == pageLocked.end() || it->second < size) {
         cudaError_t err = cudaHostRegister(addr, size, cudaHostRegisterPortable);
         if (err == cudaSuccess) {
             pageLocked[addr] = size;
-            return true;
-        } else
-            return false;
-    } else
-        return true;
+        } 
+        else
+            retVal = false;
+    }
+    
+    //TODO: do it better
+    int totalCuda = 0;
+    for (int i = 0; i < devicesCount; ++i) 
+        if (devices[i]->getType() == dtCuda)
+            ++totalCuda;
+    lockTime = dvmhTime() - lockTime;
+
+    //split evenly across all CUDA devices
+    lockTime /= totalCuda;
+    for (int i = 0; i < devicesCount; ++i) 
+        if (devices[i]->getType() == dtCuda)
+            dvmh_stat_add_measurement(((CudaDevice *)devices[i])->index, DVMH_STAT_METRIC_UTIL_PAGE_LOCK_HOST_MEM, lockTime, 0.0, lockTime);
+    return retVal;
 #else
     return false;
 #endif
@@ -329,10 +344,24 @@ bool HostDevice::pageLock(void *addr, UDvmType size) {
 
 void HostDevice::pageUnlock(void* addr) {
 #ifdef HAVE_CUDA
+    double lockTime = dvmhTime();
     if (pageLocked.find(addr) != pageLocked.end()) {
         checkInternalCuda(cudaHostUnregister(addr));
         pageLocked.erase(addr);
     }
+    
+    //TODO: do it better
+    int totalCuda = 0;
+    for (int i = 0; i < devicesCount; ++i) 
+        if (devices[i]->getType() == dtCuda)
+            ++totalCuda;
+    lockTime = dvmhTime() - lockTime;
+    
+    //split evenly across all CUDA devices
+    lockTime /= totalCuda;
+    for (int i = 0; i < devicesCount; ++i) 
+        if (devices[i]->getType() == dtCuda)
+            dvmh_stat_add_measurement(((CudaDevice *)devices[i])->index, DVMH_STAT_METRIC_UTIL_PAGE_LOCK_HOST_MEM, lockTime, 0.0, lockTime);
 #endif
 }
 
@@ -543,17 +572,17 @@ char *CudaDevice::allocBytes(UDvmType memNeeded, UDvmType alignment) {
         memoryLeft -= memNeeded;
         dvmh_log(TRACE, "Reused memory on GPU #%d " UDTFMT " bytes, place=%p, free " UDTFMT " bytes", index, memNeeded, res, memoryLeft);
     } else {
-        if (memoryLeft < memInFreePieces + memNeeded)
-            renewMemoryLeft();
-        if (memoryLeft < memInFreePieces + memNeeded) {
+        cudaError_t err = cudaMalloc((void **)&res, memNeeded);
+        if (err == cudaErrorMemoryAllocation) {
             for (std::map<UDvmType, std::vector<void *> >::iterator it = freePieces.begin(); it != freePieces.end(); it++)
                 for (int i = 0; i < (int)it->second.size(); i++)
                     checkInternalCuda(cudaFree(it->second[i]));
             freePieces.clear();
             memInFreePieces = 0;
-            renewMemoryLeft();
+            checkInternalCuda(cudaMalloc((void **)&res, memNeeded));
+        } else {
+            checkInternalCuda(err);
         }
-        checkInternalCuda(cudaMalloc((void **)&res, memNeeded));
         renewMemoryLeft();
         dvmh_log(TRACE, "Allocated memory on GPU #%d " UDTFMT " bytes, place=%p, free " UDTFMT " bytes", index, memNeeded, res, memoryLeft);
     }

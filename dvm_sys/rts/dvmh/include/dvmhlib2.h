@@ -165,8 +165,8 @@ void dvmh_loop_set_stage_(const DvmType *pCurLoop, const DvmType *pStage);
 void dvmh_loop_reduction_C(DvmType curLoop, DvmType redType, void *arrayAddr, DvmType varType, DvmType arrayLength, void *locAddr, DvmType locSize);
 void dvmh_loop_reduction_(const DvmType *pCurLoop, const DvmType *pRedType, void *arrayAddr, const DvmType *pVarType, const DvmType *pArrayLength,
         void *locAddr, const DvmType *pLocSize);
-void dvmh_loop_across_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...);
-void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...);
+void dvmh_loop_across_C(DvmType curLoop, DvmType isOut, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...);
+void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType *pIsOut, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...);
 void dvmh_loop_shadow_compute_C(DvmType curLoop, const DvmType templDesc[], DvmType specifiedRank, /* DvmType shadowLow, DvmType shadowHigh */...);
 void dvmh_loop_shadow_compute_(const DvmType *pCurLoop, const DvmType templDesc[], const DvmType *pSpecifiedRank,
         /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...);
@@ -176,6 +176,8 @@ void dvmh_loop_consistent_C(DvmType curLoop, const DvmType dvmDesc[], DvmType ra
 void dvmh_loop_consistent_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pAlignmentHelper */...);
 void dvmh_loop_remote_access_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType alignmentHelper */...);
 void dvmh_loop_remote_access_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pAlignmentHelper */...);
+void dvmh_loop_array_correspondence_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType loopAxis */...);
+void dvmh_loop_array_correspondence_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pLoopAxis */...);
 void dvmh_loop_register_handler_C(DvmType curLoop, DvmType deviceType, DvmType handlerType, DvmType handlerHelper);
 void dvmh_loop_register_handler_(const DvmType *pCurLoop, const DvmType *pDeviceType, const DvmType *pHandlerType, const DvmType *pHandlerHelper);
 void dvmh_loop_perform_C(DvmType curLoop);

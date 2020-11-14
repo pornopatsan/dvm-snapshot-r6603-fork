@@ -57,10 +57,17 @@ void DvmhReduction::initValues(void *arrayPtr, void *locPtr) const {
                 for (UDvmType j = 0; j < elemCount; j++) {
                     char *ptr = (char *)arrayPtr + j * elemSize;
                     switch (arrayElementType) {
+#ifdef INTEL_LOGICAL_TYPE
                         case DvmhData::dtChar: *(signed char *)ptr = -1; break;
                         case DvmhData::dtInt: *(int *)ptr = -1; break;
                         case DvmhData::dtLong: *(long *)ptr = -1; break;
                         case DvmhData::dtLongLong: *(long long *)ptr = -1; break;
+#else
+                        case DvmhData::dtChar: *(signed char *)ptr = 1; break;
+                        case DvmhData::dtInt: *(int *)ptr = 1; break;
+                        case DvmhData::dtLong: *(long *)ptr = 1; break;
+                        case DvmhData::dtLongLong: *(long long *)ptr = 1; break;
+#endif	
                         default: assert(false);
                     }
                 }
@@ -111,9 +118,15 @@ void DvmhReduction::addInitialValues() {
 #define RED_AND(T, dest, src, result) do { *((T *)dest) &= *((T *)src); result = 0; } while(0)
 #define RED_OR(T, dest, src, result) do { *((T *)dest) |= *((T *)src); result = 0; } while(0)
 #define RED_XOR(T, dest, src, result) do { *((T *)dest) ^= *((T *)src); result = 0; } while(0)
+#ifdef INTEL_LOGICAL_TYPE
 #define RED_EQU(T, dest, src, result) do { *((T *)dest) = ~(*((T *)dest) ^ *((T *)src)); result = 0; } while(0)
 #define RED_NE(T, dest, src, result) do { *((T *)dest) ^= *((T *)src); result = 0; } while(0)
 #define RED_EQ(T, dest, src, result) do { *((T *)dest) = ~(*((T *)dest) ^ *((T *)src)); result = 0; } while(0)
+#else
+#define RED_EQU(T, dest, src, result) do { *((T *)dest) = (*((T *)dest) == *((T *)src)); result = 0; } while(0)
+#define RED_NE(T, dest, src, result) do { *((T *)dest) = *((T *)dest) != *((T *)src); result = 0; } while(0)
+#define RED_EQ(T, dest, src, result) do { *((T *)dest) = (*((T *)dest) == *((T *)src)); result = 0; } while(0)
+#endif
 #define RED_SUM(T, dest, src, result) do { *((T *)dest) += *((T *)src); result = 0; } while(0)
 #define RED_MULT(T, dest, src, result) do { *((T *)dest) *= *((T *)src); result = 0; } while(0)
 void DvmhReduction::performOperation(void *resultArrayPtr, void *resultLocPtr, const void *summandArrayPtr, const void *summandLocPtr) const {
@@ -622,7 +635,7 @@ void DvmhLoop::addToAcross(DvmhShadow oldGroup, DvmhShadow newGroup) {
     dvmh_log(TRACE, "Count of all ACROSS shadows=%d", acrossNew.dataCount() + acrossOld.dataCount());
 }
 
-void DvmhLoop::addToAcross(DvmhData *data, ShdWidth widths[], bool cornerFlag) {
+void DvmhLoop::addToAcross(bool isOut, DvmhData *data, ShdWidth widths[], bool cornerFlag) {
     checkInternal(phase == lpRegistrations);
     DvmhShadowData oldSdata, newSdata;
     oldSdata.data = data;
@@ -641,7 +654,9 @@ void DvmhLoop::addToAcross(DvmhData *data, ShdWidth widths[], bool cornerFlag) {
                 int j = sign(alignRule->getAxisRule(i)->multiplier) * sign(data->getAlignRule()->getAxisRule(i)->multiplier)
                         * sign(loopBounds[alignRule->getAxisRule(i)->axisNumber - 1][2]) > 0;
                 oldSdata.shdWidths[ax - 1][j] = newSdata.shdWidths[ax - 1][j];
-                newSdata.shdWidths[ax - 1][j] = 0;
+                if (!isOut) {
+                    newSdata.shdWidths[ax - 1][j] = 0;
+                }
             }
         }
     }
@@ -661,6 +676,151 @@ void DvmhLoop::addRemoteAccess(DvmhData *data, DvmhAxisAlignRule axisRules[]) {
     DvmhAxisAlignRule *rules = new DvmhAxisAlignRule[data->getRank()];
     typedMemcpy(rules, axisRules, data->getRank());
     rmas.push_back(std::make_pair(data, rules));
+}
+
+void DvmhLoop::addArrayCorrespondence(DvmhData *data, DvmType loopAxes[]) {
+    int dataRank = data->getRank();
+    HybridVector<int, 10> axesConverted;
+    axesConverted.resize(dataRank, 0);
+    for (int i = 0; i < dataRank; i++) {
+        assert(loopAxes[i] >= -rank && loopAxes[i] <= rank);
+        axesConverted[i] = loopAxes[i];
+    }
+    std::map<DvmhData *, HybridVector<int, 10> >::iterator it = loopArrayCorrespondence.find(data);
+    if (it == loopArrayCorrespondence.end()) {
+        loopArrayCorrespondence.insert(std::make_pair(data, axesConverted));
+    } else {
+        for (int i = 0; i < dataRank; i++) {
+            if (it->second[i] == 0) {
+                it->second[i] = axesConverted[i];
+            } else if (it->second[i] != axesConverted[i] && axesConverted[i] != 0) {
+                checkError3(it->second[i] == -axesConverted[i], "Several loop axes for loop-array correspondece are not allowed for the same array axis: array axis %d, loop axes %d and %d", i + 1, it->second[i], axesConverted[i]);
+                if (it->second[i] < 0) {
+                    it->second[i] = axesConverted[i];
+                }
+            }
+        }
+    }
+}
+
+bool DvmhLoop::fillLoopDataRelations(const LoopBounds curLoopBounds[], DvmhData *data, bool forwardDirection[], Interval roundedPart[],
+        bool leftmostPart[], bool rightmostPart[]) const {
+    bool hasSomething;
+    int dataRank = data->getRank();
+    if (hasLocal) {
+        hasSomething = fillComputePart(data, roundedPart, curLoopBounds);
+    } else {
+        hasSomething = data->hasLocal();
+        roundedPart->blockAssign(dataRank, data->getLocalPart());
+    }
+
+    for (int k = 0; k < dataRank; k++) {
+        forwardDirection[k] = true;
+        leftmostPart[k] = true;
+        rightmostPart[k] = true;
+    }
+    HybridVector<int, 10> corr = getArrayCorrespondence(data);
+    for (int i = 0; i < dataRank; i++) {
+        if (corr[i] != 0) {
+            int loopAxis = std::abs(corr[i]);
+            forwardDirection[i] = corr[i] > 0;
+            bool firstIterations = curLoopBounds[loopAxis - 1][0] == localPlusShadow[loopAxis - 1][0];
+            bool lastIterations = curLoopBounds[loopAxis - 1][1] == localPlusShadow[loopAxis - 1][1];
+            if ((forwardDirection[i] && firstIterations) || (!forwardDirection[i] && lastIterations)) {
+                leftmostPart[i] = true;
+                roundedPart[i][0] = data->getAxisLocalPart(i + 1)[0];
+            } else {
+                leftmostPart[i] = roundedPart[i][0] == data->getAxisLocalPart(i + 1)[0];
+            }
+            if ((forwardDirection[i] && lastIterations) || (!forwardDirection[i] && firstIterations)) {
+                rightmostPart[i] = true;
+                roundedPart[i][1] = data->getAxisLocalPart(i + 1)[1];
+            } else {
+                rightmostPart[i] = roundedPart[i][1] == data->getAxisLocalPart(i + 1)[1];
+            }
+        }
+    }
+
+    return hasSomething;
+}
+
+void DvmhLoop::fillAcrossInOutWidths(int dataRank, const ShdWidth shdWidths[], const bool forwardDirection[], const bool leftmostPart[],
+        const bool rightmostPart[], ShdWidth inWidths[], ShdWidth outWidths[]) {
+    for (int k = 0; k < dataRank; k++) {
+        inWidths[k] = outWidths[k] = ShdWidth::createEmpty();
+        if (leftmostPart[k] && forwardDirection[k]) {
+            inWidths[k][0] = shdWidths[k][0];
+            outWidths[k][1] = shdWidths[k][1];
+        } else if (rightmostPart[k] && !forwardDirection[k]) {
+            inWidths[k][1] = shdWidths[k][1];
+            outWidths[k][0] = shdWidths[k][0];
+        }
+    }
+}
+
+void DvmhLoop::splitAcrossNew(DvmhShadow *newIn, DvmhShadow *newOut) const {
+    for (int j = 0; j < acrossNew.dataCount(); j++) {
+        const DvmhShadowData *sdata = &acrossNew.getData(j);
+        DvmhData *data = sdata->data;
+        int dataRank = data->getRank();
+        DvmhShadowData inSdata, outSdata;
+        inSdata.data = data;
+        outSdata.data = data;
+        inSdata.cornerFlag = sdata->cornerFlag;
+        outSdata.cornerFlag = sdata->cornerFlag;
+        inSdata.shdWidths = new ShdWidth[dataRank];
+        std::fill(inSdata.shdWidths, inSdata.shdWidths + dataRank, ShdWidth::createEmpty());
+        outSdata.shdWidths = new ShdWidth[dataRank];
+        std::fill(outSdata.shdWidths, outSdata.shdWidths + dataRank, ShdWidth::createEmpty());
+        assert(data->isDistributed() && alignRule && data->getAlignRule()->getDspace() == alignRule->getDspace());
+        for (int i = 1; i <= alignRule->getDspace()->getRank(); i++) {
+            int ax = data->getAlignRule()->getAxisRule(i)->axisNumber;
+            if (ax > 0 && alignRule->getAxisRule(i)->axisNumber > 0) {
+                int j = sign(alignRule->getAxisRule(i)->multiplier) * sign(data->getAlignRule()->getAxisRule(i)->multiplier)
+                        * sign(loopBounds[alignRule->getAxisRule(i)->axisNumber - 1][2]) > 0;
+                outSdata.shdWidths[ax - 1][j] = sdata->shdWidths[ax - 1][j];
+                inSdata.shdWidths[ax - 1][1 - j] = sdata->shdWidths[ax - 1][1 - j];
+            }
+        }
+        if (!inSdata.empty()) {
+            newIn->add(inSdata);
+        }
+        if (!outSdata.empty()) {
+            newOut->add(outSdata);
+        }
+    }
+}
+
+HybridVector<int, 10> DvmhLoop::getArrayCorrespondence(DvmhData *data, bool loopToArray) const {
+    HybridVector<int, 10> corr;
+    int dataRank = data->getRank();
+    corr.resize((loopToArray ? rank : dataRank), 0);
+    std::map<DvmhData *, HybridVector<int, 10> >::const_iterator it = loopArrayCorrespondence.find(data);
+    if (it != loopArrayCorrespondence.end()) {
+        for (int i = 0; i < dataRank; i++) {
+            if (it->second[i] != 0) {
+                int loopAxis = std::abs(it->second[i]);
+                if (loopToArray)
+                    corr[loopAxis - 1] = (i + 1) * sign(it->second[i]) * sign(loopBounds[loopAxis - 1][2]);
+                else
+                    corr[i] = it->second[i] * sign(loopBounds[loopAxis - 1][2]);
+            }
+        }
+    } else if (alignRule && data->isDistributed() && alignRule->getDspace() == data->getAlignRule()->getDspace()) {
+        DvmhDistribSpace *dspace = alignRule->getDspace();
+        for (int i = 0; i < dspace->getRank(); i++) {
+            int dataAxis = data->getAlignRule()->getAxisRule(i + 1)->axisNumber;
+            int loopAxis = alignRule->getAxisRule(i + 1)->axisNumber;
+            if (dataAxis > 0 && loopAxis > 0) {
+                int direction = sign(loopBounds[loopAxis - 1][2]) * sign(alignRule->getAxisRule(i + 1)->multiplier) * sign(data->getAlignRule()->getAxisRule(i + 1)->multiplier);
+                if (loopToArray)
+                    corr[loopAxis - 1] = dataAxis * direction;
+                else
+                    corr[dataAxis - 1] = loopAxis * direction;
+            }
+        }
+    }
+    return corr;
 }
 
 void DvmhLoop::prepareExecution() {
@@ -694,14 +854,19 @@ void DvmhLoop::prepareExecution() {
             typedMemcpy(localPlusShadow, localPart, rank);
         }
     }
+    if (alignRule) {
+        checkAndFixArrayCorrespondence();
+    }
     if (rank > 0) {
         renewDependencyMask();
         dvmh_log(TRACE, "Modified dependency mask: " UDTFMT, dependencyMask);
     }
     persistentInfo->fix(this);
     handleShadowCompute(COMPUTE_PREPARE);
+    getActualShadowsForAcrossOut();
     if (region)
         region->renewDatas();
+    updateAcrossProfiles();
 }
 
 class PerformPortionTask: public Executable {
@@ -922,6 +1087,33 @@ DvmhLoop::~DvmhLoop() {
     delete[] mappingDataRules;
 }
 
+void DvmhLoop::checkAndFixArrayCorrespondence() {
+    for (std::map<DvmhData *, HybridVector<int, 10> >::iterator it = loopArrayCorrespondence.begin(); it != loopArrayCorrespondence.end(); it++) {
+        DvmhData *data = it->first;
+        HybridVector<int, 10> &corr = it->second;
+        if (data->isDistributed() && data->getAlignRule()->getDspace() == alignRule->getDspace()) {
+            int dspaceRank = alignRule->getDspace()->getRank();
+            for (int i = 0; i < dspaceRank; i++) {
+                const DvmhAxisAlignRule *dataAxRule = data->getAlignRule()->getAxisRule(i + 1);
+                const DvmhAxisAlignRule *loopAxRule = alignRule->getAxisRule(i + 1);
+                int dataAxis = dataAxRule->axisNumber;
+                int loopAxis = loopAxRule->axisNumber;
+                if (dataAxis > 0 && loopAxis > 0) {
+                    int expectedCorr = loopAxis * sign(dataAxRule->multiplier) * sign(loopAxRule->multiplier);
+                    if (corr[dataAxis - 1] == 0) {
+                        corr[dataAxis - 1] = expectedCorr;
+                    } else if (corr[dataAxis - 1] != expectedCorr) {
+                        checkError3(corr[dataAxis - 1] == -expectedCorr, "Loop-array correspondece conflicts with alignment tree rules: array axis %d, loop axes %d (from tie) and %d (from alignment)", dataAxis, corr[dataAxis - 1], expectedCorr);
+                        if (corr[dataAxis - 1] < 0) {
+                            corr[dataAxis - 1] = expectedCorr;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 void DvmhLoop::renewDependencyMask() {
     // Find dimensions with dependencies, which are generated by ACROSS
     checkInternal(phase == lpExecution);
@@ -930,35 +1122,22 @@ void DvmhLoop::renewDependencyMask() {
     DvmhShadow acrossAll;
     acrossAll.append(acrossOld);
     acrossAll.append(acrossNew);
-    DvmhDistribSpace *dspace = alignRule ? alignRule->getDspace() : 0;
     for (int i = 0; i < acrossAll.dataCount(); i++) {
         const DvmhShadowData *sdata = &acrossAll.getData(i);
         DvmhData *data = sdata->data;
-        assert(data->isDistributed());
+        HybridVector<int, 10> corr = getArrayCorrespondence(data);
         for (int j = 0; j < data->getRank(); j++) {
             if (sdata->shdWidths[j][0] > 0 || sdata->shdWidths[j][1] > 0) {
-                if (data->getAlignRule()->getDspace() == dspace) {
-                    int loopAxis = -1;
-                    if (mappingData == data && mappingDataRules) {
-                        loopAxis = mappingDataRules[j].axisNumber;
-                    } else {
-                        int foundDspaceAxis = data->getAlignRule()->getDspaceAxis(j + 1);
-                        if (foundDspaceAxis > 0)
-                            loopAxis = alignRule->getAxisRule(foundDspaceAxis)->axisNumber;
-                    }
-                    if (loopAxis > 0) {
-                        if (firstDep == -1 || loopAxis < firstDep)
-                            firstDep = loopAxis;
-                        if (!dvmhSettings.reduceDependencies || (hasLocal && localPlusShadow[loopAxis - 1][0] < localPlusShadow[loopAxis - 1][1]))
-                            dependencyMask |= ((UDvmType)1 << (rank - loopAxis));
-                    } else {
-                        const char *name = (region ? region->getDataName(data) : 0);
-                        checkError3(false, "ACROSS array %s has dependency on dimension %d, which can not be tied with the parallel loop", (name ? name : ""),
-                                j + 1);
-                    }
+                int loopAxis = std::abs(corr[j]);
+                if (loopAxis > 0) {
+                    if (firstDep == -1 || loopAxis < firstDep)
+                        firstDep = loopAxis;
+                    if (!dvmhSettings.reduceDependencies || (hasLocal && localPlusShadow[loopAxis - 1][0] < localPlusShadow[loopAxis - 1][1]))
+                        dependencyMask |= ((UDvmType)1 << (rank - loopAxis));
                 } else {
                     const char *name = (region ? region->getDataName(data) : 0);
-                    checkError3(false, "ACROSS array %s is mapped on different template, than corresponding parallel loop", (name ? name : ""));
+                    checkError3(false, "ACROSS array %s has dependency on dimension %d, which can not be tied with the parallel loop", (name ? name : ""),
+                            j + 1);
                 }
             }
         }
@@ -1038,6 +1217,109 @@ void DvmhLoop::handleShadowCompute(ShadowComputeStage stage) {
         }
     }
     // TODO: What to do with loops with SHADOW_COMPUTE outside regions? Should shadow profile be updated? On which arrays?
+}
+
+bool DvmhLoop::fillComputePart(DvmhData *data, Interval computePart[], const LoopBounds curLoopBounds[]) const {
+    if (!alignRule) {
+        assert(!data->isDistributed());
+        computePart->blockAssign(data->getRank(), data->getLocalPart());
+        return data->hasLocal();
+    }
+
+    assert(data->isDistributed() && alignRule && data->getAlignRule()->getDspace() == alignRule->getDspace());
+    DvmhDistribSpace *dspace = alignRule->getDspace();
+#ifdef NON_CONST_AUTOS
+    Interval dspacePart[dspace->getRank()];
+#else
+    Interval dspacePart[MAX_DISTRIB_SPACE_RANK];
+#endif
+    for (int j = 0; j < dspace->getRank(); j++) {
+        if (dspace->hasLocal()) {
+            const DvmhAxisAlignRule *rule = alignRule->getAxisRule(j + 1);
+            if (rule->axisNumber < 1 || rule->multiplier == 0) {
+                dspacePart[j] = dspace->getAxisLocalPart(j + 1);
+            } else {
+                dspacePart[j][0] = curLoopBounds[rule->axisNumber - 1][0] * rule->multiplier + rule->summandLocal;
+                dspacePart[j][1] = curLoopBounds[rule->axisNumber - 1][1] * rule->multiplier + rule->summandLocal;
+                if (curLoopBounds[rule->axisNumber - 1][2] * rule->multiplier < 0)
+                    std::swap(dspacePart[j][0], dspacePart[j][1]);
+                dspacePart[j].intersectInplace(dspace->getAxisLocalPart(j + 1));
+            }
+        } else {
+            dspacePart[j] = Interval::createEmpty();
+        }
+    }
+    dvmh_log(TRACE, "dspacePart:");
+    custom_log(TRACE, blockOut, dspace->getRank(), dspacePart);
+    computePart->blockAssign(data->getRank(), data->getLocalPart());
+    bool hasSomething = data->getAlignRule()->mapOnPart(dspacePart, computePart, true);
+    if (!hasSomething) {
+        dvmh_log(DEBUG, "ACROSS array has no local elements on this run");
+        return false;
+    }
+    dvmh_log(TRACE, "computePart:");
+    custom_log(TRACE, blockOut, data->getRank(), computePart);
+    return true;
+}
+
+void DvmhLoop::getActualShadowsForAcrossOut() const {
+    if (!region) {
+        return;
+    }
+    for (int i = 0; i < acrossNew.dataCount(); i++) {
+        const DvmhShadowData *sdata = &acrossNew.getData(i);
+        DvmhData *data = sdata->data;
+        int dataRank = data->getRank();
+        DvmhRegionData *rdata = dictFind2(*region->getDatas(), data);
+#ifdef NON_CONST_AUTOS
+        Interval roundedPart[dataRank];
+        bool forwardDirection[dataRank], leftmostPart[dataRank], rightmostPart[dataRank];
+        ShdWidth inWidths[dataRank], outWidths[dataRank];
+#else
+        Interval roundedPart[MAX_ARRAY_RANK];
+        bool forwardDirection[MAX_ARRAY_RANK], leftmostPart[MAX_ARRAY_RANK], rightmostPart[MAX_ARRAY_RANK];
+        ShdWidth inWidths[MAX_ARRAY_RANK], outWidths[MAX_ARRAY_RANK];
+#endif
+        bool hasSomething = fillLoopDataRelations(localPlusShadow, data, forwardDirection, roundedPart, leftmostPart, rightmostPart);
+        if (hasSomething) {
+            fillAcrossInOutWidths(dataRank, sdata->shdWidths, forwardDirection, leftmostPart, rightmostPart, inWidths, outWidths);
+            PushCurrentPurpose purpose(DvmhCopyingPurpose::dcpShadow);
+            for (int j = 0; j < devicesCount; j++) {
+                if (rdata->getLocalPart(j)) {
+                    data->getActualShadow(j, rdata->getLocalPart(j), sdata->cornerFlag, outWidths, true);
+                }
+            }
+        }
+    }
+}
+
+void DvmhLoop::updateAcrossProfiles() const {
+    for (int i = 0; i < acrossNew.dataCount(); i++) {
+        const DvmhShadowData *sdata = &acrossNew.getData(i);
+        DvmhData *data = sdata->data;
+        int dataRank = data->getRank();
+#ifdef NON_CONST_AUTOS
+        Interval roundedPart[dataRank];
+        bool forwardDirection[dataRank], leftmostPart[dataRank], rightmostPart[dataRank];
+        ShdWidth inWidths[dataRank], outWidths[dataRank];
+#else
+        Interval roundedPart[MAX_ARRAY_RANK];
+        bool forwardDirection[MAX_ARRAY_RANK], leftmostPart[MAX_ARRAY_RANK], rightmostPart[MAX_ARRAY_RANK];
+        ShdWidth inWidths[MAX_ARRAY_RANK], outWidths[MAX_ARRAY_RANK];
+#endif
+        bool hasSomething = fillLoopDataRelations(localPlusShadow, data, forwardDirection, roundedPart, leftmostPart, rightmostPart);
+        if (hasSomething && region) {
+            fillAcrossInOutWidths(dataRank, sdata->shdWidths, forwardDirection, leftmostPart, rightmostPart, inWidths, outWidths);
+            DvmhRegionData *rdata = dictFind2(*region->getDatas(), data);
+            for (int j = 0; j < devicesCount; j++) {
+                if (rdata->getLocalPart(j)) {
+                    data->shadowComputed(j, rdata->getLocalPart(j), sdata->cornerFlag, outWidths);
+                }
+            }
+            rdata->setRenewFlag();
+        }
+        data->updateShadowProfile(sdata->cornerFlag, sdata->shdWidths);
+    }
 }
 
 bool DvmhLoop::mapPartOnDevice(const LoopBounds part[], int device, LoopBounds res[]) const {

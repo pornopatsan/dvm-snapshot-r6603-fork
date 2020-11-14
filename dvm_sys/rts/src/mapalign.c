@@ -940,14 +940,6 @@ on the current processor, otherwise returns zero.
 
      ((SysHandle *)NewArrayHeader[0])->HeaderPtr = (uLLng)ArrayHeader;
 
-      ArrayHandlePtr = DArrAMV->HandlePtr;
-
-     if(DArrAMV->ArrColl.Count == 0 &&
-        ArrayHandlePtr->InitCrtBlockInd == 0)
-        {  ObjRef = (ObjectRef)ArrayHandlePtr;
-
-           ( RTL_CALL, delobj_(&ObjRef) ); /* delayed deletion of s_AMVIEW object */
-     }
   }
 
   if(RTL_TRACE)

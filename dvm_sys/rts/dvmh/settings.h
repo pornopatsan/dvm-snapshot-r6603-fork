@@ -58,6 +58,7 @@ public:
     bool alwaysSync;
     bool useFortranNotation;
     bool cacheGpuAllocations;
+    bool pageLockHostMemory;
     bool useGenblock;
     bool setAffinity;
     bool optimizeParams;

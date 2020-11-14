@@ -19,6 +19,7 @@
  dvmrun="suppz.run"
  maxtime=10
  restart=0
+ quantum=0
 # DVMH options for default preset
  DVMH_PPN="8"
  DVMH_NUM_THREADS="0"

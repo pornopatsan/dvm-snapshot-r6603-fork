@@ -71,6 +71,7 @@ struct
     int     Irep_left, Irep_right;          /* number of first and last sequential loops iterations */
     byte    SubstRedResults;                /* substitute reduction results with the results from the trace */
     byte    SubstAllResults;                /* substitute all write operations results with the results from the trace */
+    byte    AllowErrorsSubst;               /* substitute operation results even when they counts as errors */
     byte    DisableRedArrays;               /* disable reduction array's debugging */
     byte    SRCLocCompareMode;              /* comparison mode for code locations */
     int     LocIterWidth;                   /* number of local first and last parallel loops iterations */
@@ -128,6 +129,7 @@ TraceOptions =
     -1, -1,       /* Irep_left, Irep_right */
     0,            /* SubstRedResults */
     0,            /* SubstAllResults */
+    0,            /* AllowErrorsSubst */
     0,            /* DisableRedArrays */
     0,            /* SRCLocCompareMode */
     1,            /* LocIterWidth */

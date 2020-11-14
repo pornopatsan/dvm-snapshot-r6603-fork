@@ -1,0 +1,31 @@
+#For K60 (k60.kiam.ru) PLATFORM (Intel compilers with OpenMP and GPU)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="/home/bakhtin/CLANG/bin/llvm-config"
+# for parallel programs
+ MPIR_HOME="/common/intel/compilers_and_libraries_2018/linux/mpi/intel64"
+ MPIRUN_CMD="/common/runmvs/bin/run-impi"
+ PCC="/common/intel/compilers_and_libraries_2018/linux/bin/intel64/icc -g -O2 -no-scalar-rep -qopenmp"
+ PCXX="/common/intel/compilers_and_libraries_2018/linux/bin/intel64/icpc -g -O2 -no-scalar-rep -qopenmp"
+ PFORT="/common/intel/compilers_and_libraries_2018/linux/bin/intel64/ifort -g -O2 -no-scalar-rep -qopenmp"
+ PLINKER="$MPIR_HOME/bin/mpiicpc -cxx=/common/intel/compilers_and_libraries_2018/linux/bin/intel64/icpc -g -qopenmp"
+ PFLINKER="$MPIR_HOME/bin/mpiifort -fc=/common/intel/compilers_and_libraries_2018/linux/bin/intel64/ifort -g -qopenmp"
+ CUDA_PATH="/common/cuda-10.0/"
+ NVCC="/common/cuda-10.0/bin/nvcc -g -O2 -arch=sm_70 -DHAVE_EXPLICIT_CAST -DPGI_COMPILE_BITCODE"
+ WITHOUT_MPI=1
+ ADD_LIBS="-L/home/bakhtin/lib64"
+# launch settings
+ dvmcopy=1
+ dvmrun="suppz_k60_gpu.run"
+ maxtime=30
+ restart=0
+ quantum=0
+# DVMH options for default preset 
+ DVMH_PPN=32
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=32
+ CUDAS_PER_NODE=4

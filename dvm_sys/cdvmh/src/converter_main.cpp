@@ -149,7 +149,7 @@ void ConverterASTVisitor::genIntervals(FileID fileID, int line) {
             checkDirErrN(fileCtx.isCompilable(), 396);
             checkDirErrN(!inRegion && !inParLoop, 397);
             checkDirErrN(intervalStack.size() >= pragma->ids.size(), 3910);
-            for (int i = 0; i < pragma->ids.size(); i++) {
+            for (int i = 0; i < (int)pragma->ids.size(); i++) {
                 MyExpr storedId = intervalStack[intervalStack.size() - i - 1].first;
                 checkDirErrN(storedId == pragma->ids[i], 3911, pragma->ids[i].strExpr.c_str());
                 toInsert += indent + "dvmh_usr_interval_end_();\n";
@@ -843,7 +843,7 @@ bool ConverterASTVisitor::VisitFunctionDecl(FunctionDecl *f) {
     bool hasBody = f->hasBody(Definition);
     bool bodyIsHere = hasBody && Definition == f;
     bool isMain = f->isMain();
-    bool isEntry = isMain || (!opts.dvmhLibraryEntry.empty() && f->getName() == opts.dvmhLibraryEntry);
+    bool isEntry = (opts.dvmhLibraryEntry.empty() && isMain) || (!opts.dvmhLibraryEntry.empty() && f->getName() == opts.dvmhLibraryEntry);
     checkUserErrN(!inRegion, fileName, line, 431);
     if (srcMgr.isInMainFile(fileLoc) || projectCtx.hasInputFile(fileName)) {
         //checkUserErr(!bodyIsHere || fileCtx.isCompilable(), fileName, line, "Function definition in header file is not allowed");
@@ -1073,7 +1073,7 @@ bool ConverterASTVisitor::VisitStmt(Stmt *s) {
                 outerPrivates.insert(vd);
                 bool uniqueFlag = loopVarNames.insert(vd->getName()).second;
                 checkDirErrN(uniqueFlag, 4412);
-                if (curPragma->mappedFlag) {
+                if (curPragma->mapRule.isInitialized()) {
                     std::map<std::string, int>::iterator it = curPragma->mapRule.nameToAxis.find(vd->getName());
                     checkDirErrN(it != curPragma->mapRule.nameToAxis.end() && it->second == i + 1, 342);
                 }
@@ -1093,6 +1093,10 @@ bool ConverterASTVisitor::VisitStmt(Stmt *s) {
             parLoopBodyStmt = curSt;
             innerVars.clear();
             reductions.clear();
+            rmaAppearances.clear();
+            parLoopBodyExprCounter = 0;
+            delete parallelRmaDesc;
+            parallelRmaDesc = new ParallelRmaDesc;
             for (int i = 0; i < (int)curPragma->reductions.size(); i++) {
                 VarDecl *vd = seekVarDecl(curPragma->reductions[i].arrayName);
                 checkDirErrN(vd, 301, curPragma->reductions[i].arrayName.c_str());
@@ -1130,6 +1134,7 @@ bool ConverterASTVisitor::VisitStmt(Stmt *s) {
                 int rank = curPragma->rmas[i].rank;
                 VarDecl *vd = seekVarDecl(origName);
                 checkDirErrN(vd, 301, origName.c_str());
+                parallelRmaDesc->arrayDecls.push_back(vd);
                 checkIntErrN(varStates.find(vd) != varStates.end(), 92, vd->getNameAsString().c_str());
                 VarState *varState = &varStates[vd];
                 checkDirErrN(rank == varState->rank, 304, origName.c_str());
@@ -1262,6 +1267,10 @@ bool ConverterASTVisitor::VisitStmt(Stmt *s) {
         innerVars.clear();
         reductions.clear();
         varsToGetActual.clear();
+        rmaAppearances.clear();
+        parLoopBodyExprCounter = 0;
+        delete parallelRmaDesc;
+        parallelRmaDesc = 0;
     }
     if (s == parLoopBodyStmt)
         inParLoopBody = true;
@@ -1269,7 +1278,7 @@ bool ConverterASTVisitor::VisitStmt(Stmt *s) {
 }
 
 void ConverterASTVisitor::genBlankHandler(const std::string &handlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
-        std::string &handlerText) {
+        const std::map<int, Decl *> localDecls, std::string &handlerText) {
     std::string indent = indentStep;
     PragmaParallel *curPragma = curParallelPragma;
     bool isSequentialPart = curPragma == 0;
@@ -1320,7 +1329,6 @@ void ConverterASTVisitor::genBlankHandler(const std::string &handlerName, const 
         trimList(listTemp);
         handlerText += listTemp;
         // TODO: Add RMA to sequential part as well
-        // TODO: Convert RMAs before emitting blank handlers for simplicity, maybe
         handlerText += "), remote_access(";
         listTemp.clear();
         int rmaIndex = 0;
@@ -1378,16 +1386,30 @@ void ConverterASTVisitor::genBlankHandler(const std::string &handlerName, const 
     listTemp.clear();
     for (int i = 0; i < (int)outerParams.size(); i++) {
         VarState *varState = &varStates[outerParams[i]];
-        listTemp += ", " + varState->baseTypeStr + " " + varState->name;
-        for (int j = 0; j < varState->rank; j++) {
-            if (j == 0 && varState->isIncomplete)
-                listTemp += "[]";
-            else
+        listTemp += ", " + varState->baseTypeStr;
+        if (varState->isArray) {
+            if (varState->isIncomplete) {
+                if (varState->canBeRestrict) {
+                    listTemp += " (* __restrict__ " + varState->name + ")";
+                } else {
+                    listTemp += " " + varState->name + "[]";
+                }
+            } else {
+                listTemp += " " + varState->name;
+            }
+            for (int j = varState->isIncomplete; j < varState->rank; j++) {
                 listTemp += "[" + (varState->constSize[j] ? varState->sizes[j].strExpr : "DVMH_VARIABLE_ARRAY_SIZE") + "]";
+            }
+        } else {
+            listTemp += " " + varState->name;
         }
     }
     trimList(listTemp);
     handlerText += listTemp + ") {\n";
+    for (std::map<int, Decl *>::const_iterator it = localDecls.begin(); it != localDecls.end(); it++) {
+        Decl *d = it->second;
+        handlerText += indent + declToStr(d, false, false, false) + ";\n";
+    }
     for (std::set<VarDecl *>::iterator it = outerPrivates.begin(); it != outerPrivates.end(); it++) {
         VarState *varState = &varStates[*it];
         handlerText += indent + varState->genDecl() + ";\n";
@@ -2624,7 +2646,8 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
             toInsert += indent + "dvmh_loop_map_C(" + curLoop + ", " + genAlignParams(curPragma, &curPragma->mapRule) + ");\n";
         if (!isSequentialPart) {
             bool hasOptionalClauses = (curPragma->cudaBlock[0].strExpr != "0" && curPragma->cudaBlock[1].strExpr != "0" &&
-                    curPragma->cudaBlock[2].strExpr != "0") || curPragma->reductions.size() > 0 || curPragma->acrosses.size() > 0 || curPragma->rmas.size() > 0;
+                    curPragma->cudaBlock[2].strExpr != "0") || curPragma->reductions.size() > 0 || curPragma->acrosses.size() > 0 ||
+                    curPragma->rmas.size() > 0 || curPragma->ties.size() > 0;
             if (hasOptionalClauses && opts.extraComments)
                 toInsert += indent + "/* Optional clauses */\n";
             for (int i = 0; i < (int)curPragma->acrosses.size(); i++) {
@@ -2633,9 +2656,9 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
                 checkDirErrN(vd, 301, acr->arrayName.c_str());
                 checkIntErrN(varStates.find(vd) != varStates.end(), 92, vd->getNameAsString().c_str());
                 VarState *varState = &varStates[vd];
-                checkDirErrN(varState->isDvmArray, 349, varState->name.c_str());
+                checkDirErrN(varState->isDvmArray || varState->isRegular, 349, varState->name.c_str());
                 checkDirErrN(varState->rank == acr->rank, 304, acr->arrayName.c_str());
-                toInsert += indent + "dvmh_loop_across_C(" + curLoop + ", " + acr->arrayName;
+                toInsert += indent + "dvmh_loop_across_C(" + curLoop + ", " + (acr->isOut ? "1" : "0") + ", " + varState->genHeaderRef(fileCtx);
                 toInsert += ", " + toStr(varState->rank);
                 for (int j = 0; j < varState->rank; j++) {
                     checkNonDvmExpr(acr->widths[j].first, curPragma);
@@ -2691,6 +2714,21 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
                     toInsert += indent + "dvmh_loop_remote_access_C(" + curLoop + ", " + genAlignParams(curPragma, origName, rank, curPragma->rmas[i].axisRules)
                             + ");\n";
                 }
+            }
+            for (int i = 0; i < (int)curPragma->ties.size(); i++) {
+                ClauseTie *tie = &curPragma->ties[i];
+                VarDecl *vd = seekVarDecl(tie->arrayName);
+                checkDirErrN(vd, 301, tie->arrayName.c_str());
+                checkIntErrN(varStates.find(vd) != varStates.end(), 92, vd->getNameAsString().c_str());
+                VarState *varState = &varStates[vd];
+                checkDirErrN(varState->isDvmArray || varState->isRegular, 3443, varState->name.c_str());
+                checkDirErrN(varState->rank == (int)tie->loopAxes.size(), 304, tie->arrayName.c_str());
+                toInsert += indent + "dvmh_loop_array_correspondence_C(" + curLoop + ", " + varState->genHeaderRef(fileCtx);
+                toInsert += ", " + toStr(varState->rank);
+                for (int j = 0; j < varState->rank; j++) {
+                    toInsert += ", " + fileCtx.dvm0c(tie->loopAxes[j]);
+                }
+                toInsert += ");\n";
             }
         }
         std::string handlerTemplateDecl;
@@ -2752,9 +2790,41 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
         blankHandlerName = getUniqueName(blankHandlerName, &fileCtx.seenGlobalNames, &fileCtx.seenMacroNames);
         fileCtx.seenGlobalNames.insert(blankHandlerName);
         if (true) {
+            std::set<Decl *> shallow, deep;
+            DeclUsageCollector usageCollector(shallow, deep);
+            usageCollector.TraverseStmt(parLoopStmt);
+            std::map<int, Decl *> localDecls;
+            for (std::set<Decl *>::const_iterator it = usageCollector.getReferencedDeclsShallow().begin(); it != usageCollector.getReferencedDeclsShallow().end(); it++) {
+                Decl *d = *it;
+                bool isSystem = srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_System || srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_ExternCSystem;
+                bool isGlobal = d->getDeclContext()->isFileContext();
+                if (!isGlobal) {
+                    int order = declOrder[d];
+                    localDecls[order] = d;
+                } else if (!isSystem) {
+                    blankHandlerDeclsShallow.insert(d);
+                }
+            }
+            for (std::set<Decl *>::const_iterator it = usageCollector.getReferencedDeclsDeep().begin(); it != usageCollector.getReferencedDeclsDeep().end(); it++) {
+                Decl *d = *it;
+                bool isSystem = srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_System || srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_ExternCSystem;
+                bool isGlobal = d->getDeclContext()->isFileContext();
+                if (isGlobal && !isSystem) {
+                    blankHandlerDeclsDeep.insert(d);
+                }
+            }
             std::string handlerText;
-            genBlankHandler(blankHandlerName, outerParams, loopVars, handlerText);
+            genBlankHandler(blankHandlerName, outerParams, loopVars, localDecls, handlerText);
             fileCtx.addBlankHandler(handlerText);
+
+            for (std::set<Decl *>::const_iterator it = usageCollector.getReferencedDeclsDeep().begin(); it != usageCollector.getReferencedDeclsDeep().end(); it++) {
+                Decl *d = *it;
+                bool isSystem = srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_System || srcMgr.getFileCharacteristic(d->getLocation()) == SrcMgr::C_ExternCSystem;
+                bool isGlobal = d->getDeclContext()->isFileContext();
+                bool isShallow = usageCollector.getReferencedDeclsShallow().find(d) != usageCollector.getReferencedDeclsShallow().end();
+                cdvmh_log(DEBUG, "Found referenced from parloop on %s:%d decl (%s) (%s) (%s): %s", curPragma->fileName.c_str(), curPragma->line,
+                        (isSystem ? "system" : "user"), (isGlobal ? "global" : "local"), (isShallow ? "shallow" : "deep"), declToStr(*it, false, false, false).c_str());
+            }
         }
         if (possibleTargets & PragmaRegion::DEVICE_TYPE_HOST) {
             std::string handlerName = (isSequentialPart ? "sequence_" : "loop_") + shortName + "_" + toStr(line) + "_host";
@@ -2792,11 +2862,22 @@ bool ConverterASTVisitor::TraverseStmt(Stmt *s) {
                 std::string handlerBody;
                 std::string kernelText;
                 std::string cudaInfoText;
+                bool isAcross = (isSequentialPart ? false : curParallelPragma->acrosses.size() > 0);
+                if ( !isAcross ) {
                 genCudaHandler(handlerName, outerParams, loopVars, handlerTemplateDecl, handlerTemplateCall, handlerFormalParams, handlerBody, kernelText,
                         cudaInfoText);
                 std::string handlerText = kernelText + "\n" + (fileCtx.getInputFile().CPlusPlus ? handlerTemplateDecl : "extern \"C\" ") + "void " +
                         handlerName + "(" + handlerFormalParams + ") {\n" + handlerBody + "}\n";
                 fileCtx.addCudaHandler(handlerText, cudaInfoText);
+                } else {
+                    //across implementations for GPU
+                    std::string caseHandlers;
+                    genAcrossCudaHandler(handlerName, outerParams, loopVars, handlerTemplateDecl, handlerTemplateCall, handlerFormalParams, handlerBody,
+                        caseHandlers, cudaInfoText);
+                    std::string handlerText = caseHandlers + (fileCtx.getInputFile().CPlusPlus ? handlerTemplateDecl : "extern \"C\" ") + "void " +
+                        handlerName + "(" + handlerFormalParams + ") {\n" + handlerBody + "}\n";
+                    fileCtx.addCudaHandler(handlerText, cudaInfoText);
+                }
             } else {
                 fileCtx.addCudaHandlerRequest(blankHandlerName, handlerName);
             }
@@ -3366,6 +3447,8 @@ bool ConverterASTVisitor::VisitExpr(Expr *e) {
         }
     }
     if (inParLoopBody) {
+        parLoopBodyExprCounter++;
+
         // Detect writes to variables
         // TODO: Passing arrays as parameters is also a potentially writing operation
         bool operMatches = false;
@@ -3420,6 +3503,48 @@ bool ConverterASTVisitor::VisitExpr(Expr *e) {
                         if (inRegion && (!curParallelPragma || rank > 0)) {
                             needToRegister[vd] |= PragmaRegion::INTENT_IN | PragmaRegion::INTENT_OUT;
                         }
+                    }
+                }
+            }
+        }
+
+        // Collect Remote access appearances to convert them later
+        Expr *curExp = e;
+        int rank = 0;
+        std::vector<ArraySubscriptExpr *> subscripts;
+        while (isa<ArraySubscriptExpr>(curExp)) {
+            rank++;
+            subscripts.push_back(cast<ArraySubscriptExpr>(curExp));
+            curExp = cast<ArraySubscriptExpr>(curExp)->getBase();
+            if (isa<ImplicitCastExpr>(curExp))
+                curExp = cast<ImplicitCastExpr>(curExp)->getSubExpr();
+        }
+        for (int i = 0; i < rank / 2; i++)
+            std::swap(subscripts[i], subscripts[rank - 1 - i]);
+        if (rank > 0 && isa<DeclRefExpr>(curExp) && curParallelPragma && !curParallelPragma->rmas.empty()) {
+            DeclRefExpr *dre = cast<DeclRefExpr>(curExp);
+            VarDecl *vd = llvm::dyn_cast<VarDecl>(dre->getDecl());
+            if (vd && dontSubstitute.find(dre) == dontSubstitute.end()) {
+                checkIntErrN(varStates.find(vd) != varStates.end(), 92, vd->getNameAsString().c_str());
+                VarState *varState = &varStates[vd];
+                if (rank == varState->rank && varState->isDvmArray) {
+                    int foundIndex = -1;
+                    for (int i = 0; i < (int)curParallelPragma->rmas.size(); i++) {
+                        const ClauseRemoteAccess &clause = curParallelPragma->rmas[i];
+                        if (!clause.excluded && vd == parallelRmaDesc->arrayDecls[i]) {
+                            DvmPragma *curPragma = curParallelPragma;
+                            checkDirErrN(varState->rank == clause.rank, 304, varState->name.c_str());
+                            bool matches = true;
+                            for (int k = 0; k < rank; k++)
+                                matches = matches && clause.matches(convertToString(subscripts[k]->getIdx()), k);
+                            if (matches) {
+                                foundIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    if (foundIndex >= 0) {
+                        rmaAppearances.push_back(std::make_pair(foundIndex + 1, parLoopBodyExprCounter));
                     }
                 }
             }

@@ -69,6 +69,7 @@ typedef enum {
     DVMH_STAT_METRIC_UTIL_ARRAY_TRANSFORMATION,
     DVMH_STAT_METRIC_UTIL_ARRAY_REDUCTION,
     DVMH_STAT_METRIC_UTIL_RTC_COMPILATION,
+	DVMH_STAT_METRIC_UTIL_PAGE_LOCK_HOST_MEM,
     // --
     DVMH_STAT_METRIC_FORCE_INT
 } dvmh_stat_metric_names;
@@ -101,7 +102,8 @@ static const char *dvmhStatMetricsTitles[DVMH_STAT_METRIC_FORCE_INT] = {
         "Loop execution",
         "Data reorganization",
         "Reduction",
-        "GPU Runtime compilation"
+        "GPU Runtime compilation",
+        "Page lock host memory"
 };
 
 static short dvmhDebug = 0;

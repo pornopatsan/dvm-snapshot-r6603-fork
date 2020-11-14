@@ -133,7 +133,7 @@ typedef union {
    static int yyerror();
    PTR_CMNT cur_comment = NULL;
    PTR_CMNT new_cur_comment = NULL ;
-   PTR_HASH look_up();
+   PTR_HASH look_up_annotate();
    PTR_HASH look_up_type();
    char *STRINGTOPARSE = 0;
    int PTTOSTRINGTOPARSE = 0;
@@ -623,7 +623,7 @@ while (0)
 #define YYERRCODE	256
 
 #ifndef YYPURE
-#define YYLEX		yylex()
+#define YYLEX		yylex_annotate()
 #endif
 
 #ifdef YYPURE
@@ -675,7 +675,7 @@ int yydebug;			/*  nonzero means print parse trace	*/
 
 /* Prevent warning if -Wstrict-prototypes.  */
 #ifdef __GNUC__
-int yyparse (void);
+int yyparse_annotate(void);
 #endif
 
 #if __GNUC__ > 1		/* GNU C and GNU C++ define this.  */
@@ -719,7 +719,7 @@ __yy_bcopy (char *from, char *to, int count)
 
 #line 184 "/usr/local/lib/bison.simple"
 int
-yyparse()
+yyparse_annotate()
 {
   register int yystate;
   register int yyn;
@@ -2370,7 +2370,7 @@ readescape ()
 
  
 int
-yylex()
+yylex_annotate()
 {
   register int c;
   register char *p;
@@ -2784,7 +2784,7 @@ yylex()
              *p = 0;
              unMYGETC(c);
              value =  LOADEDOPR ;
-             yylval.hash_entry = look_up(token_buffer);
+             yylval.hash_entry = look_up_annotate(token_buffer);
              break;
             }
       combine:
@@ -2982,7 +2982,7 @@ look_up_type(st, ip)
 
 
 PTR_HASH 
-look_up(st)
+look_up_annotate(st)
      char *st;
 {
   char *pt;

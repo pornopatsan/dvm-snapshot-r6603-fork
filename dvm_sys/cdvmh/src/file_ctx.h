@@ -103,6 +103,9 @@ public:
     void addToMainTail(const std::string &tail) {
         mainTail += tail;
     }
+    void addToBlankHeading(const std::string &heading) {
+        blankHeading += heading;
+    }
     void addBlankHandler(const std::string &handler) {
         blankHandlers.push_back(handler);
     }

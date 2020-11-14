@@ -316,26 +316,39 @@
 %token ACC_LOCAL 316
 %token ACC_INLOCAL 317
 %token ACC_CUDA_BLOCK 318
-%token BY 319
-%token IO_MODE 320
-%token CP_CREATE 321
-%token CP_LOAD 322
-%token CP_SAVE 323
-%token CP_WAIT 324
-%token FILES 325
-%token VARLIST 326
-%token STATUS 327
-%token EXITINTERVAL 328
-%token TEMPLATE_CREATE 329
-%token TEMPLATE_DELETE 330
-%token SPF_ANALYSIS 331
-%token SPF_PARALLEL 332
-%token SPF_TRANSFORM 333
-%token SPF_NOINLINE 334
-%token SPF_PARALLEL_REG 335
-%token SPF_END_PARALLEL_REG 336
-%token SPF_PRIVATES_EXPANSION 337
-%token SPF_FISSION 338
+%token ACC_ROUTINE 319
+%token ACC_TIE 320
+%token BY 321
+%token IO_MODE 322
+%token CP_CREATE 323
+%token CP_LOAD 324
+%token CP_SAVE 325
+%token CP_WAIT 326
+%token FILES 327
+%token VARLIST 328
+%token STATUS 329
+%token EXITINTERVAL 330
+%token TEMPLATE_CREATE 331
+%token TEMPLATE_DELETE 332
+%token SPF_ANALYSIS 333
+%token SPF_PARALLEL 334
+%token SPF_TRANSFORM 335
+%token SPF_NOINLINE 336
+%token SPF_PARALLEL_REG 337
+%token SPF_END_PARALLEL_REG 338
+%token SPF_PRIVATES_EXPANSION 339
+%token SPF_FISSION 340
+%token SPF_SHRINK 341
+%token SPF_CHECKPOINT 342
+%token SPF_EXCEPT 343
+%token SPF_FILES_COUNT 344
+%token SPF_INTERVAL 345
+%token SPF_TIME 346
+%token SPF_ITER 347
+%token SPF_FLEXIBLE 348
+%token SPF_APPLY_REGION 349
+%token SPF_APPLY_FRAGMENT 350
+%token SPF_CODE_COVERAGE 351
 
 %{
 #include <string.h>
@@ -490,7 +503,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> selector initial_value clause opt_while
 %type <ll_node> options attr_spec_list attr_spec intent_spec access_spec
 %type <ll_node> string_constant structure_component opt_substring
-%type <ll_node> array_ele_substring_func_ref ident array_element
+%type <ll_node> array_ele_substring_func_ref ident array_element 
 %type <ll_node> subscript_list asubstring equi_object
 %type <ll_node> allocation_list allocate_object_list
 %type <ll_node> allocate_object pointer_name_list rename_list rename_name use_name
@@ -554,7 +567,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> dim_ident_list dim_ident align_subscript 
 %type <ll_node> realignee_list alignee realignee
 %type <ll_node> dummy_array_name_list dummy_array_name 
-%type <ll_node> loop_var loop_var_list sh_array_name 
+%type <ll_node> ident_list sh_array_name 
 %type <ll_node> shadow_attr_stuff sh_width  sh_width_list
 %type <ll_node> pointer_var pointer_var_list dimension_list
 %type <ll_node> interval_number fragment_number
@@ -568,7 +581,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> derived_subscript derived_subscript_list opt_plus_shadow plus_shadow shadow_id
 %type <ll_node> template_ref template_obj shadow_axis shadow_axis_list opt_include_to 
 %type <ll_node> localize_target target_subscript target_subscript_list aster_expr dummy_ident 
-%type <ll_node> template_list template_ident_list
+%type <ll_node> template_list tie_spec tied_array_list
 %type <symbol> processors_name align_base_name 
 %type <symbol> shadow_group_name reduction_group_name reduction_group  indirect_group_name task_name
 %type <symbol> remote_group_name group_name array_name async_ident consistent_group_name consistent_group
@@ -608,18 +621,21 @@ static int in_vec = NO;	      /* set if processing array constructor */
 
 /* FORTRAN ACC */
 %type <bf_node> acc_directive acc_region acc_end_region acc_checksection acc_end_checksection
-%type <bf_node> acc_get_actual acc_actual 
+%type <bf_node> acc_get_actual acc_actual acc_routine
 %type <ll_node> opt_clause acc_clause_list acc_clause data_clause async_clause targets_clause
-%type <ll_node> acc_var_list computer_list computer 
+%type <ll_node> acc_var_list computer_list computer opt_targets_clause
 
 /* new clauses for PARALLEL directive */
 %type <ll_node> private_spec cuda_block_spec sizelist 
 
 /* SAPFOR */
 %type <bf_node> spf_directive spf_analysis spf_parallel spf_transform spf_parallel_reg spf_end_parallel_reg
-%type <ll_node> analysis_spec_list analysis_spec analysis_reduction_spec analysis_private_spec
+%type <bf_node> spf_checkpoint
+%type <ll_node> analysis_spec_list analysis_spec analysis_reduction_spec analysis_private_spec analysis_parameter_spec
 %type <ll_node> parallel_spec_list parallel_spec parallel_shadow_spec parallel_across_spec parallel_remote_access_spec
-%type <ll_node> transform_spec_list transform_spec
+%type <ll_node> transform_spec_list transform_spec array_element_list spf_parameter_list spf_parameter
+%type <ll_node> characteristic characteristic_list opt_clause_apply_region opt_clause_apply_fragment 
+%type <ll_node> checkpoint_spec checkpoint_spec_list spf_type_list spf_type interval_spec
 %type <symbol>  region_name 
 
 %{
@@ -727,6 +743,7 @@ void enddcl();
 void install_const();
 void setimpl();
 void copy_module_scope();
+void delete_symbol();
 void replace_symbol_in_expr();
 long convci();
 void set_expr_type();
@@ -2511,29 +2528,10 @@ only_list: only_name
 	    { $$ = set_ll_list($1, $3, EXPR_LIST); }
 	;
 
-only_name: name POINT_TO name
-	    {  PTR_HASH oldhash;
-	       PTR_SYMB oldsym, newsym;
-	       PTR_LLND l, m;
-
-	       oldhash = just_look_up_sym_in_scope(module_scope, $3->ident);
-	       if (oldhash == HSNULL) {
-                  errstr("Unknown identifier %s", $3->ident,309);
-	          $$= LLNULL;
-	       }
-	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type, LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
-	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
-	  	 l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
-		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
-		 $$ = make_llnd(fi, RENAME_NODE, m, l, SMNULL);
- 	      }
-            }
-	| name
-	    {  PTR_HASH oldhash;
+only_name: rename_name
+            {  $$ = $1; }
+         | name
+	    {  PTR_HASH oldhash,copyhash;
 	       PTR_SYMB oldsym, newsym;
 	       PTR_LLND m;
 
@@ -2543,12 +2541,20 @@ only_name: name POINT_TO name
 	          $$= LLNULL;
 	       }
 	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type,
-LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
-	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
+                 oldsym = oldhash->id_attr;
+                 copyhash=just_look_up_sym_in_scope(cur_scope(), $1->ident);
+	         if( copyhash && copyhash->id_attr && copyhash->id_attr->entry.Template.tag==module_scope->id)
+                 {
+                   newsym = copyhash->id_attr;
+                   newsym->entry.Template.tag = 0;
+                 }
+                 else
+                 {
+	           newsym = make_local_entity($1, oldsym->variant, oldsym->type,LOCAL);
+	           /* copies data in entry.Template structure and attr */
+	           copy_sym_data(oldsym, newsym);	         
+	             /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
+                 }
 	  	/* l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);*/
 		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
 		 $$ = make_llnd(fi, RENAME_NODE, m, LLNULL, oldsym);
@@ -2564,7 +2570,7 @@ rename_list: rename_name
 	;
 
 rename_name: name POINT_TO name
-	    {  PTR_HASH oldhash;
+	    {  PTR_HASH oldhash,copyhash;
 	       PTR_SYMB oldsym, newsym;
 	       PTR_LLND l, m;
 
@@ -2574,19 +2580,26 @@ rename_name: name POINT_TO name
 	          $$= LLNULL;
 	       }
 	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type,
-LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
+                 oldsym = oldhash->id_attr;
+                 copyhash = just_look_up_sym_in_scope(cur_scope(), $3->ident);
+	         if(copyhash && copyhash->id_attr && copyhash->id_attr->entry.Template.tag==module_scope->id)
+                 {
+                    delete_symbol(copyhash->id_attr);
+                    copyhash->id_attr = SMNULL;
+                 }
+                   newsym = make_local_entity($1, oldsym->variant, oldsym->type, LOCAL);
+	           /* copies data in entry.Template structure and attr */
+	           copy_sym_data(oldsym, newsym);	
+                         
 	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
-	  	 l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
-		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
+	  	 l  = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
+		 m  = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
 		 $$ = make_llnd(fi, RENAME_NODE, m, l, SMNULL);
  	      }
             }
-	;
-/*
+            ;
+	
+ /*
 in_param: inside
 	    {
 	      if(parstate > INDCL)
@@ -6163,7 +6176,7 @@ dvm_new_value: NEW_VALUE  end_spec
              ;
 
 
-dvm_parallel_on: PARALLEL end_spec LEFTPAR loop_var_list RIGHTPAR opt_on opt_spec 
+dvm_parallel_on: PARALLEL end_spec LEFTPAR ident_list RIGHTPAR opt_on opt_spec 
  
 
                  {  if($6 &&  $6->entry.Template.symbol->attr & TASK_BIT)
@@ -6174,14 +6187,11 @@ dvm_parallel_on: PARALLEL end_spec LEFTPAR loop_var_list RIGHTPAR opt_on opt_spe
                ;
 
 
-loop_var_list: loop_var
+ident_list: ident
 	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
-             | loop_var_list COMMA loop_var
+             | ident_list COMMA ident
 	    { $$ = set_ll_list($1,$3,EXPR_LIST); }	    
 	;
-
-loop_var: ident
-        
 
 opt_on:   opt_key_word ON distribute_cycles 
           { $$ = $3;}
@@ -6194,12 +6204,12 @@ opt_on:   opt_key_word ON distribute_cycles
 distribute_cycles: ident LEFTPAR par_subscript_list RIGHTPAR
         {
           if($1->type->variant != T_ARRAY) 
-           errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66);
-                 $1->entry.Template.ll_ptr1 = $3;
-                 $$ = $1;
-                 $$->type = $1->type->entry.ar_decl.base_type;
-         }
-         ;
+             errstr("'%s' isn't array", $1->entry.Template.symbol->ident, 66);
+          $1->entry.Template.ll_ptr1 = $3;
+          $$ = $1;
+          $$->type = $1->type->entry.ar_decl.base_type;
+        }
+        ;
 
 par_subscript_list: par_subscript
 	    { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
@@ -6240,6 +6250,7 @@ par_spec: new_spec
         | consistent_spec
         | private_spec     /*ACC*/
         | cuda_block_spec  /*ACC*/
+        | tie_spec         /*ACC*/
         ;
 
 remote_access_spec:  COMMA needkeyword REMOTE_ACCESS_SPEC LEFTPAR group_name COLON remote_data_list RIGHTPAR
@@ -6296,10 +6307,20 @@ sizelist:  expr
         ;
 
 variable_list: lhs
-            { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+               { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
              | variable_list COMMA lhs
-            { $$ = set_ll_list($1,$3,EXPR_LIST);}
+               { $$ = set_ll_list($1,$3,EXPR_LIST);}
              ;
+
+tie_spec: COMMA needkeyword ACC_TIE LEFTPAR tied_array_list RIGHTPAR
+         { $$ = make_llnd(fi,ACC_TIE_OP,$5,LLNULL,SMNULL);} /*ACC*/
+        ;
+
+tied_array_list: distribute_cycles
+                 { $$ = set_ll_list($1,LLNULL,EXPR_LIST);}
+               | tied_array_list COMMA distribute_cycles
+                 { $$ = set_ll_list($1,$3,EXPR_LIST);}
+               ;
 
 indirect_access_spec: COMMA needkeyword INDIRECT_ACCESS LEFTPAR group_name COLON indirect_list RIGHTPAR 
                     { if(!($5->attr & INDIRECT_BIT))
@@ -7168,15 +7189,10 @@ template_list: array_element
                { $$ = set_ll_list($1, $3, EXPR_LIST); }
              ;
 
-dvm_template_delete: TEMPLATE_DELETE end_spec  LEFTPAR  template_ident_list RIGHTPAR
+dvm_template_delete: TEMPLATE_DELETE end_spec  LEFTPAR ident_list RIGHTPAR
                      { $$ = get_bfnd(fi,DVM_TEMPLATE_DELETE_DIR,SMNULL,$4,LLNULL,LLNULL); }
                    ;
 
-template_ident_list: ident
-	       { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
-	     | template_ident_list COMMA ident
-               { $$ = set_ll_list($1, $3, EXPR_LIST); }
-             ;
 omp_specification_directive: omp_threadprivate_directive
 	;
 omp_execution_directive: omp_parallel_begin_directive
@@ -7827,6 +7843,7 @@ acc_directive: acc_region
              | acc_end_checksection
              | acc_get_actual
              | acc_actual 
+             | acc_routine
 	     ;
 
 acc_region: ACC_REGION end_spec  opt_clause 
@@ -7921,11 +7938,22 @@ acc_end_checksection: ACC_END_CHECKSECTION
               {  $$ = get_bfnd(fi,ACC_END_CHECKSECTION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
               ;     
         
+acc_routine: ACC_ROUTINE in_dcl opt_targets_clause
+             {  $$ = get_bfnd(fi,ACC_ROUTINE_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+           ;
+
+opt_targets_clause: needkeyword keywordoff
+	            { $$ = LLNULL; }
+                  | needkeyword targets_clause
+                    { $$ = $2;}                   
+                  ;
+
 spf_directive: spf_analysis
              | spf_parallel      
              | spf_transform
              | spf_parallel_reg
              | spf_end_parallel_reg
+             | spf_checkpoint
 	     ;
 
 spf_analysis: SPF_ANALYSIS  LEFTPAR analysis_spec_list RIGHTPAR 
@@ -7940,9 +7968,35 @@ spf_transform: SPF_TRANSFORM  LEFTPAR transform_spec_list RIGHTPAR
              {  $$ = get_bfnd(fi,SPF_TRANSFORM_DIR,SMNULL,$3,LLNULL,LLNULL);}
              ;
 
-spf_parallel_reg: SPF_PARALLEL_REG region_name
-                { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,LLNULL,LLNULL,LLNULL);}
+spf_parallel_reg: SPF_PARALLEL_REG region_name 
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,LLNULL,LLNULL,LLNULL);}
+                | SPF_PARALLEL_REG region_name COMMA needkeyword  SPF_APPLY_REGION  LEFTPAR characteristic_list RIGHTPAR opt_clause_apply_fragment
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,$7,$9,LLNULL);}
+                | SPF_PARALLEL_REG region_name COMMA needkeyword SPF_APPLY_FRAGMENT LEFTPAR characteristic_list RIGHTPAR opt_clause_apply_region
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,$9,$7,LLNULL);}
                 ;
+
+characteristic_list:  characteristic
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  characteristic_list COMMA characteristic
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+characteristic: needkeyword SPF_CODE_COVERAGE
+               { $$ = make_llnd(fi,SPF_CODE_COVERAGE_OP,LLNULL,LLNULL,SMNULL);}
+              ;
+
+opt_clause_apply_fragment: 
+                           { $$ = LLNULL;}
+                         | COMMA needkeyword SPF_APPLY_FRAGMENT LEFTPAR characteristic_list RIGHTPAR
+                           { $$ = $5;}
+                         ;
+
+opt_clause_apply_region: 
+                           { $$ = LLNULL;}
+                         | COMMA needkeyword SPF_APPLY_REGION LEFTPAR characteristic_list RIGHTPAR
+                           { $$ = $5;}
+                         ;
 
 spf_end_parallel_reg: SPF_END_PARALLEL_REG
                 { $$ = get_bfnd(fi,SPF_END_PARALLEL_REG_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
@@ -7955,16 +8009,30 @@ analysis_spec_list:  analysis_spec
              ;
 
 analysis_spec: analysis_reduction_spec
-             | analysis_private_spec     
+             | analysis_private_spec
+             | analysis_parameter_spec     
              ;
 
 analysis_reduction_spec: needkeyword REDUCTION LEFTPAR reduction_list RIGHTPAR
                { $$ = make_llnd(fi,REDUCTION_OP,$4,LLNULL,SMNULL); }    
                        ;
 
-analysis_private_spec: needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
+analysis_private_spec:   needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
                { $$ = make_llnd(fi,ACC_PRIVATE_OP,$4,LLNULL,SMNULL);} 
                      ;
+
+analysis_parameter_spec: needkeyword PARAMETER LEFTPAR spf_parameter_list RIGHTPAR
+               { $$ = make_llnd(fi,SPF_PARAMETER_OP,$4,LLNULL,SMNULL);}
+                     ;   
+spf_parameter_list: spf_parameter
+	       { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	     | spf_parameter_list COMMA spf_parameter
+               { $$ = set_ll_list($1, $3, EXPR_LIST); }
+             ;
+
+spf_parameter: array_element EQUAL expr
+	     { $$ = make_llnd(fi, ASSGN_OP, $1, $3, SMNULL); }
+	     ;
 
 parallel_spec_list:  parallel_spec
 	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
@@ -7976,7 +8044,6 @@ parallel_spec: parallel_shadow_spec
              | parallel_across_spec
              | parallel_remote_access_spec     
              ;
-
 
 parallel_shadow_spec:  needkeyword SHADOW LEFTPAR shadow_list RIGHTPAR
                 { $$ = make_llnd(fi,SHADOW_OP,$4,LLNULL,SMNULL);}
@@ -7998,13 +8065,63 @@ transform_spec_list:  transform_spec
 
 transform_spec: needkeyword SPF_NOINLINE
                 { $$ = make_llnd(fi,SPF_NOINLINE_OP,LLNULL,LLNULL,SMNULL);}
-              | needkeyword SPF_FISSION LEFTPAR loop_var_list RIGHTPAR
+              | needkeyword SPF_FISSION LEFTPAR ident_list RIGHTPAR
                 { $$ = make_llnd(fi,SPF_FISSION_OP,$4,LLNULL,SMNULL);}
               | needkeyword SPF_PRIVATES_EXPANSION 
                 { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,LLNULL,LLNULL,SMNULL);}
-              | needkeyword SPF_PRIVATES_EXPANSION LEFTPAR loop_var_list RIGHTPAR
+              | needkeyword SPF_PRIVATES_EXPANSION LEFTPAR ident_list RIGHTPAR
                 { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,$4,LLNULL,SMNULL);}
+           /*   | needkeyword SPF_SHRINK LEFTPAR ident LEFTPAR digit_list RIGHTPAR RIGHTPAR  */
+              | needkeyword SPF_SHRINK LEFTPAR array_element_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_SHRINK_OP,$4,LLNULL,SMNULL);}
               ;
+
 region_name: name
            { $$ = make_parallel_region($1);}
-           ;   
+           ; 
+  
+array_element_list: array_element
+	           { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	          | array_element_list COMMA array_element 
+	           { $$ = set_ll_list($1, $3, EXPR_LIST); }
+	          ;
+
+spf_checkpoint:  SPF_CHECKPOINT LEFTPAR checkpoint_spec_list RIGHTPAR 
+             {  $$ = get_bfnd(fi,SPF_CHECKPOINT_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+checkpoint_spec_list:  checkpoint_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  checkpoint_spec_list COMMA checkpoint_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+checkpoint_spec: needkeyword TYPE LEFTPAR spf_type_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_TYPE_OP,$4,LLNULL,SMNULL);}
+              | needkeyword VARLIST LEFTPAR ident_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_VARLIST_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_EXCEPT LEFTPAR ident_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_EXCEPT_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_FILES_COUNT LEFTPAR expr RIGHTPAR
+                { $$ = make_llnd(fi,SPF_FILES_COUNT_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_INTERVAL LEFTPAR interval_spec COMMA expr RIGHTPAR
+                { $$ = make_llnd(fi,SPF_INTERVAL_OP,$4,$6,SMNULL);}
+              ;
+
+spf_type_list: spf_type
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | spf_type_list COMMA spf_type
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+spf_type:       needkeyword ACC_ASYNC
+              { $$ = make_llnd(fi,ACC_ASYNC_OP, LLNULL,LLNULL,SMNULL);}
+             |  needkeyword SPF_FLEXIBLE
+              { $$ = make_llnd(fi,SPF_FLEXIBLE_OP, LLNULL,LLNULL,SMNULL);}
+             ;
+
+interval_spec:  needkeyword SPF_TIME
+                { $$ = make_llnd(fi,SPF_TIME_OP, LLNULL,LLNULL,SMNULL);}
+             |  needkeyword SPF_ITER
+                { $$ = make_llnd(fi,SPF_ITER_OP, LLNULL,LLNULL,SMNULL);}
+             ;

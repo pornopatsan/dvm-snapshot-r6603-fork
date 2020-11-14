@@ -716,7 +716,9 @@ void trc_cmp_variable(char *File, UDvmType Line, char* Operand, enum_TraceType i
                     return ;
                 }
 
-                if( trc_CompareValue( &(Var->val), Value, vType, DiffTyp ) == 0 )
+                int isValuesEqual = trc_CompareValue( &(Var->val), Value, vType, DiffTyp );
+
+                if (!isValuesEqual)
                 {
                     nCheck = 1; /* Error status (just to avoid GOTO) */
 
@@ -1134,13 +1136,17 @@ void trc_cmp_variable(char *File, UDvmType Line, char* Operand, enum_TraceType i
                 else
                 {
                     Trace.MatchedEvents++;
+                }
 
-                    if ( !TraceOptions.StrictCompare && Trace.Mode == -1 ) {
-                        if ( TraceOptions.SubstRedResults && iType == trc_REDUCTVAR ) {
-                            trc_SubstituteRedVar(Value, Var, vType);
-                        } else if ( TraceOptions.SubstAllResults && iType == trc_POSTWRITEVAR ) {
-                            trc_SubstituteCommonVar(Value, Var, vType);
-                        }
+                int needsSubstitution = ( 
+                    !TraceOptions.StrictCompare && Trace.Mode == -1 && (isValuesEqual || TraceOptions.AllowErrorsSubst) 
+                );
+
+                if (needsSubstitution) {
+                    if ( (TraceOptions.SubstRedResults || TraceOptions.SubstAllResults) && iType == trc_REDUCTVAR ) {
+                        trc_SubstituteRedVar(Value, Var, vType);
+                    } else if ( TraceOptions.SubstAllResults && iType == trc_POSTWRITEVAR ) {
+                        trc_SubstituteCommonVar(Value, Var, vType);
                     }
                 }
             }

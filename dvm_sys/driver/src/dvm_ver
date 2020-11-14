@@ -25,6 +25,12 @@ if [ -f "$dvmdir/../revision" ]; then
     REV=`cat "$dvmdir/../revision"`
     printf '%s' ", Revision is $REV"
 fi
+
+if [ -f "$dvmdir/bin/dvm_drv" ]; then
+   INSTALL_TIME=`ls -l $dvmdir/bin/dvm_drv | awk '{print $6, $7, $8}'`
+   printf '%s' ", is installed at '$INSTALL_TIME'"
+fi
+
 echo
 from_define DVM_VERS_DEF "$dvmdir/rts/src/global1.var" "LibDVM         v."
 from_define LIBDVMH_VERSION "$dvmdir/include/dvmhlib_const.h" "LibDVMH        v."

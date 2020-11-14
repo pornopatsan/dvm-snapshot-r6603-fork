@@ -92,6 +92,8 @@ PCXX="$PCXX $COPTS"
 PFORT="$PFORT $COPTS"
 
 dvmrun="runmpi"
+dvm_run="dvm_run"
+
 Par=ar
 Pld=ld
 Pobjcopy=objcopy
@@ -197,9 +199,12 @@ echo
 echo "$PLATFORM" >platform
 
 MPSOPT="-D_DVM_MPI_ -DMPICH_IGNORE_CXX_SEEK -DOMPI_SKIP_MPICXX=1 -DMPICH_SKIP_MPICXX=1 -DMPI_NO_CPPBIND"
+
 if [ $WITHOUT_MPI -ne 0 ]; then
     MPSOPT="$MPSOPT -D_MPI_STUBS_"
+    dvm_run="dvm_run_nompi"
 fi
+
 DVMOPT="$MPSOPT $DTRAN -D_RTS_ZLIB_ -D_UNIX_ -D_F_TIME_ -D_DATA_ALIGN_ACCESS_"
 DVMHOPT="$DVMOPT"
 DVMH_ADD_LIBS="-lm -lstdc++"
@@ -302,6 +307,14 @@ if eval $PCXX -o "$F1.exe" "$F1.cpp" -lffi >/dev/null 2>& 1 && non_empty "$F1.ex
     DVMHOPT="$DVMHOPT -DHAVE_LIBFFI"
     DVMH_ADD_LIBS="$DVMH_ADD_LIBS -lffi"
 fi
+
+isIntel=`$PFORT --version | grep 'ifort'`
+if [ -n "$isIntel" ]; then
+    DVMHOPT="$DVMHOPT -DINTEL_LOGICAL_TYPE"
+    CC="$CC -DINTEL_LOGICAL_TYPE"
+    CXX="$CXX -DINTEL_LOGICAL_TYPE"
+fi
+
 rm -f "$F1.cpp" "$F1.o" "$F1.exe" "$F2.o"
 
 if [ ! -e "driver/src/$dvmrun" ]; then
@@ -336,7 +349,7 @@ if [ -e driver/makefile.uni ]; then
     fi
 
     # ============== DVM-system compilation ===============
-    export CC CXX LINKER LLVMCONFIG CLANG_VER PCC PCXX PFORT PLINKER PFLINKER OMPI_CC OMPI_CXX OMPI_F77 OMPI_FC I_MPI_LINK Par Pld Pobjcopy MAKE DVMOPT DVMHOPT CUDA_PATH NVCC PGI_PATH CUDA_LIB dvmrun
+    export CC CXX LINKER LLVMCONFIG CLANG_VER PCC PCXX PFORT PLINKER PFLINKER OMPI_CC OMPI_CXX OMPI_F77 OMPI_FC I_MPI_LINK Par Pld Pobjcopy MAKE DVMOPT DVMHOPT CUDA_PATH NVCC PGI_PATH CUDA_LIB dvmrun dvm_run
     if [ -n "$MAKE_JOBS" ]; then
         if [ "$MAKE_JOBS" = "0" ]; then
             MAKE_JOBS=$(cat /proc/cpuinfo | grep "processor" | wc -l)
@@ -436,6 +449,7 @@ hard MPIRUN_CMD
 soft queuemode Name of the task queue to be used
 soft noquote maxtime Maximum execution time in minutes to be passed to the cluster resource manager
 soft noquote restart Restart task after the end of execution
+soft noquote quantum Quantum time of task (started as background work)
 soft noquote dvmwait Wait for task completion
 $CLUSTER_PREF user DVMH_PPN Number of processes per node
 user DVMH_STACKSIZE Stack size to set for the task
@@ -585,6 +599,7 @@ create_sett_and_user() {
     mv dvm_sett bin/dvm_settings.sh
     mv dvm_bat user/dvm
     chmod 0755 user/dvm
+    chmod 0755 bin/*
     # ============== dvm.bat file is done ===============
 
     if [ -d demo ]; then

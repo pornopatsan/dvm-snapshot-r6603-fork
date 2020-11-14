@@ -20,6 +20,9 @@ namespace cdvmh {
 
 bool isGlobalC(const Decl *d);
 std::string genRtType(std::string baseType);
+std::string declToStr(Decl *d, bool addStatic, bool addExtern, bool truncateBody);
+std::string convertToString(Stmt *s, CompilerInstance &comp);
+VarState *fillVarState(const VarDecl *vd, bool CPlusPlus, CompilerInstance &comp, VarState *varState);
 
 struct RmaSubstDesc {
     ClauseRemoteAccess clause;
@@ -32,6 +35,10 @@ struct RmaDesc {
     Stmt *stmt;
     DvmPragma *pragma;
     std::map<VarDecl *, std::vector<RmaSubstDesc> > substs;
+};
+
+struct ParallelRmaDesc {
+    std::vector<VarDecl *> arrayDecls; // Order is the same as in PragmaParallel::rmas
 };
 
 class MyDeclContext {
@@ -70,6 +77,7 @@ public:
     explicit ConverterASTVisitor(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &R);
 public:
     void addToDeclGroup(Decl *head, Decl *what);
+    void addSeenDecl(Decl *d);
     void afterTraversing();
 public:
     bool VisitDecl(Decl *d);
@@ -176,14 +184,7 @@ protected:
         return 0;
     }
     std::string convertToString(Stmt *s) {
-#if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 6
-        return rewr.ConvertToString(s);
-#else
-        std::string SStr;
-        llvm::raw_string_ostream S(SStr);
-        s->printPretty(S, 0, PrintingPolicy(comp.getLangOpts()));
-        return S.str();
-#endif
+        return cdvmh::convertToString(s, comp);
     }
     bool isCudaFriendly(FunctionDecl *f);
     bool addFuncForCuda(FunctionDecl *f);
@@ -191,8 +192,9 @@ protected:
     SourceLocation escapeMacroEnd(SourceLocation loc);
     SourceRange escapeMacro(SourceRange ran) { return SourceRange(escapeMacroBegin(ran.getBegin()), escapeMacroEnd(ran.getEnd())); }
     void checkNonDvmExpr(const MyExpr &expr, DvmPragma *curPragma);
+    std::string declToStrForBlank(bool shallow, Decl *d);
     void genBlankHandler(const std::string &handlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
-        std::string &handlerText);
+        const std::map<int, Decl *> localDecls, std::string &handlerText);
     void genHostHandler(std::string handlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
         std::string &handlerFormalParams, std::string &handlerBody, bool doingOpenMP);
     void genCudaKernel(const KernelDesc &kernelDesc, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
@@ -200,6 +202,14 @@ protected:
     void genCudaHandler(std::string handlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
         std::string handlerTemplateDecl, std::string handlerTemplateSpec, std::string &handlerFormalParams, std::string &handlerBody, std::string &kernelText,
         std::string &cudaInfoText);
+    void genAcrossCudaCaseKernel(int dep_number, const KernelDesc &kernelDesc, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
+            std::string handlerTemplateDecl, std::string &kernelText);
+    void genAcrossCudaCaseHandler(
+        int dep_number, std::string baseHandlerName, std::string caseHandlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
+        std::string handlerTemplateDecl, std::string handlerTemplateSpec, std::string &caseHandlerText , std::string &cudaInfoText );
+    void genAcrossCudaHandler(std::string handlerName, const std::vector<VarDecl *> &outerParams, const std::vector<LoopVarDesc> &loopVars,
+        std::string handlerTemplateDecl, std::string handlerTemplateSpec, std::string &handlerFormalParams, std::string &handlerBody,
+        std::string &caseHandlers, std::string &cudaInfoText);
 protected:
     SourceFileContext &fileCtx;
     ProjectContext &projectCtx;
@@ -217,6 +227,7 @@ protected:
     std::vector<int> funcLevels; // stack of indexes for toDelete
     std::vector<int> loopLevels; // stack of indexes for toDelete
     std::vector<int> switchLevels; // stack of indexes for toDelete
+    std::map<Decl *, int> declOrder; // all decls in order of traverse
 
     std::map<VarDecl *, VarState> varStates;
     std::set<DeclRefExpr *> dontSubstitute;
@@ -245,15 +256,21 @@ protected:
     std::set<VarDecl *> reductions;
     std::set<VarDecl *> varsToGetActual;
     std::vector<std::pair<int, int> > rmaAppearances;
-    std::set<const FunctionDecl *> addCudaFuncs;
+    int parLoopBodyExprCounter;
+    ParallelRmaDesc *parallelRmaDesc;
+    std::set<const FunctionDecl *> addCudaFuncs; //TODO remove
 
     bool inHostSection;
     Stmt *hostSectionStmt;
 
     std::vector<std::pair<MyExpr, MyDeclContext *> > intervalStack; // stack for checking intervals' DeclContexts
     std::map<std::pair<unsigned, int>, DvmPragma*> parallelLoops; // parallel loops positions, for automatic intervals insertion
-    
+
     std::vector<RmaDesc> rmaStack;
+
+    std::set<Decl *> blankHandlerDeclsShallow;
+    std::set<Decl *> blankHandlerDeclsDeep;
+
     friend class FuncAdder;
 };
 
@@ -295,6 +312,35 @@ protected:
     SourceFileContext &fileCtx;
     ProjectContext &projectCtx;
     Rewriter &rewr;
+};
+
+class DeclUsageCollector: public RecursiveASTVisitor<DeclUsageCollector> {
+    typedef RecursiveASTVisitor<DeclUsageCollector> base;
+public:
+    const std::set<Decl *> &getReferencedDeclsShallow() const { return referencedDeclsShallow; }
+    const std::set<Decl *> &getReferencedDeclsDeep() const { return referencedDeclsDeep; }
+public:
+    DeclUsageCollector(std::set<Decl *> &shallow, std::set<Decl *> &deep, bool deepMode = false): referencedDeclsShallow(shallow), referencedDeclsDeep(deep), 
+            deepMode(deepMode), becomeDeepInside(0) {}
+public:
+    bool VisitDeclRefExpr(DeclRefExpr *e);
+    bool TraverseType(QualType t);
+    bool VisitType(Type *t);
+    bool VisitFunctionDecl(FunctionDecl *fd);
+    bool TraverseStmt(Stmt *cs);
+protected:
+    void addAsReferenced(Decl *d, bool asDeep) {
+        referencedDeclsDeep.insert(d);
+        if (!asDeep)
+            referencedDeclsShallow.insert(d);
+    }
+    void addType(const Type *t);
+    void addDecl(Decl *d, bool forceDeep = false);
+protected:
+    std::set<Decl *> &referencedDeclsShallow;
+    std::set<Decl *> &referencedDeclsDeep;
+    bool deepMode;
+    Stmt *becomeDeepInside;
 };
 
 }

@@ -202,6 +202,9 @@ class AlignRule {
 public:
     AlignRule(): rank(-1), templ("unknown"), templRank(-1) {}
 public:
+    bool isInitialized() { return rank >= 0; }
+    bool isMapped() { return templRank >= 0; }
+public:
     int rank;
     std::string templ;
     int templRank;
@@ -263,11 +266,12 @@ public:
 
 class ClauseAcross {
 public:
-    ClauseAcross(): arrayName("unknown"), rank(-1) {}
+    ClauseAcross(): isOut(false), arrayName("unknown"), rank(-1) {}
 public:
     int getDepCount() const;
 public:
-    std::string  arrayName;
+    bool isOut;
+    std::string arrayName;
     int rank;
     std::vector<std::pair<MyExpr, MyExpr> > widths; // flow, anti
 };
@@ -276,7 +280,7 @@ class ClauseRemoteAccess {
 public:
     ClauseRemoteAccess(): arrayName("unknown"), rank(-1), excluded(false) {}
 public:
-    bool matches(std::string seenExpr, int idx);
+    bool matches(std::string seenExpr, int idx) const;
 public:
     std::string arrayName;
     int rank;
@@ -284,6 +288,14 @@ public:
     std::vector<int> axes; // non-const axis numbers. 1-based
     std::vector<AlignAxisRule> axisRules;
     bool excluded;
+};
+
+class ClauseTie {
+public:
+    ClauseTie() {}
+public:
+    std::string arrayName;
+    std::vector<int> loopAxes;
 };
 
 class DvmPragma {
@@ -388,6 +400,7 @@ public:
     std::vector<ClauseAcross> acrosses;
     MyExpr stage;
     std::vector<ClauseRemoteAccess> rmas;
+    std::vector<ClauseTie> ties;
 };
 
 class PragmaGetSetActual: public DvmPragma {

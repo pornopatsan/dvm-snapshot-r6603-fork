@@ -716,7 +716,6 @@ void  DelDA(s_DISARRAY  *DArr)
 
 void  disarr_Done(s_DISARRAY  *DArr)
 {
-   DvmType        lHandlePtr;
    int            i, j;
    s_REGBUF       *RegBuf;
    s_REGBUFGROUP  *RBG;
@@ -872,11 +871,9 @@ void  disarr_Done(s_DISARRAY  *DArr)
 
    DArr->HasLocal = FALSE;
 
-   lHandlePtr = (DvmType)HandlePtr;
-
    for(i=0; i < DACount; i++)
    {
-      if(DAHeaderAddr[i][0] == lHandlePtr)
+      if((uLLng)DAHeaderAddr[i] == HandlePtr->HeaderPtr)
       {
          for(j=i ; j < DACount - 1; j++)
              DAHeaderAddr[j] = DAHeaderAddr[j+1];

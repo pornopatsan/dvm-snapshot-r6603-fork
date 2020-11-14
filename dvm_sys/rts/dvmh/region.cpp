@@ -458,6 +458,13 @@ void DvmhRegion::renewDatas() {
     }
 }
 
+void DvmhRegion::renewData(DvmhData *data, DvmhPieces *restrictTo) {
+    DvmhRegionData *rdata = dictFind2(datas, data);
+    if (rdata) {
+        performRenew(rdata, true, restrictTo);
+    }
+}
+
 void DvmhRegion::registerData(DvmhData *data, int intent, const Interval indexes[]) {
     checkInternal(phase == rpRegistrations);
     int rank = data->getRank();
@@ -907,17 +914,20 @@ void DvmhRegion::compareDatas(DvmhRegionData *rdata, DvmhPieces *area) {
                 dvmh_log(TRACE, "Variable %s what to compare:", varName);
                 custom_log(TRACE, piecesOut, p2);
                 for (int j = 0; j < p2->getCount(); j++) {
-                    const Interval *piece = p2->getPiece(j, 0);
-                    DvmhBuffer *buf = data->getBuffer(i)->dumpPiece(piece);
-                    buf->fillHeader(header2, false);
-                    UDvmType pieceErrorCount = comparePiece(rdata, i, header1, header2, piece, errSet, globalErrSet);
-                    if (pieceErrorCount > 0) {
-                        data->getRepr(i)->getActualState()->subtractOne(piece);
-                        dvmh_log(DEBUG, "Discarding actual state from following piece on device #%d:", i);
-                        custom_log(DEBUG, blockOut, rank, piece);
+                    DvmType order = ABS_ORDER;
+                    const Interval *piece = p2->getPiece(j, &order);
+                    if (order == ABS_ORDER) {
+                        DvmhBuffer *buf = data->getBuffer(i)->dumpPiece(piece);
+                        buf->fillHeader(header2, false);
+                        UDvmType pieceErrorCount = comparePiece(rdata, i, header1, header2, piece, errSet, globalErrSet);
+                        if (pieceErrorCount > 0) {
+                            data->getRepr(i)->getActualState()->subtractOne(piece);
+                            dvmh_log(DEBUG, "Discarding actual state from following piece on device #%d:", i);
+                            custom_log(DEBUG, blockOut, rank, piece);
+                        }
+                        errorCount += pieceErrorCount;
+                        delete buf;
                     }
-                    errorCount += pieceErrorCount;
-                    delete buf;
                 }
                 delete p2;
             }
@@ -974,7 +984,7 @@ DvmhRegion::~DvmhRegion() {
     delete latestLoopEnd;
 }
 
-void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut) {
+void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut, DvmhPieces *restrictTo) {
     checkInternal(phase == rpExecution);
     unsigned long devicesMask = usesDevices;
     DvmhData *data = rdata->getData();
@@ -1009,6 +1019,9 @@ void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut) {
                     p1->unite(p2);
                     delete p2;
                 }
+                if (restrictTo) {
+                    p1->intersectInplace(restrictTo);
+                }
                 needToBeActual[j] = p1;
                 bool isShadow = false;
                 if (rank > 0) {
@@ -1031,7 +1044,7 @@ void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut) {
             DvmhRepresentative *repr = data->getRepr(i);
             if (repr) {
                 repr->setCleanTransformState(false);
-                if (needToBeActual[i] == 0 || needToBeActual[i]->isEmpty()) {
+                if (!restrictTo && (needToBeActual[i] == 0 || needToBeActual[i]->isEmpty())) {
                     // There is nothing that needs to be actual
                     repr->getActualState()->subtractInplace(outPlusLocal);
                     if (repr->getActualState()->isEmpty()) {
@@ -1047,9 +1060,13 @@ void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut) {
         needToBeActual[i] = 0;
     }
 
-    if (outPlusLocal->getCount() > 0) {
+    DvmhPieces *restrictedOutPlusLocal = outPlusLocal;
+    if (restrictTo) {
+        restrictedOutPlusLocal = outPlusLocal->intersect(restrictTo);
+    }
+    if (restrictedOutPlusLocal->getCount() > 0) {
         // Clearing actual for 'out' and 'local' parameters
-        data->clearActual(outPlusLocal);
+        data->clearActual(restrictedOutPlusLocal);
 
         // Marking as actual for 'out' and 'local' parameters
         for (int j = 0; j < devicesCount; j++) {
@@ -1058,12 +1075,15 @@ void DvmhRegion::performRenew(DvmhRegionData *rdata, bool updateOut) {
                 assert(repr != 0);
                 DvmhPieces *p1 = new DvmhPieces(rank);
                 p1->appendOne(rdata->getLocalPart(j));
-                p1->intersectInplace(outPlusLocal);
+                p1->intersectInplace(restrictedOutPlusLocal);
                 repr->getActualState()->unite(p1);
                 delete p1;
             }
         }
         data->getCurState() = DvmhDataState(persistentInfo, rdata->getVarId());
+    }
+    if (restrictTo) {
+        delete restrictedOutPlusLocal;
     }
     delete outPlusLocal;
 }

@@ -787,6 +787,7 @@ set_stat_list(old_list, stat)
             case (DVM_CONSISTENT_GROUP_DIR):
             case (DVM_CONSISTENT_DIR):
             case (DVM_ASYNCID_DIR):
+            case (ACC_ROUTINE_DIR):
 	    case (DATA_DECL):
 	    case (EXTERN_STAT):
 	    case (INTRIN_STAT):
@@ -938,7 +939,8 @@ set_stat_list(old_list, stat)
             case (SPF_PARALLEL_DIR):           /*SPF*/
             case (SPF_TRANSFORM_DIR):          /*SPF*/ 
             case (SPF_PARALLEL_REG_DIR):       /*SPF*/
-            case (SPF_END_PARALLEL_REG_DIR):   /*SPF*/  
+            case (SPF_END_PARALLEL_REG_DIR):   /*SPF*/ 
+            case (SPF_CHECKPOINT_DIR):         /*SPF*/ 
 	      if (start_new_group) {
 		if (stat->variant == CDOALL_NODE
 		    || stat->variant == SDOALL_NODE

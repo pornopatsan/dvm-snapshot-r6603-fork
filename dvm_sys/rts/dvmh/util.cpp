@@ -1073,4 +1073,10 @@ bool shrinkBlock(int rank, const Interval universal[], const DvmType steps[], co
 // TODO: Find a place for this
 bool needToCollectTimes = true;
 
+//TODO: need to add other compilers
+const char* getMpiRank() {
+    const char * envR = getenv("PMI_RANK"); /* OMPI_COMM_WORLD_LOCAL_RANK for OpenMPI? */
+    return envR;
+}
+
 }

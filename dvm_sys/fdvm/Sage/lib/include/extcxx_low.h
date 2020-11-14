@@ -210,6 +210,7 @@ extern "C" {
      int makeLinearExpr_Sign(...);
      int numberOfBifsInBlobList(...);
      int open_proj_toolbox(...);
+     int open_proj_files_toolbox(...);
      int patternMatchExpression(...);
      int pointerType(...);
      int replaceTypeInType(...);

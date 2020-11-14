@@ -126,6 +126,9 @@ int type;
 	 return h;
       }
    hash_table[i] = hash_table[i]->next_entry;
+#ifdef __SPF
+   removeFromCollection(h);
+#endif
    free((char *)h);
    return hash_table[i];
 }

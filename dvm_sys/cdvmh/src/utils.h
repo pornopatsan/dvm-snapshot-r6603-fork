@@ -37,7 +37,7 @@ std::string getAbsoluteFileName(std::string fileName, std::string forcedWorkingD
 std::string simplifyFileName(std::string fileName, bool keepLinks);
 std::string getCanonicalFileName(std::string fileName, std::string forcedWorkingDir = std::string());
 std::string getShortestPath(std::string fromDir, std::string toFile, char useSeparator);
-std::string getUniqueName(std::string desired, std::set<std::string> *prohibited1, std::set<std::string> *prohibited2 = 0);
+std::string getUniqueName(std::string desired, const std::set<std::string> *prohibited1, const std::set<std::string> *prohibited2 = 0);
 bool fileExists(std::string fileName);
 std::string flagsToStr(unsigned long long flags, const char *strs[], int strCount);
 bool isRedType(std::string scalarType);

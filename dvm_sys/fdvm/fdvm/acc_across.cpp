@@ -26,6 +26,7 @@ extern SgExpression *CudaReplicate(SgSymbol *, SgSymbol *, SgSymbol *, SgSymbol 
 extern SgStatement *IncludeLine(char*);
 extern void optimizeLoopBodyForOne(vector<newInfo> &allNewInfo);
 extern void searchIdxs(vector<acrossInfo> &allInfo, SgExpression *st);
+extern int warpSize;
 
 // local functions
 ArgsForKernel **Create_C_Adapter_Function_Across_variants(SgSymbol*, SgSymbol*, const int, const int, const int, SageSymbols**, SageSymbols**);
@@ -52,6 +53,7 @@ static vector<ParamsForAllVariants> allVariants;
 
 static const char *funcDvmhConvXYfortVer = "       attributes(device) subroutine dvmh_convert_XY_int(x,y,Rx,Ry,slash,idx)\n      implicit none\n      integer ,value:: x\n      integer ,value:: y\n      integer ,value:: Rx\n      integer ,value:: Ry\n      integer ,value:: slash\n      integer ,device:: idx  \n	  \n      if(slash .eq. 0) then\n	     if(Rx .eq. Ry) then\n		    if(x + y .lt. Rx) then\n			   idx = y + (1+x+y)*(x+y)/2\n            else\n			   idx = Rx*(Rx-1)+x-(2*Rx-x-y-1)*(2*Rx-x-y-2)/2\n            endif		 \n         elseif(Rx .lt. Ry) then\n		    if(x + y .lt. Rx) then\n               idx = y + ((1+x+y)*(x+y)) / 2\n            elseif(x + y .lt. Ry) then\n               idx = ((1+Rx)*Rx) / 2 + Rx - x - 1 + Rx * (x+y-Rx)\n            else\n               idx = Rx*Ry-Ry+y-(((Rx+Ry-y-x-1)*(Rx+Ry-y-x-2))/2)\n            endif\n         else\n		    if(x + y .lt. Ry) then\n                idx = x + (1+x+y)*(x+y) / 2\n            elseif(x + y .lt. Rx) then\n                idx = (1+Ry)*Ry/2 + (Ry-y-1) + Ry * (x+y-Ry)\n            else\n                idx = Rx*Ry-Rx+x-((Rx+Ry-y-x-1)*(Rx+Ry-y-x-2)/2)\n            endif\n         endif\n      else\n	     if(Rx .eq. Ry) then\n            if(x + Rx-1-y .lt. Rx) then\n                idx = Rx-1-y + (x+Rx-y)*(x+Rx-1-y)/2\n            else\n                idx = Rx*(Rx-1) + x - (Rx-x+y)*(Rx-x+y-1)/2\n            endif\n         elseif(Rx .lt. Ry) then\n            if(x + Ry-1-y .lt. Rx) then		\n                idx = Ry-1-y + ((x+Ry-y)*(x+Ry-1-y)) / 2\n            elseif(x + Ry-1-y .lt. Ry) then\n                idx = ((1+Rx)*Rx)/2+Rx-x-1+Rx*(x+Ry-1-y-Rx)\n            else\n                idx = Rx*Ry-1-y-(((Rx+y-x)*(Rx+y-x-1))/2)\n            endif\n         else\n            if(x + Ry-1-y .lt. Ry) then\n                idx = x + (1+x+Ry-1-y)*(x+Ry-1-y)/2\n            elseif(x + Ry-1-y .lt. Rx) then\n                idx = (1+Ry)*Ry/2 + y + Ry * (x-y-1)\n            else\n                idx = Rx*Ry-Rx+x-((Rx+y-x)*(Rx+y-x-1)/2)\n            endif\n         endif\n      endif\n      end subroutine\n";
 static const char *funcDvmhConvXYfortVerLong = "       attributes(device) subroutine dvmh_convert_XY_llong(x,y,Rx,Ry,slash,idx)\n      implicit none\n      integer*8 ,value:: x\n      integer*8 ,value:: y\n      integer*8 ,value:: Rx\n      integer*8 ,value:: Ry\n      integer*8 ,value:: slash\n      integer*8 ,device:: idx  \n	  \n      if(slash .eq. 0) then\n	     if(Rx .eq. Ry) then\n		    if(x + y .lt. Rx) then\n			   idx = y + (1+x+y)*(x+y)/2\n            else\n			   idx = Rx*(Rx-1)+x-(2*Rx-x-y-1)*(2*Rx-x-y-2)/2\n            endif		 \n         elseif(Rx .lt. Ry) then\n		    if(x + y .lt. Rx) then\n               idx = y + ((1+x+y)*(x+y)) / 2\n            elseif(x + y .lt. Ry) then\n               idx = ((1+Rx)*Rx) / 2 + Rx - x - 1 + Rx * (x+y-Rx)\n            else\n               idx = Rx*Ry-Ry+y-(((Rx+Ry-y-x-1)*(Rx+Ry-y-x-2))/2)\n            endif\n         else\n		    if(x + y .lt. Ry) then\n                idx = x + (1+x+y)*(x+y) / 2\n            elseif(x + y .lt. Rx) then\n                idx = (1+Ry)*Ry/2 + (Ry-y-1) + Ry * (x+y-Ry)\n            else\n                idx = Rx*Ry-Rx+x-((Rx+Ry-y-x-1)*(Rx+Ry-y-x-2)/2)\n            endif\n         endif\n      else\n	     if(Rx .eq. Ry) then\n            if(x + Rx-1-y .lt. Rx) then\n                idx = Rx-1-y + (x+Rx-y)*(x+Rx-1-y)/2\n            else\n                idx = Rx*(Rx-1) + x - (Rx-x+y)*(Rx-x+y-1)/2\n            endif\n         elseif(Rx .lt. Ry) then\n            if(x + Ry-1-y .lt. Rx) then		\n                idx = Ry-1-y + ((x+Ry-y)*(x+Ry-1-y)) / 2\n            elseif(x + Ry-1-y .lt. Ry) then\n                idx = ((1+Rx)*Rx)/2+Rx-x-1+Rx*(x+Ry-1-y-Rx)\n            else\n                idx = Rx*Ry-1-y-(((Rx+y-x)*(Rx+y-x-1))/2)\n            endif\n         else\n            if(x + Ry-1-y .lt. Ry) then\n                idx = x + (1+x+Ry-1-y)*(x+Ry-1-y)/2\n            elseif(x + Ry-1-y .lt. Rx) then\n                idx = (1+Ry)*Ry/2 + y + Ry * (x-y-1)\n            else\n                idx = Rx*Ry-Rx+x-((Rx+y-x)*(Rx+y-x-1)/2)\n            endif\n         endif\n      endif\n      end subroutine\n" ;
+static const char* fermiPreprocDir = "CUDA_FERMI_ARCH";
 
 // local variables
 SgStatement *kernelScope, *block;
@@ -179,86 +181,54 @@ static void getDefaultCudaBlock(int &x, int &y, int &z, int loopDep, int loopInd
     {
         if (loopDep == 0)
         {
-            if (loopIndep == 1) {
-                x = 256; y = 1; z = 1;
-            } else if (loopIndep == 2) {
-                x = 32; y = 14; z = 1;
-            } else {
-                x = 32; y = 7; z = 2;
-            }
+            if (loopIndep == 1)      { x = 256; y = 1; z = 1; } 
+            else if (loopIndep == 2) { x = 32; y = 14; z = 1; }
+            else                     { x = 32; y = 7; z = 2; }
         }
         else if (loopDep == 1)
         {
-            if (loopIndep == 0) {
-                x = 1; y = 1; z = 1;
-            } else if (loopIndep == 1) {
-                x = 256; y = 1; z = 1;
-            } else if (loopIndep == 2) {
-                x = 32; y = 5; z = 1;
-            } else {
-                x = 16; y = 8; z = 2;
-            }
+            if (loopIndep == 0)      { x = 1; y = 1; z = 1; }
+            else if (loopIndep == 1) { x = 256; y = 1; z = 1; }
+            else if (loopIndep == 2) { x = 32; y = 5; z = 1; }
+            else                     { x = 16; y = 8; z = 2; }
         }
         else if (loopDep == 2)
         {
-            if (loopIndep == 0) {
-                x = 32; y = 1; z = 1;
-            } else if (loopIndep == 1){
-                x = 32; y = 4; z = 1;
-            } else {
-                x = 16; y = 8; z = 2;
-            }
+            if (loopIndep == 0)      { x = 32; y = 1; z = 1; }
+            else if (loopIndep == 1) { x = 32; y = 4; z = 1; } 
+            else                     { x = 16; y = 8; z = 2; }
         }
         else if (loopDep >= 3)
         {
-            if (loopIndep == 0) {
-                x = 32; y = 5; z = 1;
-            } else {
-                x = 32; y = 5; z = 2;
-            }
+            if (loopIndep == 0) { x = 32; y = 5; z = 1; } 
+            else                { x = 32; y = 5; z = 2; }
         }
     }
     else
     {
         if (loopDep == 0)
         {
-            if (loopIndep == 1) {
-                x = 256; y = 1; z = 1;
-            } else if (loopIndep == 2) {
-                x = 32; y = 14; z = 1;
-            } else {
-                x = 32; y = 7; z = 2;
-            }
+            if (loopIndep == 1)      { x = 256; y = 1; z = 1; }
+            else if (loopIndep == 2) { x = 32; y = 14; z = 1; }
+            else                     { x = 32; y = 7; z = 2; }
         }
         else if (loopDep == 1)
         {
-            if (loopIndep == 0) {
-                x = 1; y = 1; z = 1;
-            } else if (loopIndep == 1) {
-                x = 256; y = 1; z = 1;
-            } else if (loopIndep == 2) {
-                x = 32; y = 8; z = 1;
-            } else {
-                x = 16; y = 8; z = 2;
-            }
+            if (loopIndep == 0)      { x = 1; y = 1; z = 1; }
+            else if (loopIndep == 1) { x = 256; y = 1; z = 1; }
+            else if (loopIndep == 2) { x = 32; y = 8; z = 1; }
+            else                     { x = 16; y = 8; z = 2; }
         }
         else if (loopDep == 2)
         {
-            if (loopIndep == 0) {
-                x = 32; y = 1; z = 1;
-            } else if (loopIndep == 1) {
-                x = 32; y = 4; z = 1;
-            } else {
-                x = 16; y = 8; z = 2;
-            }
+            if (loopIndep == 0)      { x = 32; y = 1; z = 1; }
+            else if (loopIndep == 1) { x = 32; y = 4; z = 1; }
+            else                     { x = 16; y = 8; z = 2; }
         }
         else if (loopDep >= 3)
         {
-            if (loopIndep == 0) {
-                x = 8; y = 4; z = 1;
-            } else {
-                x = 8; y = 4; z = 2;
-            }
+            if (loopIndep == 0) { x = 8; y = 4; z = 1; }
+            else                { x = 8; y = 4; z = 2; }
         }
     }
 }
@@ -284,11 +254,29 @@ static const char *getKeyWordType(SgType *inType)
 
 static int getSizeOf()
 {
-    unsigned ret = 1;
+    int ret = 1;
     for (SgExpression *er = red_list; er; er = er->rhs())
     {
         SgExpression *red_expr_ref = er->lhs()->rhs(); // reduction variable reference
         SgType *inType = red_expr_ref->type();
+        SgExpression* len = inType->length();
+        if (len && len->isInteger())
+        {
+            ret = MAX(ret, len->valueInteger());
+            continue;
+        }
+
+        SgExpression* kind = inType->selector();
+        if (kind && kind->lhs())
+        {
+            SgExpression *kvalue = Calculate(kind->lhs());
+            if (kvalue->isInteger())
+            {
+                ret = MAX(ret, kvalue->valueInteger());
+                continue;
+            }
+        }
+
         if (inType->variant() == SgTypeFloat()->variant())
             ret = MAX(ret, sizeof(float));
         else if (inType->variant() == SgTypeDouble()->variant())
@@ -300,7 +288,7 @@ static int getSizeOf()
         else if (inType->variant() == SgTypeChar()->variant())
             ret = MAX(ret, sizeof(char));
     }
-    return (int)ret;
+    return ret;
 }
 
 SgStatement *CreateKernelProcedureDevice(SgSymbol *skernel)
@@ -802,7 +790,9 @@ ArgsForKernel *Create_C_Adapter_Function_Across(SgSymbol *sadapter)
                 loop_body = CopyOfBody.top();
                 CopyOfBody.pop();
 
-                if (options.isOn(AUTO_TFM))
+                // temporary check for ON mapping
+                const bool contitionOfOptimization = options.isOn(AUTO_TFM);
+                if (contitionOfOptimization)
                     currentLoop = new Loop(loop_body, true);
 
                 string kernel_symb = tmp.s_kernel_symb->identifier();
@@ -848,7 +838,7 @@ ArgsForKernel *Create_C_Adapter_Function_Across(SgSymbol *sadapter)
                     correctPrivateList(RESTORE);
                     newVars.clear();
                 }
-                if (options.isOn(AUTO_TFM))
+                if (contitionOfOptimization)
                     delete currentLoop;
             }
             if (options.isOn(RTC))
@@ -2362,10 +2352,44 @@ ArgsForKernel** Create_C_Adapter_Function_Across_variants(SgSymbol *sadapter, Sg
     stmt->addComment("// Get CUDA configuration params");
 
     if (loopV > 0 && red_list)
-        stmt = new SgCExpStmt(SgAssignOp(*new SgVarRefExp(*shared_mem), *new SgValueExp(getSizeOf())));
+    {
+        //OLD VAR
+        //stmt = new SgCExpStmt(SgAssignOp(*new SgVarRefExp(*shared_mem), *new SgValueExp(getSizeOf())));
+        //st_end->insertStmtBefore(*stmt, *st_hedr);
+
+        int shared_mem_count = getSizeOf();
+        if (shared_mem_count)
+        {
+            if (!options.isOn(C_CUDA))
+            {
+                e = &SgAssignOp(*new SgVarRefExp(shared_mem), *new SgValueExp(shared_mem_count));
+                stmt = new SgCExpStmt(*e);
+                st_end->insertStmtBefore(*stmt, *st_hedr);
+            }
+            else
+            {
+                char* tmp = new char[strlen("ifdef ") + strlen(fermiPreprocDir) + 1];
+                tmp[0] = 0;
+                strcat(tmp, "#ifdef ");
+                strcat(tmp, fermiPreprocDir);
+                st_end->insertStmtBefore(*PreprocessorDirective(tmp), *st_hedr);
+                e = &SgAssignOp(*new SgVarRefExp(shared_mem), *new SgValueExp(shared_mem_count));
+                stmt = new SgCExpStmt(*e);
+                st_end->insertStmtBefore(*stmt, *st_hedr);
+
+                st_end->insertStmtBefore(*PreprocessorDirective("#else"), *st_hedr);
+                e = &SgAssignOp(*new SgVarRefExp(shared_mem), *new SgValueExp(0));
+                stmt = new SgCExpStmt(*e);
+                st_end->insertStmtBefore(*stmt, *st_hedr);
+                st_end->insertStmtBefore(*PreprocessorDirective("#endif"), *st_hedr);
+            }
+        }
+    }
     else
+    {
         stmt = new SgCExpStmt(SgAssignOp(*new SgVarRefExp(*shared_mem), *new SgValueExp(0)));
-    st_end->insertStmtBefore(*stmt, *st_hedr);
+        st_end->insertStmtBefore(*stmt, *st_hedr);
+    }
 
     string define_name_int = kernel_symb->identifier();
     string define_name_long = kernel_symb->identifier();
@@ -2559,7 +2583,11 @@ ArgsForKernel** Create_C_Adapter_Function_Across_variants(SgSymbol *sadapter, Sg
             mywarn("strat: in red section");
             if (loopV != 0)
             {
-                e = &SgAssignOp(*new SgVarRefExp(*red_blocks), *new SgRecordRefExp(*s_blocks, "x") * *new SgRecordRefExp(*s_blocks, "y") * *new SgRecordRefExp(*s_blocks, "z"));
+                // (blocks.x * blocks.y * blocks.z * threads.x * threads.y * threads.z) / warpSize)
+                e = &SgAssignOp(*new SgVarRefExp(*red_blocks), 
+                    (*new SgRecordRefExp(*s_blocks, "x") * *new SgRecordRefExp(*s_blocks, "y") * *new SgRecordRefExp(*s_blocks, "z") * 
+                    *new SgRecordRefExp(*s_threads, "x") * *new SgRecordRefExp(*s_threads, "y") * *new SgRecordRefExp(*s_threads, "z"))
+                    / *new SgValueExp(warpSize));
                 stmt = new SgCExpStmt(*e);
                 st_end->insertStmtBefore(*stmt, *st_hedr);
             }
@@ -2714,7 +2742,7 @@ ArgsForKernel** Create_C_Adapter_Function_Across_variants(SgSymbol *sadapter, Sg
     }
     else if (acrossV == 2) // ACROSS with two dependence: generate method
     {
-        // attantion!! need to add flag for support all cases
+        // attention!! need to add flag for support all cases
         if (loopV != 0)
         {
             SgSymbol *tmp = nums[0];
@@ -3256,7 +3284,7 @@ ArgsForKernel** Create_C_Adapter_Function_Across_variants(SgSymbol *sadapter, Sg
     }
     else if (acrossV >= 3) // ACROSS with three or more dependence: generate method
     {
-        // attantion!! need to add flag for support all cases
+        // attention!! need to add flag for support all cases
         if (loopV != 0)
         {
             SgSymbol *tmp = nums[0];
@@ -4003,7 +4031,7 @@ ArgsForKernel** Create_C_Adapter_Function_Across_variants(SgSymbol *sadapter, Sg
 void MakeDeclarationsForKernel_On_C_Across(SgType *indexType)
 {
     // declare do_variables
-    DeclareDoVars();
+    DeclareDoVars(indexType);
 
     // declare private(local in kernel) variables 
     DeclarePrivateVars();
@@ -4168,6 +4196,7 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, S
     SgStatement *st = NULL, *st_end = NULL;
     SgExpression *fe = NULL;
     SgSymbol *tid = NULL, *s_red_count_k = NULL;
+    SgSymbol *add_blocks = NULL;
     SgIfStmt *if_st = NULL;
     SgType *longType = idxTypeInKernel;
 
@@ -4209,10 +4238,8 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, S
         mywarn("start: block4");
 #endif
 
-    if (options.isOn(C_CUDA))
-        tid = new SgSymbol(VARIABLE_NAME, TestAndCorrectName("id_x"), *longType, *cur_in_kernel);
-    else
-        tid = new SgSymbol(VARIABLE_NAME, TestAndCorrectName("id_x"), *longType, *cur_in_kernel);
+    tid = new SgSymbol(VARIABLE_NAME, TestAndCorrectName("id_x"), *longType, *cur_in_kernel);
+    add_blocks = new SgVariableSymb(TestAndCorrectName("add_blocks"), CudaIndexType(), cur_in_kernel);
 
     if (options.isOn(C_CUDA))
         st = AssignStatement(*new SgVarRefExp(*tid), (*new SgRecordRefExp(*s_blockidx, "x")) *
@@ -4223,6 +4250,13 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, S
 
     cur_in_kernel->insertStmtAfter(*st, *kernel_st);
     cur_in_kernel = st;
+
+    if (red_list)
+    {
+        st = AssignStatement(*new SgVarRefExp(*add_blocks), *new SgValueExp(0));
+        cur_in_kernel->insertStmtAfter(*st, *kernel_st);
+        cur_in_kernel = st;
+    }
 
     size_t size = argsKer->otherVarsForOneTh.size();
     size_t size1 = argsKer->otherVars.size();
@@ -4352,8 +4386,9 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, S
         MakeDeclarationsForKernelAcross(idxTypeInKernel);
     for_kernel = 0;
 
-    st = tid->makeVarDeclStmt();
-    kernel_st->insertStmtAfter(*st);
+    kernel_st->insertStmtAfter(*tid->makeVarDeclStmt());
+    if (red_list)
+        kernel_st->insertStmtAfter(*add_blocks->makeVarDeclStmt());
 
     if (!options.isOn(C_CUDA))
     {
@@ -4388,6 +4423,7 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
     SgStatement *st = NULL, *st_end = NULL;
     SgExpression *e = NULL, *fe = NULL;
     SgSymbol *tid = NULL, *tid1 = NULL, *tid2 = NULL, *s_red_count_k = NULL, *coords = NULL;
+    SgSymbol* add_blocks = NULL;
     SgIfStmt *if_st = NULL, *if_st1 = NULL, *if_st2 = NULL;
     SgForStmt *mainFor = NULL;
     SgSymbol *tmpvar1 = NULL;    
@@ -4397,6 +4433,8 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
     if (!skernel)
         return(NULL);
     nloop = ParLoopRank();
+
+    add_blocks = new SgVariableSymb(TestAndCorrectName("add_blocks"), CudaIndexType(), cur_in_kernel);
 
     // create kernel procedure for loop in Fortran-Cuda language or kernel function in C_Cuda     
     // creating Header and End Statement of Kernel
@@ -4464,6 +4502,14 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
         if (argsKer->nSymb.size() > 0)
             tid2 = new SgSymbol(VARIABLE_NAME, TestAndCorrectName("id_z"), *longType, *cur_in_kernel);
     }
+
+    if (red_list && (argsKer->symb.size() == 1 || (argsKer->nSymb.size() > 0)))
+    {
+        st = AssignStatement(*new SgVarRefExp(*add_blocks), *new SgValueExp(0));
+        cur_in_kernel->insertStmtAfter(*st, *kernel_st);
+        cur_in_kernel = st;
+    }
+
     if (options.isOn(C_CUDA))
         st = AssignStatement(*new SgVarRefExp(*tid), (*new SgRecordRefExp(*s_blockidx, "x")) *
         *new SgRecordRefExp(*s_blockdim, "x") + *new SgRecordRefExp(*s_threadidx, "x"));
@@ -4816,7 +4862,7 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
     }
     else if (argsKer->symb.size() == 2) // body for 2 dependence
     {
-        // attantion!! adding to support all variants!!
+        // attention!! adding to support all variants!!
         if (argsKer->nSymb.size() != 0)
         {
             SgSymbol *tmp = tid1;
@@ -5000,7 +5046,7 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
     }
     else if (argsKer->symb.size() >= 3) // body for >3 dependence
     {
-        // attantion!! adding to support all variants!! не проверено
+        // attention!! adding to support all variants!! не проверено
 
         if (argsKer->nSymb.size() >= 1)
         {
@@ -5766,13 +5812,7 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
         DeclarationCreateReductionBlocksAcross(nloop, red_list);
     }
     else if (red_list && argsKer->nSymb.size() > 0) // generating reduction calculation blocks
-    {
-        st = AssignStatement(*new SgVarRefExp(tid), *new SgRecordRefExp(*s_blockdim, "x") * *new SgRecordRefExp(*s_blockdim, "y") *
-            *new SgRecordRefExp(*s_blockdim, "z") / *new SgValueExp(2));
-        st_end->insertStmtBefore(*st, *kernel_st);
-        SgSymbol *copy_symb = new SgSymbol(*tid);
-        CreateReductionBlocksAcross(st_end, nloop, red_list, copy_symb); //s_red_count_k
-    }
+        CreateReductionBlocksAcross(st_end, nloop, red_list, new SgSymbol(*tid));
 
 #if debugMode
         mywarn(" end: create reduction block");
@@ -5799,6 +5839,10 @@ SgStatement *CreateLoopKernelAcross(SgSymbol *skernel, ArgsForKernel *argsKer, i
         for (size_t i = 0; i < forDeclarationInKernel.size(); ++i)
             addDeclExpList(forDeclarationInKernel[i], st->expr(0));
     }
+
+    if (red_list && (argsKer->symb.size() == 1 || (argsKer->nSymb.size() > 0)))
+        kernel_st->insertStmtAfter(*add_blocks->makeVarDeclStmt());
+
     if (argsKer->symb.size() == 1)
     {
         if (argsKer->nSymb.size() == 2)
@@ -6075,351 +6119,6 @@ void DeclarationOfReductionBlockInKernelAcross(SgExpression *ered, reduction_ope
     }
 }
 
-static SgExpression *BlockIdxRefExpr_(const char *xyz)
-{
-    if (options.isOn(C_CUDA))
-        return(new SgRecordRefExp(*s_blockidx, xyz));
-    else
-        return(&(*new SgRecordRefExp(*s_blockidx, xyz) - *new SgValueExp(1)));
-}
-
-void ReductionBlockInKernelAcross(SgStatement *stat, SgSymbol *i_var, SgSymbol *j_var, SgExpression *ered, reduction_operation_list *rsl, SgSymbol *red_count_symb)
-{
-    SgStatement *ass, *newst, *current, *if_st, *while_st, *typedecl, *st, *do_st;
-    SgExpression *le, *re, *eatr, *cond, *ev;
-    SgSymbol *red_var, *red_var_k, *s_block, *loc_var, *sf;
-    SgType *rtype;
-    int i, ind;
-
-    //init block
-    ass = newst = current = if_st = while_st = typedecl = st = do_st = NULL;
-    le = re = eatr = cond = ev = NULL;
-    red_var = red_var_k = s_block = loc_var = sf = NULL;
-    rtype = NULL;
-    i = ind = loc_el_num = 0;
-    //end of init block
-
-    //call syncthreads() for second, third,... reduction operation (n>1) 
-    /*if(n>1)
-    {
-    newst = FunctionCallStatement(SyncthreadsSymbol());
-    stat->insertStmtBefore(*newst,*stat->controlParent());
-    }*/
-    // analys of reduction operation 
-    // ered - reduction operation (variant==ARRAY_OP)
-    ev = ered->rhs(); // reduction variable reference for reduction operations except MINLOC,MAXLOC  
-    if (isSgExprListExp(ev))    // for MAXLOC,MINLOC            
-    {
-        loc_var = ev->rhs()->lhs()->symbol();  //location array reference
-        ev = ev->lhs(); // reduction variable reference 
-    }
-    else
-        loc_var = NULL;
-
-    //              <red_var>_block([ k,] i) = <red_var>       [k=LowerBound:UpperBound]
-    // or for MAXLOC,MINLOC
-    //              <red_var>_block(i)%<red_var>    = <red_var>
-    //              <red_var>_block(i)%<loc_var>(1) = <loc_var>(1)
-    //             [<red_var>_block(i)%<loc_var>(2) = <loc_var>(2) ]
-    //                    .   .   .
-    // create and declare array '<red_var>_block'     
-    red_var = ev->symbol();
-
-    if (rsl->locvar)
-    {
-        newst = Declaration_Statement(rsl->locvar); //declare location variable
-        kernel_st->insertStmtAfter(*newst, *kernel_st);
-    }
-
-    if (rsl->redvar_size > 0)
-    {
-        newst = Declaration_Statement(rsl->redvar); //declare reduction variable
-        kernel_st->insertStmtAfter(*newst, *kernel_st);
-    }
-    else if (rsl->redvar_size < 0)
-    {
-        red_var_k = RedVariableSymbolInKernel(rsl->redvar, rsl->dimSize_arg);
-        newst = Declaration_Statement(red_var_k); //declare reduction variable
-        kernel_st->insertStmtAfter(*newst, *kernel_st);
-    }
-    rtype = (rsl->redvar_size >= 0) ? TypeOfRedBlockSymbol(ered) : NULL;
-
-    s_block = RedBlockSymbolInKernelAcross(red_var, rtype);
-
-    newst = Declaration_Statement(s_block);
-
-    if (options.isOn(C_CUDA)) // in C Language
-        newst->addDeclSpec(BIT_CUDA_SHARED | BIT_EXTERN);
-    else      // in Fortran Language
-    {
-        eatr = new SgExprListExp(*new SgExpression(ACC_SHARED_OP));
-        newst->setExpression(2, *eatr);
-    }
-
-    kernel_st->insertStmtAfter(*newst, *kernel_st);
-
-    // create assign statement[s]     
-    if (isSgExprListExp(ered->rhs())) //MAXLOC,MINLOC
-    {
-        typedecl = MakeStructDecl(rtype->symbol());
-        kernel_st->insertStmtAfter(*typedecl, *kernel_st);
-        sf = RedVarFieldSymb(s_block);
-        le = RedLocVar_Block_Ref(s_block, i_var, NULL, new SgVarRefExp((sf)));
-        re = new SgVarRefExp(red_var);
-        ass = AssignStatement(le, re);
-        stat->insertStmtBefore(*ass, *stat->controlParent());
-        for (i = 1; i <= rsl->number; i++)
-        {
-            ind = options.isOn(C_CUDA) ? i - 1 : i;
-            le = RedLocVar_Block_Ref(s_block, i_var, NULL, new SgArrayRefExp(*((SgFieldSymb *)sf)->nextField(), *new SgValueExp(ind)));
-            if (isSgArrayType(rsl->locvar->type()))
-                re = new SgArrayRefExp(*(rsl->locvar), *LocVarIndex(rsl->locvar, i));
-            else
-                re = new SgVarRefExp(*(rsl->locvar));
-            ass = AssignStatement(le, re);
-            stat->insertStmtBefore(*ass, *stat->controlParent());
-        }
-    }
-    else if (rsl->redvar_size > 0) //reduction variable is array of known size       
-    {
-        for (i = 0; i < rsl->redvar_size; i++)
-        {
-            SgExpression *red_ind;
-            red_ind = RedVarIndex(red_var, i);
-            le = RedVar_Block_2D_Ref(s_block, i_var, red_ind);
-            re = new SgArrayRefExp(*red_var, *red_ind);
-            ass = AssignStatement(le, re);
-            stat->insertStmtBefore(*ass, *stat->controlParent());
-        }
-    }
-    else if (rsl->redvar_size == 0) //reduction variable is scalar      
-    {
-        le = RedVar_Block_Ref(s_block, i_var);
-        re = new SgVarRefExp(red_var);
-        ass = AssignStatement(le, re);
-        stat->insertStmtBefore(*ass, *stat->controlParent());
-    }
-    else                             //reduction variable is array of unknown size
-    {
-        le = RedVar_Block_Ref(s_block, i_var);
-        re = new SgArrayRefExp(*rsl->redvar, *SubscriptListOfRedArray(rsl->redvar));
-        ass = AssignStatement(le, re);
-        // create loop nest and insert it before 'stat'
-        do_st = doLoopNestForReductionArray(rsl, ass);
-        stat->insertStmtBefore(*do_st, *stat->controlParent());
-        while (do_st->variant() == FOR_NODE)
-            do_st = do_st->lexNext();
-        stat = do_st->lexNext(); // CONTROL_END of innermost loop
-    }
-    //call syncthreads()    
-    newst = FunctionCallStatement(SyncthreadsSymbol());
-    stat->insertStmtBefore(*newst, *stat->controlParent());
-
-    // [if (i .lt. red_count) then ]  // for last reduction of loop /*24.10.12*/
-    //         if (i + red_count .lt. blockDim%x [* blockDim%y [* blockDim%z]])  then
-    //            <red_var>_block([ k,] i) = <red_op> (<red_var>_block([ k,] i), <red_var>_block([ k,] i + red_count)) [k=LowerBound:UpperBound]
-    //         end if
-    // [  endif ]
-
-    //  or for MAXLOC,MINLOC
-    // [if (i .lt. red_count) then ]  // for last reduction of loop /*24.10.12*/
-    //         if (i + red_count .lt. blockDim%x [* blockDim%y [* blockDim%z]])  then
-    //            if(<red_var>_block(i + red_count)%<red_var> .gt. <red_var>_block(i)%<red_var>) then//MAXLOC
-    //              <red_var>_block(i)%<red_var>    = <red_var>_block(i + red_count)%<red_var>
-    //              <red_var>_block(i)%<loc_var>(1) = <red_var>_block(i + red_count)%<loc_var>(1)
-    //             [<red_var>_block(i)%<loc_var>(2) = <red_var>_block(i + red_count)%<loc_var>(2) ]
-    //                           .   .   .
-    //            endif
-    //         endif
-    //  [ endif ]
-
-    /*re = new SgRecordRefExp(*s_blockdim,"x");
-    if(nloop>1)
-    re = &(*re * (*new SgRecordRefExp(*s_blockdim,"y")));
-    if(nloop>2)
-    re = &(*re * (*new SgRecordRefExp(*s_blockdim,"z")));
-    cond= & operator < ( ( *new SgVarRefExp(i_var) + *new SgVarRefExp(red_count_symb)) , *re );
-
-    if(isSgExprListExp(ered->rhs())) //MAXLOC,MINLOC
-    newst = RedOp_If(i_var,s_block,ered,red_count_symb,rsl->number);
-    else
-    newst = RedOp_Assign(i_var,s_block,ered,red_count_symb,0);
-    if_st = new SgIfStmt( *cond, *newst);
-    if(rsl->redvar_size > 0)
-    for(i = 1; i < rsl->redvar_size; ++i)
-    {
-    newst->insertStmtAfter(*(ass=RedOp_Assign(i_var,s_block,ered,red_count_symb,i)), *if_st);
-    newst = ass;
-    }
-    if(!rsl->next && rsl->redvar_size >=0 ) //last reduction of loop, not array of unknown size
-    {
-    cond= & operator < ( *new SgVarRefExp(i_var), *new SgVarRefExp(red_count_symb));
-    newst = new SgIfStmt( *cond, *if_st);
-    stat->insertStmtBefore(*newst,*stat->controlParent());
-    }
-    else
-    stat->insertStmtBefore(*if_st,*stat->controlParent());
-    */
-
-    /*  old variant */
-    //         j = red_count / 2
-    //ass = AssignStatement(new SgVarRefExp(j_var),&(*new SgVarRefExp(red_count_symb) / *new SgValueExp(2)));
-    /*  old variant */
-
-    //       j = red_count 
-    ass = AssignStatement(new SgVarRefExp(j_var), &(*new SgVarRefExp(red_count_symb)));
-    //if(!rsl->next && rsl->redvar_size >= 0 ) //last reduction of loop, not array of unknown size
-    //	if_st->insertStmtAfter(*ass,*newst);										
-    //else
-    stat->insertStmtBefore(*ass, *stat->controlParent());
-    current = ass;
-    //!!!last = ass->lexNext();
-    //         if (i .eq. 0) then
-    //            <red_var>_grid( blockIdx%x - 1,[ m]) = <red_var>_block([ k,] 0)     [k=LowerBound:UpperBound, m=1,...]
-    //         endif
-    //
-    //               or for MAXLOC,MINLOC
-    //
-    //         if (i .eq. 0) then
-    //            <red_var>_grid   (blockIdx%x [ - 1 ] ) = <red_var>_block(0)%<red_var>
-    //            <loc_var>_grid(1, blockIdx%x [ - 1 ] ) = <red_var>_block(0)%<loc_var>(1)
-    //            <loc_var>_grid(2, blockIdx%x [ - 1 ] ) = <red_var>_block(0)%<loc_var>(2)
-    //                  .    .    .
-    //          
-    //         endif
-
-    int flag_func_call = 1;
-    int num = RedFuncNumber(ered->lhs()); // type of reduction
-    SgExpression *e = NULL;
-    const char *str_operation = NULL;
-    if (num == 1)
-        flag_func_call = 0; // +
-    else if (num == 2)
-        flag_func_call = 0; // *
-    else if (num == 3)
-        str_operation = "max";
-    else if (num == 4)
-        str_operation = "min";
-    else if (num == 5)
-        flag_func_call = 0; // and
-    else if (num == 6)
-        flag_func_call = 0; // or
-    else if (num == 7)
-        flag_func_call = 0; // !=
-    else if (num == 8)
-        flag_func_call = 0; // ==
-    else if (num == 9)
-        flag_func_call = 0; // maxloc
-    else if (num == 10)
-        flag_func_call = 0; // minloc
-
-    SgSymbol *redGrid = new SgSymbol(VARIABLE_NAME, rsl->red_grid->identifier());
-    redGrid->setType(*new SgArrayType(*rsl->red_grid->type()));
-
-    cond = &SgEqOp(*new SgVarRefExp(i_var), *new SgValueExp(0));
-    if (isSgExprListExp(ered->rhs())) //MAXLOC,MINLOC	 
-        newst = AssignStatement(new SgArrayRefExp(*rsl->red_grid, *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x")), RedLocVar_Block_Ref(s_block, NULL, NULL, new SgVarRefExp((sf))));
-    else
-    {
-        if (rsl->redvar_size > 0)
-            e = new SgArrayRefExp(*redGrid, *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x"), *new SgValueExp(1));
-        else if (rsl->redvar_size == 0)
-            e = new SgArrayRefExp(*redGrid, *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x"));
-        else
-            e = new SgArrayRefExp(*redGrid, *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x"), *SubscriptListOfRedArray(red_var));
-        if (flag_func_call == 1)
-        {
-            SgFunctionCallExp *funcCall = new SgFunctionCallExp(*createNewFunctionSymbol(str_operation));
-            funcCall->addArg(*e);
-            funcCall->addArg(*new SgArrayRefExp(*s_block, *new SgValueExp(0)));
-            newst = AssignStatement(e, funcCall);
-        }
-        else
-        {
-            SgExpression *e_1 = new SgArrayRefExp(*s_block, *new SgValueExp(0));
-            if (num == 1)
-                newst = AssignStatement(e, &(*e + *e_1));
-            else if (num == 2)
-                newst = AssignStatement(e, &(*e * *e_1));
-            else if (num == 5)
-                newst = AssignStatement(e, &(*e && *e_1));
-            else if (num == 6)
-                newst = AssignStatement(e, &(*e || *e_1));
-            else if (num == 7)
-                newst = AssignStatement(e, &SgNeqOp(*e, *e_1));
-            else if (num == 8)
-                newst = AssignStatement(e, &SgEqOp(*e, *e_1));
-        }
-    }
-
-    if_st = new SgIfStmt(*cond, *newst);
-    if (rsl->redvar_size > 0)
-    for (i = 1; i < rsl->redvar_size; ++i)
-    {
-        ass = AssignStatement(new SgArrayRefExp(*rsl->red_grid, *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x"), *new SgValueExp(i + 1)), new SgArrayRefExp(*s_block, *RedVarIndex(red_var, i), *new SgValueExp(0)));
-        newst->insertStmtAfter(*ass, *if_st);
-        newst = ass;
-    }
-    current->insertStmtAfter(*if_st, *current->controlParent());
-
-    if (isSgExprListExp(ered->rhs())) //MAXLOC,MINLOC
-    {
-        st = newst;
-        for (i = 1; i <= rsl->number; ++i)
-        {
-            ind = options.isOn(C_CUDA) ? i - 1 : i;
-            re = RedLocVar_Block_Ref(s_block, NULL, NULL, new SgArrayRefExp(*((SgFieldSymb *)sf)->nextField(), *new SgValueExp(ind)));
-            le = new SgArrayRefExp(*rsl->loc_grid, *new SgValueExp(ind), *BlockIdxRefExpr_("x") + (*BlockIdxRefExpr_("y") + *BlockIdxRefExpr_("z") * *new SgRecordRefExp(*s_griddim, "y")) * *new SgRecordRefExp(*s_griddim, "x"));
-            ass = AssignStatement(le, re);
-            st->insertStmtAfter(*ass, *if_st);
-            st = ass;
-        }
-    }
-
-    //         do while(j .ge. 1)
-    //            call syncthreads()
-    //            if (i .lt. j) then
-    //
-    //               <red_var>_block([ k,] i) = <red_op>(<red_var>_block([ k,] i), <red_var>_block([ k,] i + j))
-    //
-    //               or for MAXLOC,MINLOC
-    //
-    //             if(<red_var>_block(i + j)%<red_var> .gt. <red_var>_block(i)%<red_var>) then //MAXLOC
-    //              <red_var>_block(i)%<red_var>    = <red_var>_block(i + j)%<red_var>
-    //              <red_var>_block(i)%<loc_var>(1) = <red_var>_block(i + j)%<loc_var>(1)
-    //             [<red_var>_block(i)%<loc_var>(2) = <red_var>_block(i + j)%<loc_var>(2) ]
-    //                           .   .   .
-    //            endif
-
-    //            end if
-    //         end do
-    //!printf("  block 6\n");
-    cond = &operator >=(*new SgVarRefExp(j_var), *new SgValueExp(1));
-    newst = FunctionCallStatement(SyncthreadsSymbol());
-    while_st = new SgWhileStmt(*cond, *newst);
-    current->insertStmtAfter(*while_st, *current->controlParent());
-    current = newst;
-    ass = AssignStatement(new SgVarRefExp(j_var), &(*new SgVarRefExp(j_var) / *new SgValueExp(2)));
-    current->insertStmtAfter(*ass, *while_st);
-    cond = &operator < (*new SgVarRefExp(i_var), *new SgVarRefExp(j_var));
-
-    if (isSgExprListExp(ered->rhs())) //MAXLOC,MINLOC
-        newst = RedOp_If(i_var, s_block, ered, j_var, rsl->number);
-    else
-        newst = RedOp_Assign(i_var, s_block, ered, j_var, 0);
-
-    if_st = new SgIfStmt(*cond, *newst);
-    if (rsl->redvar_size > 0)       // reduction variable is array
-    {
-        for (i = 1; i < rsl->redvar_size; ++i)
-        {
-            newst->insertStmtAfter(*(ass = RedOp_Assign(i_var, s_block, ered, j_var, i)), *if_st);
-            newst = ass;
-        }
-    }
-    current->insertStmtAfter(*if_st, *while_st);
-}
-
 void DeclarationCreateReductionBlocksAcross(int nloop, SgExpression *red_op_list)
 {
     SgStatement *newst, *dost;
@@ -6481,7 +6180,20 @@ void CreateReductionBlocksAcross(SgStatement *stat, int nloop, SgExpression *red
         re = &(*re + (*ThreadIdxRefExpr("y")) * (*new SgRecordRefExp(*s_blockdim, "x")));
     if (nloop > 2)
         re = &(*re + (*ThreadIdxRefExpr("z")) * (*new SgRecordRefExp(*s_blockdim, "x") * (*new SgRecordRefExp(*s_blockdim, "y"))));
-    ass = AssignStatement(new SgVarRefExp(i_var), re);
+    
+    if (options.isOn(C_CUDA)) // global cuda index
+    {
+        SgExpression& globalX = (*new SgRecordRefExp(*s_blockdim, "x") * *new SgRecordRefExp(*s_blockidx, "x") + *new SgRecordRefExp(*s_threadidx, "x"));
+        SgExpression& globalY = (*new SgRecordRefExp(*s_blockdim, "y") * *new SgRecordRefExp(*s_blockidx, "y") + *new SgRecordRefExp(*s_threadidx, "y"));
+        SgExpression& globalZ = (*new SgRecordRefExp(*s_blockdim, "z") * *new SgRecordRefExp(*s_blockidx, "z") + *new SgRecordRefExp(*s_threadidx, "z"));
+
+        SgExpression& globalDimX = (*new SgRecordRefExp(*s_griddim, "x") * *new SgRecordRefExp(*s_blockdim, "x"));
+        SgExpression& globalDimY = (*new SgRecordRefExp(*s_griddim, "y") * *new SgRecordRefExp(*s_blockdim, "y") * globalDimX);
+
+        ass = new SgAssignStmt(*new SgVarRefExp(i_var), globalX + globalY * globalDimX + globalZ * globalDimY);
+    }
+    else
+        ass = AssignStatement(new SgVarRefExp(i_var), re);
     stat->insertStmtBefore(*ass, *stat->controlParent());
     if (options.isOn(C_CUDA))
         ass->addComment("// Reduction");
@@ -6490,10 +6202,25 @@ void CreateReductionBlocksAcross(SgStatement *stat, int nloop, SgExpression *red
 
     //looking through the reduction_op_list
 
+    SgIfStmt* if_st = NULL;
+    SgIfStmt* if_del = NULL;
+    SgIfStmt* if_new = NULL;
+    int declArrayVars = 1;
+
+    SgSymbol* s_warpsize = new SgVariableSymb("warpSize", *SgTypeInt(), *mod_gpu);
+    if (options.isOn(C_CUDA))
+        if_st = new SgIfStmt(SgEqOp(*new SgVarRefExp(i_var) % *new SgVarRefExp(s_warpsize), *new SgValueExp(0)));
+
     for (er = red_op_list, rsl = red_struct_list, n = 1; er; er = er->rhs(), rsl = rsl->next, n++)
     {
-        ReductionBlockInKernelAcross(stat, i_var, j_var, er->lhs(), rsl, red_count_symb);
+        if (options.isOn(C_CUDA))
+            ReductionBlockInKernel_On_C_Cuda(stat, i_var, er->lhs(), rsl, if_st, if_del, if_new, declArrayVars, true, true);
+        else
+            ReductionBlockInKernel(stat, nloop, i_var, j_var, er->lhs(), rsl, red_count_symb, n);
     }
+
+    if (options.isOn(C_CUDA))
+        stat->insertStmtBefore(*if_st, *stat->controlParent());
 }
 
 //end of Reduction block for Across

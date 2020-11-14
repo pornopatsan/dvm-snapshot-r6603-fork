@@ -31,31 +31,37 @@ SgExpression* findDirect(SgExpression *inExpr, int DIR)
     return temp;
 }
 
-SageArrayIdxs* GetIdxInParDir(SgExpression *on, SgExpression *across)
+static SgSymbol** fillDataOfArray(SgExpression* on, int& dimInPar)
 {
-    SageArrayIdxs *ret = new SageArrayIdxs();
-    SageArrayIdxs *act = ret;
-    int allDim = 0;
-    int dimInPar = 0;
-    ret->next = NULL;
-    ret->array_expr = NULL;
-    ret->read_write = -1;
-    ret->dim = 0;
-    ret->symb = NULL;
-
-    SgExpression *temp = on;
+    dimInPar = 0;
+    SgExpression* temp = on;
     while (temp)
     {
         dimInPar++;
         temp = temp->rhs();
     }
-    SgSymbol **symbInPar = new SgSymbol*[dimInPar];
+    SgSymbol** symbInPar = new SgSymbol * [dimInPar];
     temp = on;
     for (int i = 0; i < dimInPar; ++i)
     {
         symbInPar[i] = temp->lhs()->symbol();
         temp = temp->rhs();
     }
+    return symbInPar;
+}
+
+SageArrayIdxs* GetIdxInParDir(const std::map<std::string, SgExpression*>& on, SgExpression *across, bool tie = false)
+{
+    SageArrayIdxs *ret = new SageArrayIdxs();
+    SageArrayIdxs *act = ret;
+    int allDim = 0;
+    int dimInPar = 0;
+    SgSymbol** symbInPar = NULL;
+    ret->next = NULL;
+    ret->array_expr = NULL;
+    ret->read_write = -1;
+    ret->dim = 0;
+    ret->symb = NULL;
 
     std::vector<SgExpression*> toAnalyze;
     if (across->lhs()->variant() == EXPR_LIST)
@@ -74,8 +80,44 @@ SageArrayIdxs* GetIdxInParDir(SgExpression *on, SgExpression *across)
         across = toAnalyze[i];
         while (across)
         {
+            if (symbInPar == NULL)
+            {
+                if (on.size() == 0)
+                {
+                    fprintf(stderr, "internal error in across convertion for GPU\n");
+                    exit(-1);
+                }
+                else if (on.size() == 1)
+                    symbInPar = fillDataOfArray(on.begin()->second, dimInPar);                
+            }
+
             SgExpression *t = across->lhs();
             int dim = 0;
+
+            if (tie)
+            {
+                if (t->variant() == ARRAY_REF)
+                {
+                    if (on.find(t->symbol()->identifier()) == on.end())
+                    {
+                        fprintf(stderr, "internal error in across convertion for GPU\n");
+                        exit(-1);
+                    }
+                    else
+                        symbInPar = fillDataOfArray(on.find(t->symbol()->identifier())->second, dimInPar);
+                }
+                else if (t->variant() == ARRAY_OP)
+                {
+                    if (on.find(t->lhs()->symbol()->identifier()) == on.end())
+                    {
+                        fprintf(stderr, "internal error in across convertion for GPU\n");
+                        exit(-1);
+                    }
+                    else
+                        symbInPar = fillDataOfArray(on.find(t->lhs()->symbol()->identifier())->second, dimInPar);
+                }
+            }
+
             if (t->variant() == ARRAY_REF)
                 t = t->lhs();
             else if (t->variant() == ARRAY_OP)
@@ -85,6 +127,7 @@ SageArrayIdxs* GetIdxInParDir(SgExpression *on, SgExpression *across)
                 if (DEBUG_LV1)
                     out << "!!! unknown variant in ACROSS dir: " << t->variant() << std::endl;
             }
+
             SgExpression *tmp = t;
             while (tmp)
             {
@@ -127,10 +170,32 @@ SageAcrossInfo* GetLoopsWithParAndAcrDir()
     if (temp->variant() == DVM_PARALLEL_ON_DIR)
     {
         SgExpression *t = findDirect(temp->expr(1), ACROSS_OP);
+        SgExpression *tie = findDirect(temp->expr(1), ACC_TIE_OP);
+        
+        std::map<std::string, SgExpression*> arrays;
         if (t != NULL)
         {
             q = new SageAcrossInfo();
-            q->idx = GetIdxInParDir(temp->expr(0)->lhs(), t);
+            if (temp->expr(0) && temp->expr(0)->lhs())
+            {
+                arrays[temp->expr(0)->symbol()->identifier()] = temp->expr(0)->lhs();
+                q->idx = GetIdxInParDir(arrays, t);
+            }                
+            else if (tie)
+            {
+                SgExpression* list = tie->lhs();
+                while (list)
+                {
+                    arrays[list->lhs()->symbol()->identifier()] = list->lhs()->lhs();
+                    list = list->rhs();
+                }
+                q->idx = GetIdxInParDir(arrays, t, true);
+            }
+            else
+            {
+                fprintf(stderr, "internal error in across convertion for GPU\n");
+                exit(-1);
+            }
             q->next = NULL;
         }
     }		

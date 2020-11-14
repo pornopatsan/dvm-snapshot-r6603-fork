@@ -2076,14 +2076,57 @@ DvmType  __callstd  across_(DvmType            *AcrossTypePtr,
                   (uLLng)NewShadowGroupRefPtr, *NewShadowGroupRefPtr,
                   PipeLinePar);
      else
-        dvm_trace(call_across_,
-                  "AcrossType=%d; "
-                  "OldShadowGroupRefPtr=%lx; OldShadowGroupRef=%lx; "
-                  "NewShadowGroupRefPtr=%lx; NewShadowGroupRef=%lx; "
-                  "PipeLinePar=%lf;\n", (int)AcrType,
-                  (uLLng)OldShadowGroupRefPtr, *OldShadowGroupRefPtr,
-                  (uLLng)NewShadowGroupRefPtr, *NewShadowGroupRefPtr,
-                  PipeLinePar);
+     {  if (NewShadowGroupRefPtr == NULL || *NewShadowGroupRefPtr == 0)
+           dvm_trace(call_across_,
+                     "AcrossType=%d; "
+                     "OldShadowGroupRefPtr=%lx; OldShadowGroupRef=%lx; "
+                     "NewShadowGroupRef=0; "
+                     "PipeLinePar=%lf;\n", (int)AcrType,
+                     (uLLng)OldShadowGroupRefPtr, *OldShadowGroupRefPtr,
+                     PipeLinePar);
+        else
+           dvm_trace(call_across_,
+                     "AcrossType=%d; "
+                     "OldShadowGroupRefPtr=%lx; OldShadowGroupRef=%lx; "
+                     "NewShadowGroupRefPtr=%lx; NewShadowGroupRef=%lx; "
+                     "PipeLinePar=%lf;\n", (int)AcrType,
+                     (uLLng)OldShadowGroupRefPtr, *OldShadowGroupRefPtr,
+                     (uLLng)NewShadowGroupRefPtr, *NewShadowGroupRefPtr,
+                     PipeLinePar);
+     }
+  }
+
+  if(OldShadowGroupRefPtr != NULL && *OldShadowGroupRefPtr != 0)
+  {  OldShadowGroupRef = *OldShadowGroupRefPtr;
+     OldBG = (s_BOUNDGROUP *)((SysHandle *)OldShadowGroupRef)->pP;
+
+     if(OldBG->ArrayColl.Count == 0)
+        OldShadowGroupRef = 0;
+  }
+
+  stat_event_flag = 1; /* flag: edge exchange functions are executed
+                          from the user (for statistics) */    /*E0162*/
+
+  if(OldShadowGroupRef)
+  {  /*  Ahead edge exchange is needed to provide
+        non renewed edge elements for calculations */    /*E0163*/
+
+     SetHostOper(StartShdGrp)
+     ( RTL_CALL, strtsh_(OldShadowGroupRefPtr) );
+     SetHostOper(WaitShdGrp)
+     ( RTL_CALL, waitsh_(OldShadowGroupRefPtr) );
+     SetHostOper(ShdGrp)
+  }
+
+  if (NewShadowGroupRefPtr == NULL || *NewShadowGroupRefPtr == 0)
+  {  stat_event_flag = 0; /* flag of edge exchange function execution
+                             from the user is off */    /*E0391*/
+
+     if(RTL_TRACE)
+        dvm_trace(ret_across_," \n");
+
+     DVMFTimeFinish(ret_across_);
+     return  (DVM_RET, (DvmType)1);
   }
 
   /* Check the current parallel loop */    /*E0156*/
@@ -2152,14 +2195,6 @@ DvmType  __callstd  across_(DvmType            *AcrossTypePtr,
               "(the new shadow group is empty; "
               "NewShadowGroupRef=%lx)\n", *NewShadowGroupRefPtr);
 
-  if(OldShadowGroupRefPtr != NULL && *OldShadowGroupRefPtr != 0)
-  {  OldShadowGroupRef = *OldShadowGroupRefPtr;
-     OldBG = (s_BOUNDGROUP *)((SysHandle *)OldShadowGroupRef)->pP;
-
-     if(OldBG->ArrayColl.Count == 0)
-        OldShadowGroupRef = 0;
-  }
-
   VMS         = PL->AMView->VMS;
   VMSpace     = &VMS->Space;
   Rank        = PL->Rank;
@@ -2167,20 +2202,6 @@ DvmType  __callstd  across_(DvmType            *AcrossTypePtr,
   PL->QDim[0] = -1;
 
   /* -------------------------------------------------------------- */    /*E0161*/
-
-  stat_event_flag = 1; /* flag: edge exchange functions are executed
-                          from the user (for statistics) */    /*E0162*/
-
-  if(OldShadowGroupRef)
-  {  /*  Ahead edge exchange is needed to provide
-        non renewed edge elements for calculations */    /*E0163*/
-
-     SetHostOper(StartShdGrp)
-     ( RTL_CALL, strtsh_(OldShadowGroupRefPtr) );
-     SetHostOper(WaitShdGrp)
-     ( RTL_CALL, waitsh_(OldShadowGroupRefPtr) );
-     SetHostOper(ShdGrp)
-  }
 
   if(AcrType != 0)
   {  if(PL->AcrType2)

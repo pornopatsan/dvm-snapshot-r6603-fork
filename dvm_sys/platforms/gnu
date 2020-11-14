@@ -3,7 +3,7 @@
  CC="gcc -g -O2"
  CXX="g++ -g -O2"
  LINKER="g++ -g"
- LLVMCONFIG="llvm-config"
+# LLVMCONFIG="llvm-config"
 # for parallel programs
  PCC="mpicc -g -O2 -fopenmp"
  PCXX="mpicxx -g -O2 -fopenmp"

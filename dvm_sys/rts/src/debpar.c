@@ -98,6 +98,7 @@ void  DynControlParSet(void)
   Parameter(TraceOptions.Irep_right, int); /* and last sequential loops iterations */
   Parameter(TraceOptions.SubstRedResults, byte); /* substitute reduction results with the results from the trace */
   Parameter(TraceOptions.SubstAllResults, byte); /* substitute all write operations results with the results from the trace */
+  Parameter(TraceOptions.AllowErrorsSubst, byte); /* substitute operation results even when they counts as errors */
   Parameter(TraceOptions.DisableRedArrays, byte);  /* disable reduction array's debugging */
   Parameter(TraceOptions.SRCLocCompareMode, byte); /* comparison mode for code locations */
 

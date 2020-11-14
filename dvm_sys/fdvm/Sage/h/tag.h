@@ -574,7 +574,9 @@ script using "tag".  Run make tag.h to regenerate this file */
   tag [ ACC_ACTUAL_DIR ] = "ACC_ACTUAL_DIR";
   tag [ ACC_CHECKSECTION_DIR ] = "ACC_CHECKSECTION_DIR";
   tag [ ACC_END_CHECKSECTION_DIR ] = "ACC_END_CHECKSECTION_DIR";
-                            
+  tag [ ACC_ROUTINE_DIR ] = "ACC_ROUTINE_DIR";
+
+  tag [ ACC_TIE_OP ] = "ACC_TIE_OP";
   tag [ ACC_INLOCAL_OP ] = "ACC_INLOCAL_OP";
   tag [ ACC_INOUT_OP ] = "ACC_INOUT_OP";
   tag [ ACC_IN_OP ] = "ACC_IN_OP";
@@ -606,3 +608,15 @@ script using "tag".  Run make tag.h to regenerate this file */
   tag [ SPF_REGION_NAME ] = "SPF_REGION_NAME";
   tag [ SPF_PRIVATES_EXPANSION_OP ] = "SPF_PRIVATES_EXPANSION_OP";
   tag [ SPF_FISSION_OP ] = "SPF_FISSION_OP";
+  tag [ SPF_SHRINK_OP ] = "SPF_SHRINK_OP";
+  tag [ SPF_CHECKPOINT_DIR ] = "SPF_CHECKPOINT_DIR";
+  tag [ SPF_TYPE_OP ] = "SPF_TYPE_OP";
+  tag [ SPF_VARLIST_OP ] = "SPF_VARLIST_OP";
+  tag [ SPF_EXCEPT_OP ] = "SPF_EXCEPT_OP";
+  tag [ SPF_FILES_COUNT_OP ] = "SPF_FILES_COUNT_OP";
+  tag [ SPF_INTERVAL_OP ] = "SPF_INTERVAL_OP";
+  tag [ SPF_TIME_OP ] = "SPF_TIME_OP";
+  tag [ SPF_ITER_OP ] = "SPF_ITER_OP";
+  tag [ SPF_FLEXIBLE_OP ] = "SPF_FLEXIBLE_OP";
+  tag [ SPF_PARAMETER_OP ] = "SPF_PARAMETER_OP";
+  tag [ SPF_CODE_COVERAGE_OP ] = "SPF_CODE_COVERAGE_OP";

@@ -77,6 +77,7 @@ extern void BufferAllocate();
 
 int out_free_form;
 int out_upper_case;
+int out_line_unlimit;
 PTR_SYMB last_file_symbol;
 
 static int CountNullBifNext = 0; /* for internal debugging */
@@ -1069,59 +1070,92 @@ char* UnparseTypeBuffer(type)
 }
 
 /***************************************************************************/
-int open_proj_toolbox(proj_name, proj_file)
-char * proj_name;
-char * proj_file;
+int open_proj_toolbox(char* proj_name, char* proj_file)
 {
-        char *mem[MAX_FILE];          /* for file in the project */
-        int   no = 0;           /* number of file in the project */
-        int   c;
-        FILE *fd;               /* file descriptor for project */
-        char **p, *t;
-        char *tmp, tmpa[3000];
+    char* mem[MAX_FILE];          /* for file in the project */
+    int   no = 0;           /* number of file in the project */
+    int   c;
+    FILE* fd;               /* file descriptor for project */
+    char** p, * t;
+    char* tmp, tmpa[3000];
 
-        tmp = &(tmpa[0]);
+    tmp = &(tmpa[0]);
 
-        if ((fd = fopen(proj_file, "r")) == NULL)
-                return -1;
+    if ((fd = fopen(proj_file, "r")) == NULL)
+        return -1;
 
-        p = mem;
-        t = tmp;
-        while((c = getc(fd)) != EOF){
-            if (c != ' ')        /* assum no blanks in filename */
+    p = mem;
+    t = tmp;
+    while ((c = getc(fd)) != EOF) 
+    {
+        
+        //if (c != ' ') /* assum no blanks in filename */
+
+        {
+            if (c == '\n') 
             {
-                if (c == '\n') {
-                    if (t != tmp) {
-                        /* not a blank line */
-                        *t = '\0';
-                        *p = (char *)malloc((unsigned)(strlen(tmp) + 1));
+                if (t != tmp) 
+                {   /* not a blank line */
+                    *t = '\0';
+                    *p = (char*)malloc((unsigned)(strlen(tmp) + 1));
 #ifdef __SPF
-                        addToCollection(__LINE__, __FILE__,*p, 0);
+                    addToCollection(__LINE__, __FILE__, *p, 0);
 #endif
-                        strcpy(*p++, tmp);
-                        t = tmp;
-                    }
-                } else *t++ = c;
-            }
-        }
-
-        fclose(fd);
-        no = p - mem;
-        if (no > 0)
-            /* Now make it the active project */
-            if ((cur_proj = OpenProj(proj_name, no, mem))) {
-                cur_file = (PTR_FILE) BLOB_VALUE (CUR_PROJ_FILE_CHAIN());
-                pointer_on_file_proj = cur_file;
-                return 0;
-            } else{
-                fprintf(stderr,"-2 Cannot open project\n");
-                return -2;
+                    strcpy(*p++, tmp);
+                    t = tmp;
                 }
-        else{
-            fprintf(stderr,"-3 No files in the project\n");
-            return -3;
-
             }
+            else 
+                *t++ = c;
+        }
+    }
+
+    fclose(fd);
+    no = p - mem;
+    if (no > 0)
+    {
+        /* Now make it the active project */
+        if ((cur_proj = OpenProj(proj_name, no, mem)))
+        {
+            cur_file = (PTR_FILE)BLOB_VALUE(CUR_PROJ_FILE_CHAIN());
+            pointer_on_file_proj = cur_file;
+            return 0;
+        }
+        else
+        {
+            fprintf(stderr, "-2 Cannot open project\n");
+            return -2;
+        }
+    }
+    else
+    {
+        fprintf(stderr, "-3 No files in the project\n");
+        return -3;
+    }
+}
+
+int open_proj_files_toolbox(char* proj_name, char** file_list, int no)
+{    
+    if (no > 0)
+    {
+        /* Now make it the active project */
+        if ((cur_proj = OpenProj(proj_name, no, file_list)))
+        {
+            cur_file = (PTR_FILE)BLOB_VALUE(CUR_PROJ_FILE_CHAIN());
+            pointer_on_file_proj = cur_file;
+            return 0;
+        }
+        else
+        {
+            fprintf(stderr, "-2 Cannot open project\n");
+            return -2;
+        }
+    }
+    else
+    {
+        fprintf(stderr, "-3 No files in the project\n");
+        return -3;
+    }
 }
 
 static int ToolBOX_INIT = 0;
@@ -1252,7 +1286,7 @@ char to_upper_case (char c, int *quote)
           *quote = c;
        return c;
     }
-    if(islower(c) && *quote==0)
+    if(c >= 0 && islower(c) && *quote==0)
        return toupper(c);
     return c;        
 }
@@ -1263,7 +1297,7 @@ char* filter(char *s)
     int i = 1, quote = 0;
 
     // 14.10.2016 Kolganov. Switch constant buffer to dynamic
-    int temp_size = 1024;
+    int temp_size = 4096;
     char *temp = (char*)malloc(sizeof(char) * temp_size);
 #ifdef __SPF
     addToCollection(__LINE__, __FILE__,temp, 0);
@@ -1329,7 +1363,7 @@ char* filter(char *s)
     }
     temp_i = 0;
     i = 0;
-    buf_i = 0;
+    buf_i = 0;    
     while (c != '\0')
     {
         c = s[i];
@@ -1398,7 +1432,7 @@ char* filter(char *s)
         }
         else 
         {
-            if (((!out_free_form && temp_i == 71) || (out_free_form && temp_i == 131)) && !commentline && (s[i + 1] != '\n'))
+            if (((!out_free_form && temp_i == 71) || (out_free_form && !out_line_unlimit && temp_i == 131)) && !commentline && (s[i + 1] != '\n'))
             {
                 if (buf_i + 1 > temp_size)
                 {
@@ -1435,7 +1469,7 @@ char* filter(char *s)
                 buf_i = -1;
             }
 
-            if (((!out_free_form && temp_i == 71) || (out_free_form && temp_i == 131)) && commentline && (s[i + 1] != '\n') && ((OMP == 1) || (OMP == 2) || (DVM == 1) || (SPF == 1))) /*07.08.17*/
+            if (((!out_free_form && temp_i == 71) || (out_free_form && !out_line_unlimit && temp_i == 131)) && commentline && (s[i + 1] != '\n') && ((OMP == 1) || (OMP == 2) || (DVM == 1) || (SPF == 1))) /*07.08.17*/
             {
                 if (buf_i + 1 > temp_size)
                 {
@@ -4895,10 +4929,10 @@ PTR_BFND Redo_Bif_Next_Chain_Internal(start)
 
     if (!start)
         return NULL;
-#ifndef __SPF
-  BIF_ID(start) = idfirst;
-  idfirst++;
-#endif
+
+//  BIF_ID(start) = idfirst;   /*podd 29.06.20 */
+//  idfirst++;
+
     if (BIF_BLOB1(start))
     {
         BIF_NEXT(start) = BLOB_VALUE(BIF_BLOB1(start));
@@ -5163,6 +5197,12 @@ void LibDelAllComments(PTR_BFND bif)
                 before = before->thread;
             }
         }
+        /*
+#ifdef __SPF      
+        removeFromCollection(BIF_CMNT(bif));
+#endif
+        free(BIF_CMNT(bif));*/
+        BIF_CMNT(bif) = NULL;
     }
 }
 
@@ -5424,44 +5464,47 @@ void LibsaveDepFile(str)
 /***************************************************************************/
 int getNumberOfFunction()
 {
-  PTR_BFND thebif;
-  int count  =0;
+    PTR_BFND thebif;
+    int count = 0;
 
-  thebif = PROJ_FIRST_BIF();
-  for (;thebif;thebif=BIF_NEXT(thebif)) 
+    thebif = PROJ_FIRST_BIF();
+    for (; thebif; thebif = BIF_NEXT(thebif))
     {
-      if ((BIF_CODE(thebif) == FUNC_HEDR)  ||
-           (BIF_CODE(thebif) == PROC_HEDR)  || 
-           (BIF_CODE(thebif) == PROS_HEDR)  || 
-           (BIF_CODE(thebif) == PROG_HEDR))
-	count++;
+        if ((BIF_CODE(thebif) == FUNC_HEDR) || (BIF_CODE(thebif) == PROC_HEDR) ||
+            (BIF_CODE(thebif) == PROS_HEDR) || (BIF_CODE(thebif) == PROG_HEDR))
+        {
+            if (thebif->control_parent->variant != INTERFACE_STMT && 
+                thebif->control_parent->variant != INTERFACE_OPERATOR &&
+                thebif->control_parent->variant != INTERFACE_ASSIGNMENT)
+                count++;
+        }        
     }
-
-  return count;
+    return count;
 }
   
 /***************************************************************************/
-PTR_BFND getFunctionNumHeader(num)
-     int num;
+PTR_BFND getFunctionNumHeader(int num)
 {
-  PTR_BFND thebif;
-  int count  =0;
+    PTR_BFND thebif;
+    int count = 0;
 
-  thebif = PROJ_FIRST_BIF();
-  for (;thebif;thebif=BIF_NEXT(thebif)) 
+    thebif = PROJ_FIRST_BIF();
+    for (; thebif; thebif = BIF_NEXT(thebif))
     {
-      if ((BIF_CODE(thebif) == FUNC_HEDR)  ||
-           (BIF_CODE(thebif) == PROC_HEDR)  || 
-           (BIF_CODE(thebif) == PROS_HEDR)  || 
-           (BIF_CODE(thebif) == PROG_HEDR))
-	{
-	  if (count == num)
-	    return thebif;
-	  count++;
-	}
+        if ((BIF_CODE(thebif) == FUNC_HEDR) || (BIF_CODE(thebif) == PROC_HEDR) ||
+            (BIF_CODE(thebif) == PROS_HEDR) || (BIF_CODE(thebif) == PROG_HEDR))
+        {
+            if (thebif->control_parent->variant != INTERFACE_STMT &&
+                thebif->control_parent->variant != INTERFACE_OPERATOR &&
+                thebif->control_parent->variant != INTERFACE_ASSIGNMENT)
+            {
+                if (count == num)
+                    return thebif;
+                count++;
+            }
+        }        
     }
-
-  return NULL;
+    return NULL;
 }
   
 /***************************************************************************/
@@ -8947,20 +8990,27 @@ PTR_SYMB duplicateSymbolOfRoutine(PTR_SYMB symb, PTR_BFND where)
                     insertBfndListIn(newbody, where, BIF_CP(where));
             }
             BIF_SYMB(newbody) = newsymb;
-            SYMB_FUNC_HEDR(newsymb) = newbody;
+            if(SYMB_CODE(newsymb) == PROGRAM_NAME)
+               newsymb->entry.prog_decl.prog_hedr = newbody;
+            else 
+               SYMB_FUNC_HEDR(newsymb) = newbody;
             last = getLastNodeOfStmt(newbody);
             updateTypeAndSymbolInStmts(newbody, last, symb, newsymb);
             
             /* we have to propagate change in the param list in the new body */
-            ptsymb = SYMB_FUNC_PARAM(newsymb);
-            ptref = SYMB_FUNC_PARAM(symb);
-
+            if(SYMB_CODE(newsymb) == PROGRAM_NAME)
+               ptsymb = ptref = SMNULL;
+            else
+            {
+               ptsymb = SYMB_FUNC_PARAM(newsymb);
+               ptref  = SYMB_FUNC_PARAM(symb);
+            }
             while (ptsymb)
             {
                 SYMB_SCOPE(ptsymb) = newbody;
                 updateTypeAndSymbolInStmts(newbody, last, ptref, ptsymb);
                 ptsymb = SYMB_NEXT_DECL(ptsymb);
-                ptref = SYMB_NEXT_DECL(ptref);
+                ptref  = SYMB_NEXT_DECL(ptref);
             }
             /* update the all the symbol and type used in the statement */
             updateTypesAndSymbolsInBodyOfRoutine(symb, body, newbody, where);

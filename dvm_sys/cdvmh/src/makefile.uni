@@ -23,7 +23,7 @@ LLVMCOMPONENTS = core option bitreader mcparser transformutils
 CXXFLAGS = $(shell $(LLVMCONFIG) --cxxflags) -UNDEBUG -DWITH_ANALYZER=$(WITH_ANALYZER) $(ANALYZER_FLAGS)
 LLVMLDFLAGS = $(shell $(LLVMCONFIG) --libs $(LLVMCOMPONENTS)) $(shell $(LLVMCONFIG) --ldflags)
 
-OBJECTS = aux_visitors.o c_dvmh.o cdvmh_log.o converter_aux.o converter_debug.o converter_main.o file_ctx.o handler_gen.o pass_ctx.o pragma_parser.o pragmas.o project_ctx.o utils.o
+OBJECTS = across.o aux_visitors.o c_dvmh.o cdvmh_log.o converter_aux.o converter_debug.o converter_main.o file_ctx.o handler_gen.o pass_ctx.o pragma_parser.o pragmas.o project_ctx.o utils.o
 
 EXES = $(BINDIR)/c_dvmh
 
@@ -53,6 +53,9 @@ CLANGLIBS = \
 all: $(EXES)
 	@echo "*** COMPILING cdvmh/src DIRECTORY DONE"
 
+across.o: across.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o across.o across.cpp
 aux_visitors.o: aux_visitors.cpp aux_visitors.h pragmas.h cdvmh_log.h \
  messages.h file_ctx.h project_ctx.h utils.h settings.h
 	$(CXX) $(CXXFLAGS) -c -o aux_visitors.o aux_visitors.cpp

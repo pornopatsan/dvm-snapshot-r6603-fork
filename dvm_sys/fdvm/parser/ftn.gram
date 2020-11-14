@@ -152,7 +152,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> selector initial_value clause opt_while
 %type <ll_node> options attr_spec_list attr_spec intent_spec access_spec
 %type <ll_node> string_constant structure_component opt_substring
-%type <ll_node> array_ele_substring_func_ref ident array_element
+%type <ll_node> array_ele_substring_func_ref ident array_element 
 %type <ll_node> subscript_list asubstring equi_object
 %type <ll_node> allocation_list allocate_object_list
 %type <ll_node> allocate_object pointer_name_list rename_list rename_name use_name
@@ -216,7 +216,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> dim_ident_list dim_ident align_subscript 
 %type <ll_node> realignee_list alignee realignee
 %type <ll_node> dummy_array_name_list dummy_array_name 
-%type <ll_node> loop_var loop_var_list sh_array_name 
+%type <ll_node> ident_list sh_array_name 
 %type <ll_node> shadow_attr_stuff sh_width  sh_width_list
 %type <ll_node> pointer_var pointer_var_list dimension_list
 %type <ll_node> interval_number fragment_number
@@ -230,7 +230,7 @@ static int in_vec = NO;	      /* set if processing array constructor */
 %type <ll_node> derived_subscript derived_subscript_list opt_plus_shadow plus_shadow shadow_id
 %type <ll_node> template_ref template_obj shadow_axis shadow_axis_list opt_include_to 
 %type <ll_node> localize_target target_subscript target_subscript_list aster_expr dummy_ident 
-%type <ll_node> template_list template_ident_list
+%type <ll_node> template_list tie_spec tied_array_list
 %type <symbol> processors_name align_base_name 
 %type <symbol> shadow_group_name reduction_group_name reduction_group  indirect_group_name task_name
 %type <symbol> remote_group_name group_name array_name async_ident consistent_group_name consistent_group
@@ -270,18 +270,21 @@ static int in_vec = NO;	      /* set if processing array constructor */
 
 /* FORTRAN ACC */
 %type <bf_node> acc_directive acc_region acc_end_region acc_checksection acc_end_checksection
-%type <bf_node> acc_get_actual acc_actual 
+%type <bf_node> acc_get_actual acc_actual acc_routine
 %type <ll_node> opt_clause acc_clause_list acc_clause data_clause async_clause targets_clause
-%type <ll_node> acc_var_list computer_list computer 
+%type <ll_node> acc_var_list computer_list computer opt_targets_clause
 
 /* new clauses for PARALLEL directive */
 %type <ll_node> private_spec cuda_block_spec sizelist 
 
 /* SAPFOR */
 %type <bf_node> spf_directive spf_analysis spf_parallel spf_transform spf_parallel_reg spf_end_parallel_reg
-%type <ll_node> analysis_spec_list analysis_spec analysis_reduction_spec analysis_private_spec
+%type <bf_node> spf_checkpoint
+%type <ll_node> analysis_spec_list analysis_spec analysis_reduction_spec analysis_private_spec analysis_parameter_spec
 %type <ll_node> parallel_spec_list parallel_spec parallel_shadow_spec parallel_across_spec parallel_remote_access_spec
-%type <ll_node> transform_spec_list transform_spec
+%type <ll_node> transform_spec_list transform_spec array_element_list spf_parameter_list spf_parameter
+%type <ll_node> characteristic characteristic_list opt_clause_apply_region opt_clause_apply_fragment 
+%type <ll_node> checkpoint_spec checkpoint_spec_list spf_type_list spf_type interval_spec
 %type <symbol>  region_name 
 
 %{
@@ -389,6 +392,7 @@ void enddcl();
 void install_const();
 void setimpl();
 void copy_module_scope();
+void delete_symbol();
 void replace_symbol_in_expr();
 long convci();
 void set_expr_type();
@@ -2173,29 +2177,10 @@ only_list: only_name
 	    { $$ = set_ll_list($1, $3, EXPR_LIST); }
 	;
 
-only_name: name POINT_TO name
-	    {  PTR_HASH oldhash;
-	       PTR_SYMB oldsym, newsym;
-	       PTR_LLND l, m;
-
-	       oldhash = just_look_up_sym_in_scope(module_scope, $3->ident);
-	       if (oldhash == HSNULL) {
-                  errstr("Unknown identifier %s", $3->ident,309);
-	          $$= LLNULL;
-	       }
-	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type, LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
-	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
-	  	 l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
-		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
-		 $$ = make_llnd(fi, RENAME_NODE, m, l, SMNULL);
- 	      }
-            }
-	| name
-	    {  PTR_HASH oldhash;
+only_name: rename_name
+            {  $$ = $1; }
+         | name
+	    {  PTR_HASH oldhash,copyhash;
 	       PTR_SYMB oldsym, newsym;
 	       PTR_LLND m;
 
@@ -2205,12 +2190,20 @@ only_name: name POINT_TO name
 	          $$= LLNULL;
 	       }
 	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type,
-LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
-	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
+                 oldsym = oldhash->id_attr;
+                 copyhash=just_look_up_sym_in_scope(cur_scope(), $1->ident);
+	         if( copyhash && copyhash->id_attr && copyhash->id_attr->entry.Template.tag==module_scope->id)
+                 {
+                   newsym = copyhash->id_attr;
+                   newsym->entry.Template.tag = 0;
+                 }
+                 else
+                 {
+	           newsym = make_local_entity($1, oldsym->variant, oldsym->type,LOCAL);
+	           /* copies data in entry.Template structure and attr */
+	           copy_sym_data(oldsym, newsym);	         
+	             /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
+                 }
 	  	/* l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);*/
 		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
 		 $$ = make_llnd(fi, RENAME_NODE, m, LLNULL, oldsym);
@@ -2226,7 +2219,7 @@ rename_list: rename_name
 	;
 
 rename_name: name POINT_TO name
-	    {  PTR_HASH oldhash;
+	    {  PTR_HASH oldhash,copyhash;
 	       PTR_SYMB oldsym, newsym;
 	       PTR_LLND l, m;
 
@@ -2236,19 +2229,26 @@ rename_name: name POINT_TO name
 	          $$= LLNULL;
 	       }
 	       else {
-	         oldsym = oldhash->id_attr;
-	         newsym = make_local_entity($1, oldsym->variant, oldsym->type,
-LOCAL);
-	         /* copies data in entry.Template structure and attr */
-	         copy_sym_data(oldsym, newsym);	         
+                 oldsym = oldhash->id_attr;
+                 copyhash = just_look_up_sym_in_scope(cur_scope(), $3->ident);
+	         if(copyhash && copyhash->id_attr && copyhash->id_attr->entry.Template.tag==module_scope->id)
+                 {
+                    delete_symbol(copyhash->id_attr);
+                    copyhash->id_attr = SMNULL;
+                 }
+                   newsym = make_local_entity($1, oldsym->variant, oldsym->type, LOCAL);
+	           /* copies data in entry.Template structure and attr */
+	           copy_sym_data(oldsym, newsym);	
+                         
 	           /*newsym->entry.Template.base_name = oldsym;*//*19.03.03*/
-	  	 l = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
-		 m = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
+	  	 l  = make_llnd(fi, VAR_REF, LLNULL, LLNULL, oldsym);
+		 m  = make_llnd(fi, VAR_REF, LLNULL, LLNULL, newsym);
 		 $$ = make_llnd(fi, RENAME_NODE, m, l, SMNULL);
  	      }
             }
-	;
-/*
+            ;
+	
+ /*
 in_param: inside
 	    {
 	      if(parstate > INDCL)

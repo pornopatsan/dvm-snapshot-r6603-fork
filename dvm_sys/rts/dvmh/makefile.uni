@@ -58,7 +58,6 @@ OBJ = \
 	dvmh_rts.o \
 	dvmh_stat.o \
 	dvmh_stdio.o \
-	cdvmh_cp.o \
 	dvmh_types.o \
 	dvmlib_adapter.o \
 	loop.o \
@@ -161,7 +160,7 @@ dvmh_rts.o: dvmh_rts.cpp dvmh_rts.h dvmh_types.h include/dvmhlib_types.h \
  include/dvmhlib2_rename_iface.h include/dvmhlib_types.h \
  include/dvmhlib_const.h include/dvmhlib_stdio.h include/dvmhlib_debug.h \
  include/dvmh_runtime_api.h distrib.h dvmh_pieces.h dvmh_buffer.h \
- dvmh_data.h dvmh_device.h dvmh_stat.h dvmh_stdio.h cdvmh_cp.h dvmlib_adapter.h \
+ dvmh_data.h dvmh_device.h dvmh_stat.h dvmh_stdio.h dvmlib_adapter.h \
  dvmlib_incs.h system.typ loop.h region.h include/dvmhlib_const.h \
  loop_distribution.h mps.h
 	$(HOSTCC) -c -o dvmh_rts.o dvmh_rts.cpp
@@ -175,15 +174,6 @@ dvmh_stdio.o: dvmh_stdio.cpp dvmh_stdio.h dvmh_async.h dvmh_log.h \
  dvmh_pieces.h dvmh_buffer.h dvmh_data.h dvmh_rts.h loop.h dvmh_device.h \
  region.h mps.h
 	$(HOSTCC) -c -o dvmh_stdio.o dvmh_stdio.cpp
-
-cdvmh_cp.o: cdvmh_cp.cpp cdvmh_cp.h dvmh_async.h dvmh_log.h \
- settings.h dvmh_types.h include/dvmhlib_types.h util.h \
- include/dvmhlib_stdio.h include/dvmhlib_types.h \
- include/dvmh_runtime_api.h include/dvmhlib_const.h distrib.h \
- dvmh_pieces.h dvmh_buffer.h dvmh_data.h dvmh_rts.h loop.h dvmh_device.h \
- region.h mps.h
-	$(HOSTCC) -c -o cdvmh_cp.o cdvmh_cp.cpp
-
 dvmh_types.o: dvmh_types.cpp dvmh_types.h include/dvmhlib_types.h \
  dvmh_async.h dvmh_log.h settings.h util.h
 	$(HOSTCC) -c -o dvmh_types.o dvmh_types.cpp

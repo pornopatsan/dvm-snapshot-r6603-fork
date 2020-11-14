@@ -246,7 +246,7 @@ extern "C" void dvmh_redistribute_(DvmType dvmDesc[], DvmType *newValueFlagRef) 
     checkError2(currentRegion == 0, "Redistribution is not allowed inside a region");
 
     // XXX: The same check is present in LibDVM
-    if (DVM_VMS->ProcCount == 1)
+    if (AllowRedisRealnBypass)
         return;
 
     DvmhObject *templateObj = getDvmh(dvmDesc[0]);
@@ -291,7 +291,7 @@ extern "C" void dvmh_realign_(DvmType dvmDesc[], DvmType *newValueFlagRef) {
     checkError2(currentRegion == 0, "Realigning is not allowed inside a region");
 
     // XXX: The same check is present in LibDVM
-    if (DVM_VMS->ProcCount == 1)
+    if (AllowRedisRealnBypass)
         return;
 
     DvmhData *data = getDvmh<DvmhData>(dvmDesc[0]);
@@ -646,6 +646,7 @@ extern "C" DvmType loop_create_(DvmType *regionRef, LoopRef *InDvmLoop) {
         loop->setPersistentInfo(persInfo);
     }
     dvmh_log(TRACE, "loop created");
+    currentLoop = loop;
     return (DvmType)loop;
 }
 
@@ -767,6 +768,7 @@ extern "C" void loop_perform_(DvmType *InDvmhLoop) {
     }
     loop->afterExecution();
     delete loop;
+    currentLoop = 0;
     dvmh_log(TRACE, "loop ended async=%d", (int)(region ? region->isAsync() : false));
 }
 

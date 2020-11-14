@@ -24,8 +24,6 @@ std::map<PTR_LLND, std::pair<std::string, int>> sgExprs;
 void addToGlobalBufferAndPrint(const std::string &toPrint) { }
 #endif
 
-int current_file_id;     //number of current file 
-
 void Inliner(graph_node *gtop)
 {
     SgStatement *header, *stmt, *last, *newst;

@@ -390,7 +390,13 @@ static void initLogging(int procCount, int myGlobalRank, int myNodeIndex, int my
         if (strchr(dvmhSettings.logFile.c_str(), '%')) {
             char buf[1024];
             buf[0] = 0;
-            sprintf(buf, dvmhSettings.logFile.c_str(), myGlobalRank);
+            int rank = myGlobalRank;
+#ifdef _MPI_STUBS_
+            const char * envR = getMpiRank();
+            if (envR && *envR)
+            rank = atoi(envR);
+#endif
+            sprintf(buf, dvmhSettings.logFile.c_str(), rank);
             FILE *f = fopen(buf, "wt");
             if (f)
                 dvmhLogger.useFile(f, true);
@@ -795,6 +801,17 @@ static void initDevices(int procCount, int myGlobalRank, int myNodeIndex, int my
     if (myCudas > 0) {
         checkInternal(!dvmhSettings.cudaPerf.empty());
         int lowIndex = 0;
+#ifdef _MPI_STUBS_
+        const char * envR = getMpiRank();
+        if (envR && *envR) {
+            int curPpn = dvmhSettings.getPpn(myNodeIndex);
+            const char * envP = getenv("DVMH_PPN");
+            if (envP && *envP)
+                curPpn = atoi(envP);
+            dvmh_log(INFO, "MPI/DVMH program PMI_RANK=%s, PPN=%d", envR, curPpn);
+            lowIndex = atoi(envR)%curPpn;
+        } 
+#endif
         for (int i = 0; i < myLocalRank; i++)
             lowIndex += dvmhSettings.getCudas(nodeBaseRank + i);
         for (int i = 0; i < myCudas; i++) {
@@ -1119,6 +1136,18 @@ void dvmhInitialize() {
     checkInternal(currentRegion == 0);
     checkInternal(currentLoop == 0);
     stdioInit();
+
+    // Redistribute/realign skip settings
+    if (!dvmhSettings.idleRun) {
+        AllowRedisRealnBypass = 0;
+        if (procCount == 1) {
+            int cudas = dvmhSettings.getCudas(0);
+            int threads = dvmhSettings.getThreads(0);
+            if ((cudas == 1 && threads == 0) || cudas == 0)
+                AllowRedisRealnBypass = 1;
+        }
+    }
+
     inited = true;
     dvmh_barrier();
     timerBase = dvmhTime();
@@ -1305,131 +1334,34 @@ void dvmhFinalize(bool cleanup) {
     finalized = true;
 }
 
-static bool fillComputePart(DvmhLoop *loop, DvmhData *data, Interval computePart[], const LoopBounds curLoopBounds[]) {
-    computePart->blockAssign(data->getRank(), data->getLocalPart());
-    bool hasSomething = true;
-    if (data->isDistributed() && loop->alignRule && data->getAlignRule()->getDspace() == loop->alignRule->getDspace()) {
-        DvmhDistribSpace *dspace = loop->alignRule->getDspace();
-#ifdef NON_CONST_AUTOS
-        Interval dspacePart[dspace->getRank()];
-#else
-        Interval dspacePart[MAX_DISTRIB_SPACE_RANK];
-#endif
-        for (int j = 0; j < dspace->getRank(); j++) {
-            if (dspace->hasLocal()) {
-                const DvmhAxisAlignRule *rule = loop->alignRule->getAxisRule(j + 1);
-                if (rule->axisNumber < 1 || rule->multiplier == 0) {
-                    dspacePart[j] = dspace->getAxisLocalPart(j + 1);
-                } else {
-                    dspacePart[j][0] = curLoopBounds[rule->axisNumber - 1][0] * rule->multiplier + rule->summandLocal;
-                    dspacePart[j][1] = curLoopBounds[rule->axisNumber - 1][1] * rule->multiplier + rule->summandLocal;
-                    if (curLoopBounds[rule->axisNumber - 1][2] * rule->multiplier < 0)
-                        std::swap(dspacePart[j][0], dspacePart[j][1]);
-                    dspacePart[j].intersectInplace(dspace->getAxisLocalPart(j + 1));
-                }
-            } else {
-                dspacePart[j] = Interval::createEmpty();
-            }
-        }
-        dvmh_log(TRACE, "dspacePart:");
-        custom_log(TRACE, blockOut, dspace->getRank(), dspacePart);
-        hasSomething = data->getAlignRule()->mapOnPart(dspacePart, computePart, true);
-        if (!hasSomething)
-            dvmh_log(DEBUG, "ACROSS array has no local elements on this run");
-        dvmh_log(TRACE, "computePart:");
-        custom_log(TRACE, blockOut, data->getRank(), computePart);
-    } else {
-        assert(false);
-    }
-    return hasSomething;
-}
-
 void handlePreAcross(DvmhLoop *loop, const LoopBounds curLoopBounds[]) {
     dvmh_log(TRACE, "PreAcross start");
-    if (!loop->acrossNew.empty()) {
-        for (int i = 0; i < loop->acrossNew.dataCount(); i++) {
-            const DvmhShadowData *sdata = &loop->acrossNew.getData(i);
-            DvmhData *data = sdata->data;
-            int dataRank = data->getRank();
+    for (int i = 0; i < loop->acrossNew.dataCount(); i++) {
+        const DvmhShadowData *sdata = &loop->acrossNew.getData(i);
+        DvmhData *data = sdata->data;
+        int dataRank = data->getRank();
 #ifdef NON_CONST_AUTOS
-            Interval computePart[dataRank];
+        Interval roundedPart[dataRank];
+        bool forwardDirection[dataRank], leftmostPart[dataRank], rightmostPart[dataRank];
+        ShdWidth inWidths[dataRank], outWidths[dataRank];
 #else
-            Interval computePart[MAX_ARRAY_RANK];
+        Interval roundedPart[MAX_ARRAY_RANK];
+        bool forwardDirection[MAX_ARRAY_RANK], leftmostPart[MAX_ARRAY_RANK], rightmostPart[MAX_ARRAY_RANK];
+        ShdWidth inWidths[MAX_ARRAY_RANK], outWidths[MAX_ARRAY_RANK];
 #endif
-            bool hasSomething = false;
-            if (loop->hasLocal) {
-                hasSomething = fillComputePart(loop, data, computePart, curLoopBounds);
-            } else if (data->hasLocal()) {
-                hasSomething = true;
-                computePart->blockAssign(dataRank, data->getLocalPart());
+        bool hasSomething = loop->fillLoopDataRelations(curLoopBounds, data, forwardDirection, roundedPart, leftmostPart, rightmostPart);
+        if (hasSomething) {
+            DvmhLoop::fillAcrossInOutWidths(dataRank, sdata->shdWidths, forwardDirection, leftmostPart, rightmostPart, inWidths, outWidths);
+            for (int j = 0; j < dataRank; j++) {
+                dvmh_log(TRACE, "PreAcross axis %d ShdWidths - " DTFMT "," DTFMT "; forward - %d; leftmost - %d, rightmost - %d, inWidths - " DTFMT "," DTFMT "; outWidths - " DTFMT "," DTFMT,
+                        j, sdata->shdWidths[j][0], sdata->shdWidths[j][1], forwardDirection[j], leftmostPart[j], rightmostPart[j], inWidths[j][0],
+                        inWidths[j][1], outWidths[j][0], outWidths[j][1]);
             }
-            if (hasSomething) {
-#ifdef NON_CONST_AUTOS
-                ShdWidth widths[dataRank];
-                Interval roundedPart[dataRank];
-#else
-                ShdWidth widths[MAX_ARRAY_RANK];
-                Interval roundedPart[MAX_ARRAY_RANK];
-#endif
-                for (int k = 0; k < dataRank; k++) {
-                    roundedPart[k] = computePart[k];
-                    if (computePart[k][0] - sdata->shdWidths[k][0] < data->getAxisLocalPart(k + 1)[0]) {
-                        widths[k][0] = sdata->shdWidths[k][0];
-                        roundedPart[k][0] = data->getAxisLocalPart(k + 1)[0];
-                    } else {
-                        widths[k][0] = 0;
-                        if (computePart[k][0] - data->getShdWidth(k + 1)[0] - 1 < data->getAxisSpace(k + 1)[0])
-                            roundedPart[k][0] = data->getAxisLocalPart(k + 1)[0];
-                    }
-                    if (computePart[k][1] + sdata->shdWidths[k][1] > data->getAxisLocalPart(k + 1)[1]) {
-                        widths[k][1] = sdata->shdWidths[k][1];
-                        roundedPart[k][1] = data->getAxisLocalPart(k + 1)[1];
-                    } else {
-                        widths[k][1] = 0;
-                        if (computePart[k][1] + data->getShdWidth(k + 1)[1] + 1 > data->getAxisSpace(k + 1)[1])
-                            roundedPart[k][1] = data->getAxisLocalPart(k + 1)[1];
-                    }
-                }
-                data->setActualShadow(0, roundedPart, sdata->cornerFlag, widths);
-                data->updateShadowProfile(sdata->cornerFlag, sdata->shdWidths);
-                if (loop->region) {
-                    PushCurrentPurpose purpose(DvmhCopyingPurpose::dcpShadow);
-                    DvmhRegionData *rdata = dictFind2(*loop->region->getDatas(), data);
-                    for (int j = 0; j < devicesCount; j++) {
-                        if (rdata->getLocalPart(j)) {
-#ifdef NON_CONST_AUTOS
-                            Interval devLocalPart[dataRank], localPart[dataRank];
-#else
-                            Interval devLocalPart[MAX_ARRAY_RANK], localPart[MAX_ARRAY_RANK];
-#endif
-                            devLocalPart->blockAssign(dataRank, rdata->getLocalPart(j));
-                            bool hasElements = true;
-                            for (int k = 0; k < dataRank; k++) {
-                                localPart[k] = devLocalPart[k].intersect(computePart[k]);
-                                if (localPart[k][0] > localPart[k][1])
-                                    hasElements = false;
-                                if (localPart[k][0] - sdata->shdWidths[k][0] < devLocalPart[k][0]) {
-                                    widths[k][0] = sdata->shdWidths[k][0];
-                                    localPart[k][0] = devLocalPart[k][0];
-                                } else {
-                                    widths[k][0] = 0;
-                                    if (localPart[k][0] - data->getShdWidth(k + 1)[0] - 1 < data->getAxisSpace(k + 1)[0])
-                                        localPart[k][0] = devLocalPart[k][0];
-                                }
-                                if (localPart[k][1] + sdata->shdWidths[k][1] > devLocalPart[k][1]) {
-                                    widths[k][1] = sdata->shdWidths[k][1];
-                                    localPart[k][1] = devLocalPart[k][1];
-                                } else {
-                                    widths[k][1] = 0;
-                                    if (localPart[k][1] + data->getShdWidth(k + 1)[1] + 1 > data->getAxisSpace(k + 1)[1])
-                                        localPart[k][1] = devLocalPart[k][1];
-                                }
-                            }
-                            if (hasElements)
-                                data->getActualShadow(j, localPart, sdata->cornerFlag, widths, true);
-                        }
-                    }
-                }
+            DvmhPieces *setActual = new DvmhPieces(dataRank);
+            data->setActualShadow(0, roundedPart, sdata->cornerFlag, inWidths, &setActual);
+            data->setActualEdges(0, roundedPart, outWidths, &setActual);
+            if (loop->region) {
+                loop->region->renewData(data, setActual);
             }
         }
     }
@@ -1438,55 +1370,31 @@ void handlePreAcross(DvmhLoop *loop, const LoopBounds curLoopBounds[]) {
 
 void handlePostAcross(DvmhLoop *loop, const LoopBounds curLoopBounds[]) {
     dvmh_log(TRACE, "PostAcross start");
-    if (!loop->acrossNew.empty()) {
-        for (int i = 0; i < loop->acrossNew.dataCount(); i++) {
-            const DvmhShadowData *sdata = &loop->acrossNew.getData(i);
-            DvmhData *data = sdata->data;
-            int dataRank = data->getRank();
+    for (int i = 0; i < loop->acrossNew.dataCount(); i++) {
+        const DvmhShadowData *sdata = &loop->acrossNew.getData(i);
+        DvmhData *data = sdata->data;
+        int dataRank = data->getRank();
 #ifdef NON_CONST_AUTOS
-            Interval computePart[dataRank];
+        Interval roundedPart[dataRank];
+        bool forwardDirection[dataRank], leftmostPart[dataRank], rightmostPart[dataRank];
+        ShdWidth inWidths[dataRank], outWidths[dataRank];
 #else
-            Interval computePart[MAX_ARRAY_RANK];
+        Interval roundedPart[MAX_ARRAY_RANK];
+        bool forwardDirection[MAX_ARRAY_RANK], leftmostPart[MAX_ARRAY_RANK], rightmostPart[MAX_ARRAY_RANK];
+        ShdWidth inWidths[MAX_ARRAY_RANK], outWidths[MAX_ARRAY_RANK];
 #endif
-            bool hasSomething = false;
-            if (loop->hasLocal) {
-                hasSomething = fillComputePart(loop, data, computePart, curLoopBounds);
-            } else if (data->hasLocal()) {
-                hasSomething = true;
-                computePart->blockAssign(dataRank, data->getLocalPart());
+        bool hasSomething = loop->fillLoopDataRelations(curLoopBounds, data, forwardDirection, roundedPart, leftmostPart, rightmostPart);
+        if (hasSomething) {
+            DvmhLoop::fillAcrossInOutWidths(dataRank, sdata->shdWidths, forwardDirection, leftmostPart, rightmostPart, inWidths, outWidths);
+            for (int j = 0; j < dataRank; j++) {
+                dvmh_log(TRACE, "PostAcross axis %d ShdWidths - " DTFMT "," DTFMT "; forward - %d; leftmost - %d, rightmost - %d, inWidths - " DTFMT "," DTFMT "; outWidths - " DTFMT "," DTFMT,
+                        j, sdata->shdWidths[j][0], sdata->shdWidths[j][1], forwardDirection[j], leftmostPart[j], rightmostPart[j], inWidths[j][0],
+                        inWidths[j][1], outWidths[j][0], outWidths[j][1]);
             }
-            if (hasSomething) {
-#ifdef NON_CONST_AUTOS
-                ShdWidth widths[dataRank];
-                Interval roundedPart[dataRank];
-#else
-                ShdWidth widths[MAX_ARRAY_RANK];
-                Interval roundedPart[MAX_ARRAY_RANK];
-#endif
-                for (int k = 0; k < dataRank; k++) {
-                    roundedPart[k] = computePart[k];
-                    if (data->getAxisLocalPart(k + 1)[1] - sdata->shdWidths[k][0] + 1 <= computePart[k][1]) {
-                        widths[k][0] = sdata->shdWidths[k][0];
-                        roundedPart[k][1] = data->getAxisLocalPart(k + 1)[1];
-                    } else
-                        widths[k][0] = 0;
-                    if (data->getAxisLocalPart(k + 1)[0] + sdata->shdWidths[k][1] - 1 >= computePart[k][0]) {
-                        widths[k][1] = sdata->shdWidths[k][1];
-                        roundedPart[k][0] = data->getAxisLocalPart(k + 1)[0];
-                    } else
-                        widths[k][1] = 0;
-                    // Expanding if it is not big enough to contain needed shadow width
-                    if (roundedPart[k][1] - roundedPart[k][0] + 1 < widths[k][0])
-                        roundedPart[k][0] = roundedPart[k][1] - widths[k][0] + 1;
-                    if (roundedPart[k][1] - roundedPart[k][0] + 1 < widths[k][1])
-                        roundedPart[k][1] = roundedPart[k][0] + widths[k][0] - 1;
-                    assert(roundedPart[k][1] - roundedPart[k][0] + 1 >= widths[k][0]);
-                    assert(roundedPart[k][1] - roundedPart[k][0] + 1 >= widths[k][1]);
-                }
-                if (loop->region) {
-                    PushCurrentPurpose purpose(DvmhCopyingPurpose::dcpShadow);
-                    data->getActualEdges(roundedPart, widths, loop->region->canAddToActual(data, roundedPart));
-                }
+            if (loop->region) {
+                PushCurrentPurpose purpose(DvmhCopyingPurpose::dcpShadow);
+                data->getActualEdges(roundedPart, inWidths, loop->region->canAddToActual(data, roundedPart));
+                data->getActualShadow(0, roundedPart, sdata->cornerFlag, outWidths, true);
             }
         }
     }
@@ -1503,72 +1411,62 @@ int autotransformInternal(DvmhLoopCuda *cloop, DvmhData *data) {
     int dataRank = data->getRank();
     if (dataRank > 0 && repr) {
         bool okFlag = false;
-        if (loop->alignRule && data->isDistributed() && loop->alignRule->getDspace() == data->getAlignRule()->getDspace()) {
-            DvmhDistribSpace *dspace = loop->alignRule->getDspace();
-            assert(dspace);
-            if (loop->rank > depCount && depCount <= 1) {
-                // If loop has independent dimension and there are at most 1 dependency. We can just permutate axes of data (hopefully)
-                int loopFastestAxis = loop->rank - ilogN(~depMask, 1);
-                assert(loopFastestAxis >= 1 && loopFastestAxis <= loop->rank);
-                int dspaceFastestAxis = loop->alignRule->getDspaceAxis(loopFastestAxis);
-                if (dspaceFastestAxis > 0 && data->getAlignRule()->getAxisRule(dspaceFastestAxis)->axisNumber > 0) {
-                    // If we can tie data dimension with fastest loop dimension
-                    int dataFastestAxis = data->getAlignRule()->getAxisRule(dspaceFastestAxis)->axisNumber;
+        HybridVector<int, 10> corr = loop->getArrayCorrespondence(data, true);
+        if (loop->rank > depCount && depCount <= 1) {
+            // If loop has independent dimension and there are at most 1 dependency. We can just permutate axes of data (hopefully)
+            int loopFastestAxis = loop->rank - ilogN(~depMask, 1);
+            assert(loopFastestAxis >= 1 && loopFastestAxis <= loop->rank);
+            int dataFastestAxis = std::abs(corr[loopFastestAxis - 1]);
+            if (dataFastestAxis > 0) {
+                // If we can tie data dimension with fastest loop dimension
 #ifdef NON_CONST_AUTOS
-                    int axisPerm[dataRank];
+                int axisPerm[dataRank];
 #else
-                    int axisPerm[MAX_ARRAY_RANK];
+                int axisPerm[MAX_ARRAY_RANK];
 #endif
-                    typedMemcpy(axisPerm, repr->getBuffer()->getAxisPerm(), dataRank);
-                    int oldPlace = std::find(axisPerm, axisPerm + dataRank, dataFastestAxis) - axisPerm;
-                    assert(oldPlace >= 0 && oldPlace < dataRank);
-                    int newPlace = dataRank - 1;
-                    if (oldPlace != newPlace)
-                        std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
-                    repr->doTransform(axisPerm, 0);
-                    okFlag = true;
-                }
-            } else if (depCount >= 2) {
-                // We have at least two dimensions with dependencies. We can diagonalize them (hopefully)
-                int loopFastestAxis = loop->rank - ilogN(depMask, 1);
-                assert(loopFastestAxis >= 1 && loopFastestAxis <= loop->rank);
-                int loopPrevAxis = loop->rank - ilogN(depMask, 2);
-                assert(loopPrevAxis >= 1 && loopPrevAxis <= loop->rank);
-                int dspaceFastestAxis = loop->alignRule->getDspaceAxis(loopFastestAxis);
-                int dspacePrevAxis = loop->alignRule->getDspaceAxis(loopPrevAxis);
-                if (dspaceFastestAxis > 0 && data->getAlignRule()->getAxisRule(dspaceFastestAxis)->axisNumber > 0 &&
-                        dspacePrevAxis > 0 && data->getAlignRule()->getAxisRule(dspacePrevAxis)->axisNumber > 0) {
-                    // If we can tie two data dimensions with two fastest loop dimensions
-                    int dataFastestAxis = data->getAlignRule()->getAxisRule(dspaceFastestAxis)->axisNumber;
-                    int dataPrevAxis = data->getAlignRule()->getAxisRule(dspacePrevAxis)->axisNumber;
-                    dvmh_log(TRACE, "dspaceFastestAxis=%d dspacePrevAxis=%d loopFastestAxis=%d loopPrevAxis=%d dataFastestAxis=%d dataPrevAxis=%d",
-                            dspaceFastestAxis, dspacePrevAxis, loopFastestAxis, loopPrevAxis, dataFastestAxis, dataPrevAxis);
-                    assert(dataFastestAxis != dataPrevAxis);
+                typedMemcpy(axisPerm, repr->getBuffer()->getAxisPerm(), dataRank);
+                int oldPlace = std::find(axisPerm, axisPerm + dataRank, dataFastestAxis) - axisPerm;
+                assert(oldPlace >= 0 && oldPlace < dataRank);
+                int newPlace = dataRank - 1;
+                if (oldPlace != newPlace)
+                    std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
+                repr->doTransform(axisPerm, 0);
+                okFlag = true;
+            }
+        } else if (depCount >= 2) {
+            // We have at least two dimensions with dependencies. We can diagonalize them (hopefully)
+            int loopFastestAxis = loop->rank - ilogN(depMask, 1);
+            assert(loopFastestAxis >= 1 && loopFastestAxis <= loop->rank);
+            int loopPrevAxis = loop->rank - ilogN(depMask, 2);
+            assert(loopPrevAxis >= 1 && loopPrevAxis <= loop->rank);
+            int dataFastestAxis = std::abs(corr[loopFastestAxis - 1]);
+            int dataPrevAxis = std::abs(corr[loopPrevAxis - 1]);
+            if (dataFastestAxis > 0 && dataPrevAxis > 0) {
+                // If we can tie two data dimensions with two fastest loop dimensions
+                dvmh_log(TRACE, "loopFastestAxis=%d loopPrevAxis=%d dataFastestAxis=%d dataPrevAxis=%d",
+                        loopFastestAxis, loopPrevAxis, dataFastestAxis, dataPrevAxis);
+                assert(dataFastestAxis != dataPrevAxis);
 #ifdef NON_CONST_AUTOS
-                    int axisPerm[dataRank];
+                int axisPerm[dataRank];
 #else
-                    int axisPerm[MAX_ARRAY_RANK];
+                int axisPerm[MAX_ARRAY_RANK];
 #endif
-                    typedMemcpy(axisPerm, repr->getBuffer()->getAxisPerm(), dataRank);
-                    int oldPlace = std::find(axisPerm, axisPerm + dataRank, dataFastestAxis) - axisPerm;
-                    assert(oldPlace >= 0 && oldPlace < dataRank);
-                    int newPlace = dataRank - 1;
-                    if (oldPlace != newPlace)
-                        std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
-                    oldPlace = std::find(axisPerm, axisPerm + dataRank, dataPrevAxis) - axisPerm;
-                    assert(oldPlace >= 0 && oldPlace < dataRank);
-                    newPlace = dataRank - 2;
-                    if (oldPlace != newPlace)
-                        std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
-// XXX: Determination of slashFlag is not checked
-                    int dirFastest = sign(loop->alignRule->getAxisRule(dspaceFastestAxis)->multiplier) *
-                            sign(data->getAlignRule()->getAxisRule(dspaceFastestAxis)->multiplier) * sign(loop->loopBounds[loopFastestAxis - 1][2]);
-                    int dirPrev = sign(loop->alignRule->getAxisRule(dspacePrevAxis)->multiplier) *
-                            sign(data->getAlignRule()->getAxisRule(dspacePrevAxis)->multiplier) * sign(loop->loopBounds[loopPrevAxis - 1][2]);
-                    int slashFlag = dirFastest * dirPrev < 0;
-                    repr->doTransform(axisPerm, 1 + slashFlag);
-                    okFlag = true;
-                }
+                typedMemcpy(axisPerm, repr->getBuffer()->getAxisPerm(), dataRank);
+                int oldPlace = std::find(axisPerm, axisPerm + dataRank, dataFastestAxis) - axisPerm;
+                assert(oldPlace >= 0 && oldPlace < dataRank);
+                int newPlace = dataRank - 1;
+                if (oldPlace != newPlace)
+                    std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
+                oldPlace = std::find(axisPerm, axisPerm + dataRank, dataPrevAxis) - axisPerm;
+                assert(oldPlace >= 0 && oldPlace < dataRank);
+                newPlace = dataRank - 2;
+                if (oldPlace != newPlace)
+                    std::swap(axisPerm[oldPlace], axisPerm[newPlace]);
+                int dirFastest = sign(corr[loopFastestAxis - 1]);
+                int dirPrev = sign(corr[loopPrevAxis - 1]);
+                int slashFlag = dirFastest * dirPrev < 0;
+                repr->doTransform(axisPerm, 1 + slashFlag);
+                okFlag = true;
             }
         }
         if (!okFlag) {

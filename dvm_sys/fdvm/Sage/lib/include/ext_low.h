@@ -208,6 +208,7 @@ extern int makeLinearExpr();
 extern int makeLinearExpr_Sign();
 extern int numberOfBifsInBlobList();
 extern int open_proj_toolbox();
+extern int open_proj_files_toolbox();
 extern int patternMatchExpression();
 extern int pointerType();
 extern int replaceTypeInType();

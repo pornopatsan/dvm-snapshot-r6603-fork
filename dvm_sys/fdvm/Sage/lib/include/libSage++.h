@@ -9,6 +9,7 @@
 #include <string.h>
 #include <map>
 #include <string>
+#include <algorithm>
 
 /* includes the attributes data structure */
 
@@ -32,12 +33,14 @@ portions of Sage++ library.
 
 #if __SPF
 extern "C" void removeFromCollection(void *pointer);
+extern void addToGlobalBufferAndPrint(const std::string& toPrint);
 #endif
 
 class  SgProject {
   public:
   inline SgProject(SgProject &);
-  SgProject(const char * proj_file_name);
+  SgProject(const char *proj_file_name);
+  SgProject(const char *proj_file_name, char **files_list, int no);
   inline ~SgProject();
   inline int numberOfFiles();
   SgFile &file(int i);   
@@ -123,6 +126,8 @@ private:
     SgProject *project;
     bool unparseIgnore;
 
+    static std::string currProcessFile;
+    static int currProcessLine;
     static bool consistentCheckIsActivated;
     // fileID -> [ map<FileName, line>, SgSt*]
     static std::map<int, std::map<std::pair<std::string, int>, SgStatement*> > statsByLine;
@@ -148,7 +153,7 @@ public:
     PTR_BFND thebif;
     SgStatement(int variant);
     SgStatement(PTR_BFND bif);
-    SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e1, SgExpression *e2, SgExpression *e3);
+    SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e1 = NULL, SgExpression *e2 = NULL, SgExpression *e3 = NULL);
     SgStatement(SgStatement &);
     // info about statement
     inline int lineNumber();          // source text line number
@@ -176,6 +181,7 @@ public:
     void setExpression(int i, SgExpression &e); // change the i-th expression
     void setExpression(int i, SgExpression *e); // change the i-th expression
     inline void setLabel(SgLabel &l); // change the label
+    inline void deleteLabel(); // delete label
     inline void setSymbol(SgSymbol &s); // change the symbol
 
     // Control structure
@@ -292,7 +298,11 @@ public:
             return false;
 
         if (current_file_id != fileID)
-            SgFile *file = &(project->file(fileID));
+        {
+            SgFile* file = &(project->file(fileID));
+            currProcessFile = file->filename();
+            currProcessLine = 0;
+        }
         return true;
     }
 
@@ -314,6 +324,11 @@ public:
     static void cleanParentStatsForExprs() { parentStatsForExpression.clear(); }
     static void activeConsistentchecker() { consistentCheckIsActivated = true; }
     static void deactiveConsistentchecker() { consistentCheckIsActivated = false; }
+
+    static void setCurrProcessFile(const std::string& name) { currProcessFile = name; }
+    static void setCurrProcessLine(const int line) { currProcessLine = line; }
+    static std::string getCurrProcessFile() { return currProcessFile; }
+    static int getCurrProcessLine() { return currProcessLine; }
 };
 
 class  SgExpression
@@ -321,13 +336,12 @@ class  SgExpression
 public:
   PTR_LLND thellnd;
   // generic expression class.
-  SgExpression(int variant, SgExpression &lhs, SgExpression &rhs,
-               SgSymbol &s, SgType &type);
+  SgExpression(int variant, SgExpression &lhs, SgExpression &rhs, SgSymbol &s, SgType &type);
+  SgExpression(int variant, SgExpression *lhs, SgExpression *rhs, SgSymbol *s, SgType *type);
+  SgExpression(int variant, SgExpression *lhs, SgExpression *rhs, SgSymbol *s);
+  SgExpression(int variant, SgExpression *lhs, SgExpression *rhs);
+  SgExpression(int variant, SgExpression* lhs);
 
-  SgExpression(int variant, SgExpression *lhs, SgExpression *rhs,
- 	       SgSymbol *s, SgType *type);
-  SgExpression(int variant, SgExpression *lhs, SgExpression *rhs,
- 	       SgSymbol *s);
   // for some node in fortran
   SgExpression(int variant,char *str);
 
@@ -691,6 +705,7 @@ class  SgValueExp: public SgExpression{
   // variants: INT_VAL, CHAR_VAL, FLOAT_VAL, 
   //           DOUBLE_VAL, STRING_VAL, COMPLEX_VAL, KEYWORD_VAL
 public:
+  inline SgValueExp(bool value); // add for bool value (Kolganov, 26.11.2019)
   inline SgValueExp(int value);
   inline SgValueExp(char char_val);
   inline SgValueExp(float float_val);
@@ -1240,7 +1255,7 @@ public:
   inline SgProcHedrStmt(int variant);
   inline SgProcHedrStmt(SgSymbol &name, SgStatement &Body);
   inline SgProcHedrStmt(SgSymbol &name);
-  inline SgProcHedrStmt(char *name);
+  inline SgProcHedrStmt(const char *name);
   inline void AddArg(SgExpression &arg); 
   SgExpression * AddArg(char *name, SgType &t); // returns decl expr created.
   SgExpression * AddArg(char *name, SgType &t, SgExpression &initializer);
@@ -1513,7 +1528,8 @@ public:
   inline void setEnd(SgExpression &ubound);
 
   inline SgExpression *step();
-  inline void setStep(SgExpression &step);
+  inline void setStep(SgExpression &step);  
+  inline void interchangeNestedLoops(SgForStmt* loop);
 
   inline SgLabel *endOfLoop();
 
@@ -2536,6 +2552,25 @@ public:
       return list->elem(i);
   }
 
+  inline bool addAttributeExpression(SgExpression* attr)
+  {
+      SgExpression* ex = LlndMapping(BIF_LL3(thebif));
+      if (ex && ex->variant() != EXPR_LIST)
+          return false;
+
+      if (ex != NULL)
+      {
+          SgExprListExp* list = (SgExprListExp*)ex;
+          list->append(*attr);
+      }
+      else
+      {
+          ex = new SgExpression(EXPR_LIST, attr, NULL);
+          BIF_LL3(thebif) = ex->thellnd;
+      }
+      return true;
+  }
+
   inline int numberOfSymbols();  // the number of variables declared;        
   inline SgSymbol *symbol(int i);
   
@@ -2647,7 +2682,8 @@ class SgImplicitStmt: public SgDeclarationStatement{
   // Fortran implicit type declaration statement
   // variant = IMPL_DECL
 public:
-  SgImplicitStmt(SgExpression &implicitLists);
+  SgImplicitStmt(SgExpression& implicitLists);
+  SgImplicitStmt(SgExpression* implicitLists);
   ~SgImplicitStmt();
   
   int numberOfImplicitTypes();  // the number of implicit types declared;
@@ -3058,6 +3094,14 @@ inline SgProject::~SgProject()
 inline SgProject::SgProject(SgProject &)
 { 
  Message("SgProject copy constructor not allowed",0);
+#if __SPF
+     {
+         char buf[512];
+         sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+         addToGlobalBufferAndPrint(buf);
+     }
+    throw -1;
+#endif
 }
 
 inline int SgProject::numberOfFiles()
@@ -3146,7 +3190,15 @@ inline SgStatement *SgFile::firstStatement()
 {
   SetCurrentFileTo(filept);
   SwitchToFile(GetFileNumWithPt(filept));
-  return BfndMapping(getFirstStmt());
+  SgStatement* retVal = BfndMapping(getFirstStmt());
+#ifdef __SPF
+  if (retVal)
+  {
+      SgStatement::setCurrProcessFile(retVal->fileName());
+      SgStatement::setCurrProcessLine(0);
+  }
+#endif
+  return retVal;
 }
 
 inline SgSymbol *SgFile::firstSymbol()
@@ -3265,6 +3317,16 @@ inline void  SgStatement::setLabel(SgLabel &l)
     BIF_LABEL(thebif) = l.thelabel; 
 }
 
+inline void  SgStatement::deleteLabel()
+{
+#ifdef __SPF
+    checkConsistence();
+#endif
+    if (BIF_LABEL(thebif))
+        BIF_LABEL(thebif)->stateno = -1;
+    BIF_LABEL(thebif) = NULL;
+}
+
 inline void  SgStatement::setSymbol(SgSymbol &s)
 {
 #ifdef __SPF
@@ -3279,7 +3341,12 @@ inline SgStatement * SgStatement::lexNext()
 #ifdef __SPF
     checkConsistence();
 #endif
-    return BfndMapping(BIF_NEXT(thebif)); 
+    SgStatement* retVal = BfndMapping(BIF_NEXT(thebif));
+#ifdef __SPF
+    if (retVal)
+        setCurrProcessLine(retVal->lineNumber());
+#endif
+    return retVal;
 }
 
 inline SgStatement * SgStatement::lexPrev()
@@ -3287,7 +3354,12 @@ inline SgStatement * SgStatement::lexPrev()
 #ifdef __SPF
     checkConsistence();
 #endif
-    return BfndMapping(getNodeBefore(thebif)); 
+    SgStatement* retVal = BfndMapping(getNodeBefore(thebif));
+#ifdef __SPF
+    if (retVal)
+        setCurrProcessLine(retVal->lineNumber());
+#endif
+    return retVal;
 }
 
 
@@ -3868,6 +3940,12 @@ inline int SgLabel::getLastLabelVal()
 
 // SgValueExp--inlines
 
+inline SgValueExp::SgValueExp(bool value) :SgExpression(BOOL_VAL)
+{
+  NODE_TYPE(thellnd) = GetAtomicType(T_BOOL);
+  NODE_BOOL_CST(thellnd) = value;
+}
+
 inline SgValueExp::SgValueExp(int value):SgExpression(INT_VAL)
 {
   NODE_TYPE(thellnd) =  GetAtomicType(T_INT);
@@ -3996,6 +4074,14 @@ inline bool SgValueExp::boolValue()
   if (NODE_CODE(thellnd) != BOOL_VAL)
     {
       Message("message boolValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = false;
     }
   else
@@ -4009,6 +4095,14 @@ inline int SgValueExp::intValue()
   if (NODE_CODE(thellnd) != INT_VAL)
     {
       Message("message initValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = 0;
     }
   else
@@ -4023,6 +4117,14 @@ inline char* SgValueExp::floatValue()
   if (NODE_CODE(thellnd) != FLOAT_VAL)
     {
       Message("message floatValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = NULL;
     }
   else 
@@ -4038,6 +4140,14 @@ inline char SgValueExp::charValue()
   if (NODE_CODE(thellnd) != CHAR_VAL)
     {
       Message("message charValue not understood");
+#ifdef __SPF
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = 0;
     }
   else
@@ -4053,6 +4163,14 @@ inline char*  SgValueExp::doubleValue()
   if (NODE_CODE(thellnd) != DOUBLE_VAL)
     {
       Message("message doubleValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = NULL;
     }
   else
@@ -4068,6 +4186,14 @@ inline char * SgValueExp::stringValue()
   if (NODE_CODE(thellnd) != STRING_VAL)
     {
       Message("message stringValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = NULL;
     }
   else
@@ -4083,6 +4209,14 @@ inline SgExpression * SgValueExp:: realValue()
   if (NODE_CODE(thellnd) != COMPLEX_VAL)
     {
       Message("message realValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = NULL;
     }
   else 
@@ -4098,6 +4232,14 @@ inline SgExpression * SgValueExp::imaginaryValue()
   if (NODE_CODE(thellnd) != COMPLEX_VAL)
     {
       Message("message imaginaryValue not understood");
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       x = NULL;
     }
   else
@@ -4432,7 +4574,17 @@ inline SgArrayRefExp::SgArrayRefExp(SgSymbol &s):SgExpression(ARRAY_REF)
   
   symb = s.thesymb;
   if (!arraySymbol(symb))
-    Message("Attempt to create an array ref with a symbol not of type array",0);
+  {
+      Message("Attempt to create an array ref with a symbol not of type array", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   NODE_SYMB(thellnd) = symb;
   NODE_TYPE(thellnd) = lookForInternalBasetype(SYMB_TYPE(symb));
 }
@@ -4443,7 +4595,17 @@ inline SgArrayRefExp::SgArrayRefExp(SgSymbol &s, SgExpression &subscripts):SgExp
   
   symb = s.thesymb;
   if (!arraySymbol(symb))
-    Message("Attempt to create an array ref with a symbol not of type array",0);
+  {
+      Message("Attempt to create an array ref with a symbol not of type array", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   
   NODE_SYMB(thellnd) = symb;
   if(NODE_CODE(subscripts.thellnd) == EXPR_LIST)
@@ -4460,7 +4622,17 @@ inline SgArrayRefExp::SgArrayRefExp(SgSymbol &s, SgExpression &sub1,SgExpression
   symb = s.thesymb;
   
   if (!arraySymbol(symb))
-    Message("Attempt to create an array ref with a symbol not of type array",0);
+  {
+      Message("Attempt to create an array ref with a symbol not of type array", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   NODE_SYMB(thellnd) = symb;
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub1.thellnd);
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub2.thellnd);
@@ -4475,7 +4647,17 @@ inline SgArrayRefExp::SgArrayRefExp(SgSymbol &s, SgExpression &sub1,SgExpression
   symb = s.thesymb;
   
   if (!arraySymbol(symb))
-    Message("Attempt to create an array ref with a symbol not of type array",0);
+  {
+      Message("Attempt to create an array ref with a symbol not of type array", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   NODE_SYMB(thellnd) = symb;
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub1.thellnd);
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub2.thellnd);
@@ -4490,7 +4672,17 @@ inline SgArrayRefExp::SgArrayRefExp(SgSymbol &s, SgExpression &sub1,SgExpression
   symb = s.thesymb;
   
   if (!arraySymbol(symb))
-    Message("Attempt to create an array ref with a symbol not of type array",0);
+  {
+      Message("Attempt to create an array ref with a symbol not of type array", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   NODE_SYMB(thellnd) = symb;
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub1.thellnd);
   NODE_OPERAND0(thellnd) =  addToExprList(NODE_OPERAND0(thellnd),sub2.thellnd);
@@ -4671,7 +4863,17 @@ inline SgPointerDerefExp::SgPointerDerefExp(SgExpression &pointerExp):SgExpressi
   
   expType = NODE_TYPE(pointerExp.thellnd);
   if (!pointerType(expType))
-    Message("Attempt to create SgPointerDerefExp with non pointer type",0);
+  {
+      Message("Attempt to create SgPointerDerefExp with non pointer type", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
 
   NODE_OPERAND0(thellnd) = pointerExp.thellnd;
   NODE_TYPE(thellnd) = lookForInternalBasetype(expType);
@@ -4697,7 +4899,17 @@ inline SgRecordRefExp::SgRecordRefExp(SgSymbol &recordName, char *fieldName):SgE
   recordSym = recordName.thesymb;
 
   if ((fieldSym = getFieldOfStructWithName(fieldName, SYMB_TYPE(recordSym))) == SMNULL)
-    Message("No such field",0);
+  {
+      Message("No such field", 0);
+#ifdef __SPF 
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
 
   NODE_OPERAND0(thellnd) = newExpr(VAR_REF,SYMB_TYPE(recordName.thesymb), recordName.thesymb);
   NODE_OPERAND1(thellnd) = newExpr(VAR_REF,SYMB_TYPE(fieldSym), fieldSym);
@@ -4710,7 +4922,17 @@ inline SgRecordRefExp::SgRecordRefExp(SgExpression &recordExp, char *fieldName):
 
             
   if ((fieldSym = getFieldOfStructWithName(fieldName, NODE_TYPE(recordExp.thellnd))) == SMNULL)
-    Message("No such field",0);
+  {
+      Message("No such field", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   
   NODE_OPERAND0(thellnd) = recordExp.thellnd;
   NODE_OPERAND1(thellnd) = newExpr(VAR_REF,SYMB_TYPE(fieldSym),fieldSym);
@@ -4724,7 +4946,17 @@ inline SgRecordRefExp::SgRecordRefExp(SgSymbol &recordName, const char *fieldNam
     recordSym = recordName.thesymb;
 
     if ((fieldSym = getFieldOfStructWithName(fieldName, SYMB_TYPE(recordSym))) == SMNULL)
+    {
         Message("No such field", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
+    }
 
     NODE_OPERAND0(thellnd) = newExpr(VAR_REF, SYMB_TYPE(recordName.thesymb), recordName.thesymb);
     NODE_OPERAND1(thellnd) = newExpr(VAR_REF, SYMB_TYPE(fieldSym), fieldSym);
@@ -4737,7 +4969,17 @@ inline SgRecordRefExp::SgRecordRefExp(SgExpression &recordExp, const char *field
 
 
     if ((fieldSym = getFieldOfStructWithName(fieldName, NODE_TYPE(recordExp.thellnd))) == SMNULL)
+    {
         Message("No such field", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
+    }
 
     NODE_OPERAND0(thellnd) = recordExp.thellnd;
     NODE_OPERAND1(thellnd) = newExpr(VAR_REF, SYMB_TYPE(fieldSym), fieldSym);
@@ -5025,7 +5267,17 @@ inline SgSubscriptExp::SgSubscriptExp(SgExpression &lbound, SgExpression &ubound
   
   lb = lbound.thellnd; ub = ubound.thellnd; inc = step.thellnd;
   if (!isIntegerType(lb) && !isIntegerType(ub) && !isIntegerType(inc))
-    Message("Non integer type for SgSubscriptExp",0);
+  {
+      Message("Non integer type for SgSubscriptExp", 0);
+#ifdef __SPF  
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   
   NODE_OPERAND0(thellnd) = lbound.thellnd;
   NODE_OPERAND1(thellnd) = newExpr(DDOT,NULL,ubound.thellnd, step.thellnd);
@@ -5037,7 +5289,17 @@ inline SgSubscriptExp::SgSubscriptExp(SgExpression &lbound, SgExpression &ubound
   
   lb = lbound.thellnd; ub = ubound.thellnd;
   if (!isIntegerType(lb) && !isIntegerType(ub))
-    Message("Non integer type for SgSubscriptExp",0);
+  {
+      Message("Non integer type for SgSubscriptExp", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   
   NODE_OPERAND0(thellnd) = lbound.thellnd;
   NODE_OPERAND1(thellnd) =  ubound.thellnd;
@@ -5306,7 +5568,17 @@ inline SgSymbol & SgProgHedrStmt::name()
   SgSymbol *pt = NULL;
   symb = BIF_SYMB(thebif);
   if (!symb)
-      Message("The bif has no symbol",0);
+  {
+      Message("The bif has no symbol", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   else 
     {
       pt = GetMappingInTableForSymbol(symb);
@@ -5496,7 +5768,8 @@ inline SgProcHedrStmt::SgProcHedrStmt(int variant):SgProgHedrStmt(variant)
 inline SgProcHedrStmt::SgProcHedrStmt(SgSymbol &name, SgStatement &Body):SgProgHedrStmt(PROC_HEDR)
 {
   BIF_SYMB(thebif) = name.thesymb;
-    if(LibClanguage()){
+    if(LibClanguage())
+    {
         printf("SgProcHedrStmt: not a valid C construct. use FuncHedr\n");
 	}
   name.thesymb->entry.proc_decl.proc_hedr = thebif;
@@ -5511,7 +5784,7 @@ inline SgProcHedrStmt::SgProcHedrStmt(SgSymbol &name):SgProgHedrStmt(PROC_HEDR)
 	}
 }
 
-inline SgProcHedrStmt::SgProcHedrStmt(char *name):SgProgHedrStmt(PROC_HEDR)
+inline SgProcHedrStmt::SgProcHedrStmt(const char *name):SgProgHedrStmt(PROC_HEDR)
 {
   SgSymbol *proc;
   proc = new SgSymbol(PROCEDURE_NAME, name); 
@@ -5546,7 +5819,17 @@ inline void SgProcHedrStmt::AddArg(SgExpression &arg)
             declareAVar(symb,thebif);
     } 
   else
-    Message("bad symbol in SgProcHedrStmt::AddArg",0);
+  {
+      Message("bad symbol in SgProcHedrStmt::AddArg", 0);
+#ifdef __SPF  
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
 }
 
 
@@ -5616,7 +5899,17 @@ inline void SgProsHedrStmt::AddArg(SgExpression &arg)
       declareAVar(symb,thebif);
     } 
   else
-    Message("Pb in SgProsHedrStmt::AddArg",0);
+  {
+      Message("Pb in SgProsHedrStmt::AddArg", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
 }
 
 inline int SgProsHedrStmt::numberOfCalls()
@@ -6089,6 +6382,16 @@ inline void SgForStmt::setStep(SgExpression &step)
     {
       BIF_LL3(thebif) = step.thellnd;
     }
+}
+
+//added by Kolganov A.S. 27.10.2020
+inline void SgForStmt::interchangeNestedLoops(SgForStmt* loop)
+{
+    std::swap(BIF_LL1(thebif), BIF_LL1(loop->thebif));
+    std::swap(BIF_LL2(thebif), BIF_LL2(loop->thebif));
+    std::swap(BIF_LL3(thebif), BIF_LL3(loop->thebif));
+    std::swap(BIF_SYMB(thebif), BIF_SYMB(loop->thebif));
+    std::swap(BIF_LABEL(thebif), BIF_LABEL(loop->thebif));
 }
 
 inline SgStatement * SgForStmt::body()
@@ -8402,8 +8705,18 @@ inline SgIOStmt::SgIOStmt(int variant):SgExecutableStatement(variant)
          
 inline SgInputOutputStmt::SgInputOutputStmt(int variant, SgExpression &specList, SgExpression &itemList): SgIOStmt(variant) 
 {
-  if (variant != READ_STAT && variant != WRITE_STAT && variant != PRINT_STAT)
-    Message("illegal variant for SgInputOutputStmt",0);
+    if (variant != READ_STAT && variant != WRITE_STAT && variant != PRINT_STAT)
+    {
+        Message("illegal variant for SgInputOutputStmt", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.h\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
+    }
   BIF_LL1(thebif) = itemList.thellnd;
   BIF_LL2(thebif) = specList.thellnd;
 }
@@ -8782,6 +9095,12 @@ inline void SgParameterStmt::deleteTheConstant(SgSymbol &constant)
 
 inline SgImplicitStmt::SgImplicitStmt(SgExpression &implicitLists):SgDeclarationStatement(IMPL_DECL)
 { BIF_LL1(thebif) = implicitLists.thellnd; }
+
+inline SgImplicitStmt::SgImplicitStmt(SgExpression *implicitLists):SgDeclarationStatement(IMPL_DECL)
+{
+    if (implicitLists)
+        BIF_LL1(thebif) = implicitLists->thellnd; 
+}
 
 inline SgImplicitStmt::~SgImplicitStmt()
 { RemoveFromTableBfnd((void *) this); }
@@ -9293,6 +9612,7 @@ inline SgStatement * SgDerivedCollectionType::createCollectionWithElemType()
 inline SgDerivedCollectionType::~SgDerivedCollectionType()
 { RemoveFromTableType((void *) this); }
 
+void InitializeTable();
 
 #ifdef USER
 

@@ -864,8 +864,13 @@ free_dep(fi)
 		}
 	}
  
-	if (fi->num_bfnds)
-		free(fi->head_bfnd);
+    if (fi->num_bfnds)
+    {
+#ifdef __SPF
+        removeFromCollection(fi->head_bfnd);
+#endif
+        free(fi->head_bfnd);
+    }
 
     if (fi->num_llnds)
     {

@@ -6,7 +6,14 @@
 #include <float.h>
 #include <exception>
 #include <new>
+
+#ifdef __SPF_BUILT_IN_PPPA
+#define VERS "406" 
+#define PLATFORM "ntmpich" 
+#else
 #include "dvmvers.h"
+#endif
+
 #include "statprintf.h"
 
 using namespace std;
@@ -78,19 +85,31 @@ static void printHelp()
     printf("                       UserDebGrp|StatistGrp|SystemGrp.\n");
 }
 
+#ifdef __SPF_BUILT_IN_PPPA
+int pppa_analyzer(int argv, char** argc)
+#else
 int main(int argv, char **argc)
+#endif
 {
     //sfn outfn -l d>=0 -c d=-1..9 -n d-d>=0 -m text
     if (argv < 3 || strcmp(argc[1], "help") == 0)
     {
         printHelp();
+#ifdef __SPF_BUILT_IN_PPPA
+        return 1;
+#else
         return 0;
+#endif
     }
 
     if (argv > 14) {
         printf("Incorrect number of parameters\n");
         printHelp();
+#ifdef __SPF_BUILT_IN_PPPA
+        return 1;
+#else
         exit(1);
+#endif
     }
 
     BOOL proc = TRUE, comp = TRUE, gen = TRUE;
@@ -114,11 +133,19 @@ int main(int argv, char **argc)
         char arrs[24] = "                       "; // strlen nameGen[i]
         if (argc[npar][2] != 0) {
             printf("Incorrect parameter %s\n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
             exit(1);
+#endif
         }
         if (argv == npar + 1) {
             printf("Parameter for %s not set\n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
             exit(1);
+#endif
         }
         switch (argc[npar][1]) {
         case 'l':
@@ -127,7 +154,11 @@ int main(int argv, char **argc)
             nlevel = atoi(argc[npar]);
             if (nlevel < 0 || (nlevel == 0 && strcmp(argc[npar], "0") != 0)) {
                 printf("Incorrect number of level %s \n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+                return 1;
+#else
                 exit(1);
+#endif
             }
             break;
         case 'c':
@@ -137,7 +168,11 @@ int main(int argv, char **argc)
             cc = atoi(argc[npar]);
             if (cc < -1 || cc>9) {
                 printf("Incorrect compression level of file %s \n", argc[3]);
+#ifdef __SPF_BUILT_IN_PPPA
+                return 1;
+#else
                 exit(1);
+#endif
             }
             if (cc == -1) {
                 strcpy(compr, "0");
@@ -228,7 +263,11 @@ int main(int argv, char **argc)
             let = argc[npar][0];
             if (let != 'i' && let != 'j') {
                 printf("Incorrect %d parameter %c, must be i/j\n", npar, let);
+#ifdef __SPF_BUILT_IN_PPPA
+                return 1;
+#else
                 exit(1);
+#endif
             }
             sore = 1;
             if (let == 'i') iIM = 1; else jIM = 1;
@@ -237,7 +276,11 @@ int main(int argv, char **argc)
             sore = 0;  // element
             if (argc[npar][1] != ':') {
                 printf("Incorrect %d parameter %s, must be i=<groupname>/j=<groupname>\n", npar, argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+                return 1;
+#else
                 exit(1);
+#endif
             }
             strncpy(arrs, &(argc[npar][2]), st - 2);
             iIM = 0; jIM = 0;
@@ -250,7 +293,11 @@ int main(int argv, char **argc)
             } // end for
             if (iIM == 0 && jIM == 0) {
                 printf("Incorrect group name %s \n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+                return 1;
+#else
                 exit(1);
+#endif
             }
             break;
         case 'v':
@@ -277,7 +324,11 @@ int main(int argv, char **argc)
                             else
                                 if (strcmp(flag, "none") != 0) {
                                     printf("Incorrect verbosity level %s \n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+                                    return 1;
+#else
                                     exit(1);
+#endif
                                 }
                         flag = ++buf;
                     }
@@ -288,7 +339,11 @@ int main(int argv, char **argc)
             break;
         default:
             printf("Incorrect parameter %s\n", argc[npar]);
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
             exit(1);
+#endif
             break;
         } // end switch
     } // end for key parameters
@@ -301,13 +356,24 @@ int main(int argv, char **argc)
             stat.TextErr(t);
             printf("%s", t);
             printHelp();
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
             exit(1);
+#endif
         }
 
         // Возвращает количество процессоров, на которых считалась задача.
         unsigned long qproc = stat.QProc();
 
-        if (qproc == 0) exit(1);
+        if (qproc == 0) 
+        {
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
+            exit(1);
+#endif
+        }
         // string for processor characteristics - max
         // printf for compressed and not compressed out file
         CStatPrintf statpr(argc[nparout], 1024, mode);
@@ -315,7 +381,11 @@ int main(int argv, char **argc)
             char t[80];
             statpr.TextErr(t);
             printf("%s", t);
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
             exit(1);
+#endif
         }
         double min[ITER + 1];
         double max[ITER + 1];
@@ -584,7 +654,11 @@ int main(int argv, char **argc)
                                     break;
                                 default:
                                     statpr.StatPrintf("Unknown type=%d\n", k);
+#ifdef __SPF_BUILT_IN_PPPA
+                                    return 1;
+#else
                                     exit(1);
+#endif
                                 }// end switch
                                 statpr.StatPrintf("%s%s", nameCom[i], namecomp[k]);
                                 for (int j = SUMCOM; j <= SUMOVERLAP; j++) {
@@ -644,7 +718,11 @@ int main(int argv, char **argc)
                         case SUMVAR: ps = sumv; break;
                         case SUMOVERLAP: ps = sumov; break;
                         default:statpr.StatPrintf("Unknown type=%d\n", j);
+#ifdef __SPF_BUILT_IN_PPPA
+                            return 1;
+#else
                             exit(1);
+#endif
                         }// end for j
                         int i = 0;
                         //if (j==SUMOVERLAP) ncall=0; //for pc sum[j]=0.0
@@ -919,7 +997,15 @@ int main(int argv, char **argc)
         char *pname = NULL, *pnamemin = NULL, *pnamemax = NULL;
         double time, mintime = DBL_MAX, maxtime = 0.0, sumtime = 0.0;
         stat.NameTimeProc(0, &pname, &time);
-        if (pname == NULL) exit(1); // not MPI
+        if (pname == NULL)
+        {
+            //not MPI
+#ifdef __SPF_BUILT_IN_PPPA
+            return 1;
+#else
+            exit(1);
+#endif
+        }
         unsigned long minn = 0, maxn = 0;
         statpr.StatPrintf("%s", "-------------------------------------------------------------------------\n");
         statpr.StatPrintf("Name (number) and performance time of processors\n");
@@ -935,15 +1021,27 @@ int main(int argv, char **argc)
     } // end try
     catch (bad_alloc ex) {
         printf("Out of memory\n");
+#ifdef __SPF_BUILT_IN_PPPA
+        return 1;
+#else
         exit(1);
+#endif
     }
     catch (exception ex) {
         printf("Exception in standart library %s\n", ex.what());
+#ifdef __SPF_BUILT_IN_PPPA
+        return 1;
+#else
         exit(1);
+#endif
     }
     catch (char *str) {
         printf("%s\n", str);
+#ifdef __SPF_BUILT_IN_PPPA
+        return 1;
+#else
         exit(1);
+#endif
     }
     return 0;
 }

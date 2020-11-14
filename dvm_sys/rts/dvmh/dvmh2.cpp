@@ -3251,6 +3251,19 @@ static void dvmhLoopMap(DvmhLoop *loop, DvmhObject *templ, DvmhAxisAlignRule rul
             dvmh_log(TRACE, "loop mapped on variable %s", rdata->getName());
             loop->persistentInfo->setVarId(rdata->getVarId());
         }
+#ifdef NON_CONST_AUTOS
+        DvmType loopAxes[mappingData->getRank()];
+#else
+        DvmType loopAxes[MAX_ARRAY_RANK];
+#endif
+        for (int i = 0; i < mappingData->getRank(); i++) {
+            if (rules[i].axisNumber > 0) {
+                loopAxes[i] = rules[i].multiplier > 0 ? rules[i].axisNumber : -rules[i].axisNumber;
+            } else {
+                loopAxes[i] = 0;
+            }
+        }
+        loop->addArrayCorrespondence(mappingData, loopAxes);
     } else {
         if (loop->region) {
             DvmhRegionDistribSpace *rdspace = dictFind2(*loop->region->getDspaces(), dspace);
@@ -3355,7 +3368,7 @@ extern "C" void dvmh_loop_reduction_(const DvmType *pCurLoop, const DvmType *pRe
     dvmh_loop_reduction_C(*pCurLoop, *pRedType, arrayAddr, *pVarType, *pArrayLength, locAddr, *pLocSize);
 }
 
-static void dvmhLoopAcrossCommon(DvmType curLoop, const DvmType dvmDesc[], DvmType givenRank, va_list &ap, bool fortranFlag) {
+static void dvmhLoopAcrossCommon(DvmType curLoop, bool isOut, const DvmType dvmDesc[], DvmType givenRank, va_list &ap, bool fortranFlag) {
     checkInternal2(inited, "LibDVMH is not initialized");
     checkInternal(dvmDesc);
     DvmhLoop *loop = (DvmhLoop *)curLoop;
@@ -3371,24 +3384,24 @@ static void dvmhLoopAcrossCommon(DvmType curLoop, const DvmType dvmDesc[], DvmTy
     ShdWidth widths[MAX_ARRAY_RANK];
 #endif
     extractArray(ap, data->getRank(), widths, (fortranFlag ? vptPointer : vptValue));
-    loop->addToAcross(data, widths);
+    loop->addToAcross(isOut, data, widths);
 }
 
-extern "C" void dvmh_loop_across_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...) {
+extern "C" void dvmh_loop_across_C(DvmType curLoop, DvmType isOut, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...) {
     InterfaceFunctionGuard guard;
     va_list ap;
     va_start(ap, rank);
-    dvmhLoopAcrossCommon(curLoop, dvmDesc, rank, ap, false);
+    dvmhLoopAcrossCommon(curLoop, isOut != 0, dvmDesc, rank, ap, false);
     va_end(ap);
 }
 
-extern "C" void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank,
+extern "C" void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType *pIsOut, const DvmType dvmDesc[], const DvmType *pRank,
         /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...) {
     InterfaceFunctionGuard guard;
-    checkInternal(pCurLoop && pRank);
+    checkInternal(pCurLoop && pIsOut && pRank);
     va_list ap;
     va_start(ap, pRank);
-    dvmhLoopAcrossCommon(*pCurLoop, dvmDesc, *pRank, ap, true);
+    dvmhLoopAcrossCommon(*pCurLoop, *pIsOut != 0, dvmDesc, *pRank, ap, true);
     va_end(ap);
 }
 
@@ -3549,6 +3562,45 @@ extern "C" void dvmh_loop_remote_access_(const DvmType *pCurLoop, const DvmType 
     va_list ap;
     va_start(ap, pRank);
     dvmhLoopRemoteAccessCommon(*pCurLoop, dvmDesc, *pRank, ap, true);
+    va_end(ap);
+}
+
+static void dvmhLoopArrayCorrespondenceCommon(DvmType curLoop, const DvmType dvmDesc[], DvmType givenRank, va_list &ap, bool fortranFlag) {
+    checkInternal2(inited, "LibDVMH is not initialized");
+    DvmhLoop *loop = (DvmhLoop *)curLoop;
+    checkInternal2(loop && loop == currentLoop, "Incorrect loop reference is passed to dvmh_loop_array_correspondence");
+    checkInternal(dvmDesc);
+    DvmhObject *obj = passOrGetOrCreateDvmh(dvmDesc[0], true);
+    checkError2(obj, "NULL object is passed to dvmh_loop_array_correspondence");
+    checkInternal2(obj->isExactly<DvmhData>(), "Only array can be passed to dvmh_loop_array_correspondence");
+    DvmhData *data = obj->as<DvmhData>();
+    checkError2(data->getRank() == givenRank, "Rank in loop_array_correspondence directive must be the same as in declaration of the variable");
+#ifdef NON_CONST_AUTOS
+    DvmType loopAxes[data->getRank()];
+#else
+    DvmType loopAxes[MAX_ARRAY_RANK];
+#endif
+    extractArray(ap, data->getRank(), loopAxes, (fortranFlag ? vptPointer : vptValue));
+    for (int i = 0; i < data->getRank(); i++) {
+        checkInternal3(loopAxes[i] >= -loop->rank && loopAxes[i] <= loop->rank, "Invalid value for loop-array correspondence: " DTFMT " on axis %d", loopAxes[i], i + 1);
+    }
+    loop->addArrayCorrespondence(data, loopAxes);
+}
+
+extern "C" void dvmh_loop_array_correspondence_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType loopAxis */...) {
+    InterfaceFunctionGuard guard;
+    va_list ap;
+    va_start(ap, rank);
+    dvmhLoopArrayCorrespondenceCommon(curLoop, dvmDesc, rank, ap, false);
+    va_end(ap);
+}
+
+extern "C" void dvmh_loop_array_correspondence_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pLoopAxis */...) {
+    InterfaceFunctionGuard guard;
+    checkInternal(pCurLoop && pRank);
+    va_list ap;
+    va_start(ap, pRank);
+    dvmhLoopArrayCorrespondenceCommon(*pCurLoop, dvmDesc, *pRank, ap, true);
     va_end(ap);
 }
 
@@ -3757,23 +3809,39 @@ extern "C" void dvmh_loop_perform_C(DvmType curLoop) {
         // TODO: Handle REMOTE_ACCESS
         if (loop->alignRule) {
             loop->acrossOld.renew(loop->region, false);
-            ShadowGroupRef oldBG = 0, newBG = 0;
+            ShadowGroupRef oldShG = 0, newShG = 0, newOutShG = 0;
             if (!loop->acrossOld.empty()) {
                 checkInternal2(dvmLoop, "Across is unsupported");
-                oldBG = dvmCreateShG(loop->acrossOld, false);
+                oldShG = dvmCreateShG(loop->acrossOld, false);
             }
-            if (!loop->acrossNew.empty()) {
+            DvmhShadow newIn, newOut;
+            loop->splitAcrossNew(&newIn, &newOut);
+            if (!newIn.empty()) {
                 checkInternal2(dvmLoop, "Across is unsupported");
-                newBG = dvmCreateShG(loop->acrossNew, false);
+                newShG = dvmCreateShG(newIn, false);
             }
-            if (oldBG && !newBG) {
-                strtsh_(&oldBG);
-                waitsh_(&oldBG);
-            } else if (newBG) {
-                // TODO: Handle ACROSS Type 1
-                tmpVar = 0;
+            if (!newOut.empty()) {
+                checkInternal2(dvmLoop, "Across is unsupported");
+                newOutShG = dvmCreateShG(newOut, false);
+            }
+            if (oldShG && !newShG && !newOutShG) {
+                strtsh_(&oldShG);
+                waitsh_(&oldShG);
+            } else {
                 double pipeLinePar = loop->stage;
-                across_(&tmpVar, &oldBG, &newBG, &pipeLinePar);
+                if (newShG) {
+                    tmpVar = 0;
+                    across_(&tmpVar, &oldShG, &newShG, &pipeLinePar);
+                }
+                if (newOutShG) {
+                    tmpVar = 1;
+                    if (!newShG) {
+                        across_(&tmpVar, &oldShG, &newOutShG, &pipeLinePar);
+                    } else {
+                        ShadowGroupRef zeroShG = 0;
+                        across_(&tmpVar, &zeroShG, &newOutShG, &pipeLinePar);
+                    }
+                }
             }
         }
 #endif

@@ -26,7 +26,7 @@
 #include "tokdefs.h"
 
 extern int hash(), ndim;
-extern PTR_BFND cur_bfnd, pred_bfnd, global_bfnd;
+extern PTR_BFND cur_bfnd, pred_bfnd, last_bfnd, global_bfnd;
 extern PTR_TYPE vartype, global_default, impltype[], make_type();
 extern PTR_LLND make_llnd();
 extern PTR_SYMB make_symb();
@@ -1536,20 +1536,24 @@ PTR_SYMB
 lookup_type_symbol(type_sym_entry)
 PTR_SYMB type_sym_entry;
 {
-	int i;
-	register PTR_HASH entry;
-	register PTR_SYMB s;
-        if( type_sym_entry->type->variant==T_STRUCT && type_sym_entry->type->name)
-           return (type_sym_entry);
-
-        i = hash(type_sym_entry->ident);         
-	for (entry = hash_table[i]; entry; entry = entry->next_entry) {
-            s = entry->id_attr; 
-            if (!strcmp(type_sym_entry->ident, entry->ident) && s)
-            if(s->variant == TYPE_NAME && s->type->variant==T_STRUCT && s->type->name)
-               return (s);  
-        }
+    int i;
+    register PTR_HASH entry;
+    register PTR_SYMB s;
+    if (type_sym_entry == NULL)
         return (SMNULL);
+
+    if (type_sym_entry->type->variant == T_STRUCT && type_sym_entry->type->name)
+        return (type_sym_entry);
+
+    i = hash(type_sym_entry->ident);
+    for (entry = hash_table[i]; entry; entry = entry->next_entry) 
+    {
+        s = entry->id_attr;
+        if (!strcmp(type_sym_entry->ident, entry->ident) && s)
+            if (s->variant == TYPE_NAME && s->type->variant == T_STRUCT && s->type->name)
+                return (s);
+    }
+    return (SMNULL);
 }
 
 PTR_LLND
@@ -1857,7 +1861,7 @@ in_rename_list(symb,list)
 
 void
 copy_sym_data(source, dest)
-PTR_SYMB source, dest;
+    PTR_SYMB source, dest;
 {PTR_SYMB BaseSymbol();
    if(source->variant == CONST_NAME) {/* named constant */ /*16.03.03 */
      dest->entry.const_value = source->entry.const_value;
@@ -1893,19 +1897,61 @@ PTR_SYMB source, dest;
 }
 
 void 
+delete_symbol(symb)
+     PTR_SYMB symb;
+{
+/*     PTR_SYMB symb_scope, s, s_pre;
+
+     symb_scope = symb->scope->entry.Template.symbol;
+     for(s=symb_scope->thread,s_pre=symb_scope; s; s_pre=s,s=s->thread) {
+        if(s==symb) {
+           s_pre->thread = s->thread;
+           return;
+        }
+     }
+*/
+/*     symb->parent = BFNULL;  */
+     symb->ident = "***";
+     symb->scope = BFNULL;
+     symb->type  = TYNULL;
+     return;
+}
+
+int 
+copy_is(sym_mod)
+     PTR_SYMB sym_mod;
+{ //looking for a USE-ststement with sym_mod symbol without ONLY-clause  
+ PTR_BFND st;
+ for(st=cur_scope()->thread; st!=last_bfnd; st=st->thread) {
+    if(st->variant==USE_STMT && st->entry.Template.ll_ptr1 && st->entry.Template.ll_ptr1->variant==ONLY_NODE)
+       continue;
+    if(st->variant==USE_STMT && !strcmp(st->entry.Template.symbol->ident,sym_mod->ident))
+       return (1); 
+ }     
+ return (0);
+}
+ 
+void 
 copy_module_scope(sym_mod,list)
      PTR_SYMB sym_mod;
      PTR_LLND list;
  
-{PTR_SYMB new_symb, source;
+{
+ PTR_SYMB new_symb, source;
+ PTR_HASH copy;
+
+ if(copy_is(sym_mod))
+    return;
  for(source=sym_mod->entry.Template.next; source; source=source->entry.Template.next) {
-   if((source->attr & PRIVATE_BIT) && (!(source->attr & PUBLIC_BIT)) )
-     continue;
-   if(list && in_rename_list(source,list))
-      continue;
+    if((source->attr & PRIVATE_BIT) && (!(source->attr & PUBLIC_BIT)) )
+       continue;
+    if(list && in_rename_list(source,list))
+       continue;
+    if((copy=just_look_up_sym_in_scope(cur_scope(),source->ident)) && copy->id_attr && copy->id_attr->entry.Template.tag==sym_mod->entry.Template.func_hedr->id)
+       continue;
     new_symb = make_local_entity(source->parent, source->variant, source->type, LOCAL);
     copy_sym_data(source,new_symb);
-  
+    new_symb->entry.Template.tag = sym_mod->entry.Template.func_hedr->id;
    /* if(new_symb->entry.Template.seen != BY_USE) {
        copy_sym_data(source,new_symb);  
        new_symb->entry.Template.base_name = source; 
@@ -1929,7 +1975,7 @@ PTR_SYMB
 OriginalSymbol(sym)
      PTR_SYMB sym;
 { 
- if(sym->entry.Template.base_name) 
+ if(sym && sym->entry.Template.base_name)
    return(sym->entry.Template.base_name);
  else
    return(sym);

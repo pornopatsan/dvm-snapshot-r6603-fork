@@ -10,7 +10,7 @@ namespace cdvmh {
 
 #define COLUMN (int)comp.getSourceManager().getColumnNumber(fileID, comp.getSourceManager().getFileOffset(Tok.getLocation()))
 
-void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken) {
+void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &FirstToken) {
     SourceLocation loc = FirstToken.getLocation();
     loc = rewr.getSourceMgr().getFileLoc(loc);
     std::string srcFileName = comp.getSourceManager().getFilename(loc);
@@ -211,7 +211,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         PragmaInterval *curPragma = new PragmaInterval();
         curPragma->copyCommonInfo(this->curPragma);
         curPragma->userID = readExpr(PP, Tok);
-        if (curPragma->userID.empty())
+        if (curPragma->userID.empty()) 
             curPragma->userID.append("0");
         checkDirErrN(Tok.is(tok::eod), 306, COLUMN);
         fileCtx.addPragma(fileID.getHashValue(), curPragma);
@@ -347,9 +347,9 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
             checkDirErrN(ok, 3410, COLUMN);
             PP.LexNonComment(Tok);
         } else {
-            curPragma->mappedFlag = true;
             checkDirErrN(Tok.is(tok::l_square), 307, COLUMN);
             curPragma->mapRule = parseAlignRule(PP, Tok, true);
+            curPragma->mappedFlag = curPragma->mapRule.isMapped();
             rank = curPragma->mapRule.rank;
         }
         checkDirErrN(Tok.is(tok::r_paren), 308, COLUMN);
@@ -489,6 +489,19 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                     curPragma->acrosses.push_back(ClauseAcross());
                     ClauseAcross *acr = &curPragma->acrosses.back();
                     tokStr = Tok.getIdentifierInfo()->getName();
+                    if (tokStr == "out") {
+                        PP.EnableBacktrackAtThisPos();
+                        PP.LexNonComment(Tok);
+                        if (Tok.is(tok::colon)) {
+                            acr->isOut = true;
+                            PP.CommitBacktrackedTokens();
+                            PP.LexNonComment(Tok);
+                            checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName();
+                        } else {
+                            PP.Backtrack();
+                        }
+                    }
                     acr->arrayName = tokStr;
                     PP.LexNonComment(Tok);
                     if (Tok.is(tok::l_square)) {
@@ -509,10 +522,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                     checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3413, "across", COLUMN);
                     if (Tok.is(tok::comma)) {
                         PP.LexNonComment(Tok);
-                        if (curPragma->mappedFlag)
-                            checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
-                        else
-                            checkDirErrN(Tok.isAnyIdentifier(), 3424, COLUMN);
+                        checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
                     }
                 }
                 checkDirErrN(Tok.is(tok::r_paren), 3412, "across", COLUMN);
@@ -552,6 +562,46 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 curPragma->stage = readExpr(PP, Tok);
                 checkDirErrN(!curPragma->stage.empty(), 3428);
                 checkDirErrN(Tok.is(tok::r_paren), 3412, "stage", COLUMN);
+                PP.LexNonComment(Tok);
+            } else if (tokStr == "tie") {
+                checkDirErrN(curPragma->mapRule.isInitialized(), 3441);
+                PP.LexNonComment(Tok);
+                checkDirErrN(Tok.is(tok::l_paren), 3412, "tie", COLUMN);
+                PP.LexNonComment(Tok);
+                while (Tok.isAnyIdentifier()) {
+                    curPragma->ties.push_back(ClauseTie());
+                    ClauseTie *tie = &curPragma->ties.back();
+                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tie->arrayName = tokStr;
+                    PP.LexNonComment(Tok);
+                    while (Tok.is(tok::l_square)) {
+                        PP.LexNonComment(Tok);
+                        if (Tok.is(tok::r_square)) {
+                            tie->loopAxes.push_back(0);
+                        } else if (Tok.is(tok::minus)) {
+                            PP.LexNonComment(Tok);
+                            checkDirErrN(Tok.isAnyIdentifier(), 3442, "tie", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName();
+                            checkDirErrN(curPragma->mapRule.nameToAxis.find(tokStr) != curPragma->mapRule.nameToAxis.end(), 3442, "tie", COLUMN);
+                            tie->loopAxes.push_back(-curPragma->mapRule.nameToAxis[tokStr]);
+                            PP.LexNonComment(Tok);
+                        } else {
+                            checkDirErrN(Tok.isAnyIdentifier(), 3442, "tie", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName();
+                            checkDirErrN(curPragma->mapRule.nameToAxis.find(tokStr) != curPragma->mapRule.nameToAxis.end(), 3442, "tie", COLUMN);
+                            tie->loopAxes.push_back(curPragma->mapRule.nameToAxis[tokStr]);
+                            PP.LexNonComment(Tok);
+                        }
+                        checkDirErrN(Tok.is(tok::r_square), 3421, "tie", COLUMN);
+                        PP.LexNonComment(Tok);
+                    }
+                    checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3413, "tie", COLUMN);
+                    if (Tok.is(tok::comma)) {
+                        PP.LexNonComment(Tok);
+                        checkDirErrN(Tok.isAnyIdentifier(), 3423, "tie", COLUMN);
+                    }
+                }
+                checkDirErrN(Tok.is(tok::r_paren), 3412, "tie", COLUMN);
                 PP.LexNonComment(Tok);
             } else {
                 checkDirErrN(false, 3429, tokStr.c_str(), COLUMN);
@@ -1077,10 +1127,14 @@ AlignRule DvmPragmaHandler::parseAlignRule(Preprocessor &PP, Token &Tok, bool pa
         PP.LexNonComment(Tok);
     }
     res.rank = rank;
-    if (parLoopFlag)
+    if (parLoopFlag) {
+        if (Tok.is(tok::r_paren)) {
+            return res;
+        }
         checkDirErrN(Tok.isAnyIdentifier(), 3439, COLUMN);
-    else
+    } else {
         checkDirErrN(Tok.isAnyIdentifier(), 3224, COLUMN);
+    }
     tokStr = Tok.getIdentifierInfo()->getName();
     if (parLoopFlag)
         checkDirErrN(tokStr == "on", 3439, COLUMN);

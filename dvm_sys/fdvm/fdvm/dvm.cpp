@@ -78,6 +78,7 @@ extern int iacross;
 
 extern "C" int out_free_form;
 extern "C" int out_upper_case;
+extern "C" int out_line_unlimit;
 extern "C" PTR_SYMB last_file_symbol;
 
 Options options;
@@ -142,6 +143,12 @@ int main(int argc, char *argv[]){
         {
             options.setOn(LOOP_ANALYSIS);
             options.setOn(OPT_EXP_COMP);
+        }
+        else if (!strcmp(argv[0], "-dvmIrregAnalysis"))   /*ACC*/
+        {
+            options.setOn(LOOP_ANALYSIS);
+            options.setOn(OPT_EXP_COMP);
+            options.setOn(GPU_IRR_ACC);
         }
         else if (!strcmp(argv[0], "-dvmLoopAnalysis"))   /*ACC*/
             options.setOn(LOOP_ANALYSIS);
@@ -217,14 +224,16 @@ int main(int argc, char *argv[]){
         //  ACC_program = 1;      
         else if (!strcmp(argv[0], "-noH"))
             ACC_program = 0;
+        else if (!strcmp(argv[0], "-noCudaType"))  /*ACC*/
+            undefined_Tcuda = 1;
         else if (!strcmp(argv[0], "-noCuda"))
             options.setOn(NO_CUDA);                /*ACC*/
+        else if (!strcmp(argv[0], "-noPureFunc"))
+            options.setOn(NO_PURE_FUNC);           /*ACC*/
         else if (!strcmp(argv[0], "-C_Cuda"))      /*ACC*/
             options.setOn(C_CUDA);
         else if (!strcmp(argv[0], "-FTN_Cuda") || !strcmp(argv[0], "-F_Cuda"))    /*ACC*/
             options.setOff(C_CUDA);
-        else if (!strcmp(argv[0], "-undef_cuda"))  /*ACC*/
-            undefined_Tcuda = 1;
         else if (!strcmp(argv[0], "-no_blocks_info") || !strcmp(argv[0], "-noBI"))
             options.setOn(NO_BL_INFO);             /*ACC*/
         else if (!strcmp(argv[0], "-cacheIdx"))
@@ -253,25 +262,31 @@ int main(int argc, char *argv[]){
             options.setOn(RTC);  //for NVRTC compilation and execution
         else if (!strcmp(argv[0], "-ffo"))
             out_free_form = 1;
-        else if (!strcmp(argv[0], "-upcase"))
+        else if (!strcmp(argv[0], "-upcase"))  
             out_upper_case = 1;
+        else if (!strcmp(argv[0], "-noLimitLine"))  
+            out_line_unlimit = 1; 
+        else if (!strcmp(argv[0], "-noRemote"))  
+            options.setOn(NO_REMOTE); 
         else if (!strcmp(argv[0], "-lgstd"))
         {
             (void)fprintf(stderr, "Illegal option -lgstd \n");
             return 1;
         }
-        else if (!strcmp(argv[0], "-uf"))
+        else if (!strcmp(argv[0], "-byFunUnparse"))
             unparse_functions = 1;
         else if (!strncmp(argv[0], "-bufio", 6)) {
             if ((*argv)[6] != '\0' && (isz = is_integer_value(*argv + 6)))
                 IOBufSize = isz;
         }
-        else if (!strncmp(argv[0], "-ubuf", 5)) {
-            if ((*argv)[5] != '\0' && (isz = is_integer_value(*argv + 5)))
+        else if (!strncmp(argv[0], "-bufUnparser", 12)) {
+            if ((*argv)[12] != '\0' && (isz = is_integer_value(*argv + 12)))
                 UnparserBufSize = isz * 1024 * 1024;
         }
         else if (!strcmp(argv[0], "-ioRTS"))
             options.setOn(IO_RTS);
+        else if (!strcmp(argv[0], "-read_all"))
+            options.setOn(READ_ALL);
         else if (!strcmp(argv[0], "-Obase"))
             opt_base = 1;
         else if (!strcmp(argv[0], "-Oloop_range"))
@@ -543,9 +558,11 @@ void initialize()
     opt_loop_range = 0;
     in_interface = 0;
     out_free_form = 0;
+    out_upper_case = 0;
+    out_line_unlimit = 0;
     default_integer_size = 4;
     default_real_size = 4;
-    unparse_functions = 0; //set to 1 by option -uf
+    unparse_functions = 0; //set to 1 by option -byFunUnparse
     for (i = 0; i < Ndev; i++)      /*ACC*/
         device_flag[i] = 0;     // set by option and by TARGETS clause  of REGION directive
     ACC_program = 1;            /*ACC*/
@@ -555,7 +572,8 @@ void initialize()
     options.setOn(C_CUDA);      /*ACC*/
     options.setOn(NO_BL_INFO);  /*ACC*/
     parloop_by_handler = 0;     /*ACC*/
-    collapse_loop_count = 0;     /*ACC*/
+    collapse_loop_count = 0;    /*ACC*/
+    cuda_functions = 0;         /*ACC*/
 }
 
 SgSymbol *LastSymbolOfFile(SgFile *f)
@@ -981,7 +999,6 @@ SgSymbol * CreateRegistrationArraySymbol()
  return(sn);
 }
 
-
 void CreateCoeffs(coeffs* scoef,SgSymbol *ar)
 {int i,r,i0;
  char *name;
@@ -995,7 +1012,7 @@ void CreateCoeffs(coeffs* scoef,SgSymbol *ar)
    //printf("%s",(scoef->sc[i])->identifier());
  }
   scoef->use = 0;
- if(IN_MODULE)
+ if(IN_MODULE && !IS_TEMPLATE(ar))
      scoef->use = 1;
 }
 
@@ -1288,13 +1305,6 @@ void DeclareVarDVM(SgStatement *lstat, SgStatement *lstat2)
     st1->insertStmtBefore(*equiv);
   }
 
- // declaring variable for new IOSTAT specifier of Input/Output statement (if END=,ERR=,EOR= are replaced with IOSTAT=)
-  if(IOstat) 
-  {
-     st = IOstat ->makeVarDeclStmt();
-     lstat -> insertStmtAfter(*st);    
-  }
-
 // declaring buffer HEAP for headers of dynamic arrays
   if(heap_ar_decl && heap_size){
     typearray = isSgArrayType(heapdvm->type());
@@ -1321,6 +1331,13 @@ void DeclareVarDVM(SgStatement *lstat, SgStatement *lstat2)
      lstat->insertStmtAfter(*st);
 
 } //endif !only_debug
+
+// declaring variable for new IOSTAT specifier of Input/Output statement (if END=,ERR=,EOR= are replaced with IOSTAT=)
+  if(IOstat) 
+  {
+     st = IOstat ->makeVarDeclStmt();
+     lstat -> insertStmtAfter(*st);    
+  }
 
 // declare  mask for registration (only in module)
    if(debug_regim && count_reg ) {
@@ -1581,7 +1598,7 @@ void DeclareVarDVM(SgStatement *lstat, SgStatement *lstat2)
    el = NULL;
    for(sl=dsym; sl; sl=sl->next) {
      c = ((coeffs *) sl->symb-> attributeValue(0,ARRAY_COEF));
-     if(!c->use) 
+     if(IS_TEMPLATE(sl->symb) || !c->use) 
        continue;
      int flag_public = IN_MODULE && privateall && sl->symb->attributes() & PUBLIC_BIT ? 1 : 0;
      rank=Rank(sl->symb);
@@ -2000,7 +2017,7 @@ void TransFunc(SgStatement *func,SgStatement* &end_of_unit) {
 // follow the statements of the function in lexical order
 // until first executable statement
   for (stmt = first; stmt && (stmt != last); stmt = stmt->lexNext()) {
-    
+               //printf("statement %d %s\n",stmt->lineNumber(),stmt->fileName());
     if (!isSgExecutableStatement(stmt)) //is Fortran specification statement
 // isSgExecutableStatement: 
 //               FALSE  -  for specification statement of Fortan 90
@@ -2076,7 +2093,7 @@ void TransFunc(SgStatement *func,SgStatement* &end_of_unit) {
           all_replicated=0; 
           if(stmt->lexPrev() != func && stmt->lexPrev()->variant()!=USE_STMT) 
             err("Misplaced USE statement", 639, stmt); 
-     
+          UpdateUseListWithDvmArrays(stmt);
           continue;
         }
 
@@ -2103,7 +2120,9 @@ void TransFunc(SgStatement *func,SgStatement* &end_of_unit) {
       pstmt = addToStmtList(pstmt, stmt); 
     
     switch(stmt->variant()) {
-
+       case(ACC_ROUTINE_DIR):
+           ACC_ROUTINE_Directive(stmt); 
+           continue;
        case(HPF_TEMPLATE_STAT):
            if(IN_MODULE && stmt->expr(1))
               err("Illegal directive in module",632,stmt);
@@ -2175,6 +2194,8 @@ void TransFunc(SgStatement *func,SgStatement* &end_of_unit) {
        case(DVM_INDIRECT_GROUP_DIR):
        case(DVM_REMOTE_GROUP_DIR):
            {SgExpression * sl; 
+            if(options.isOn(NO_REMOTE))
+               continue;    
 	    for(sl=stmt->expr(0); sl; sl = sl->rhs()){
                SgArrayType *artype;
                artype = new SgArrayType(*SgTypeInt());  
@@ -3806,6 +3827,10 @@ EXEC_PART_:
               err("The directive is inside the range of PARALLEL loop", 98,stmt); 
               break;
             } 
+            if(options.isOn(NO_REMOTE)) {
+              pstmt = addToStmtList(pstmt, stmt);
+              break;
+            }
             LINE_NUMBER_AFTER(stmt,stmt);    
             doCallAfter(DeleteObject_H(GROUP_REF(stmt->symbol(),1)));               
             doAssignTo_After(GROUP_REF(stmt->symbol(),1),new SgValueExp(0));
@@ -3818,6 +3843,10 @@ EXEC_PART_:
               err("The directive is inside the range of PARALLEL loop", 98,stmt); 
               break;
             } 
+            if(options.isOn(NO_REMOTE)) {
+              pstmt = addToStmtList(pstmt, stmt);
+              break;
+            }
             {SgStatement *if_st,*endif_st;
             pref_st = addToStmtList(pref_st, stmt);//add to list of PREFETCH directive
             if_st = doIfThenConstrForPrefetch(stmt);
@@ -4036,8 +4065,8 @@ EXEC_PART_:
             ReadWritePrint_Statement(stmt,WITH_ERR_MSG);
             stmt = cur_st;
             break;
-/*
-       case DVM_CP_CREATE_DIR:
+
+       case DVM_CP_CREATE_DIR:     /*Check Point*/
             CP_Create_Statement(stmt, WITH_ERR_MSG);
             stmt = cur_st;
             break;
@@ -4048,8 +4077,12 @@ EXEC_PART_:
        case DVM_CP_LOAD_DIR:
             CP_Load_Statement(stmt, WITH_ERR_MSG);
             stmt = cur_st;
-            break;
-*/           
+            break;                 
+      case DVM_CP_WAIT_DIR:
+            CP_Wait(stmt, WITH_ERR_MSG);
+            stmt = cur_st;
+            break;                /*Check Point*/
+           
        case FOR_NODE:
             if(inasynchr){ //inside the range  of ASYNCHRONOUS construct
 	      pstmt = addToStmtList(pstmt, stmt); // add to list of extracted statements
@@ -6027,11 +6060,10 @@ void ArrayHeader (SgSymbol *ar,int ind)
   coeffs *scoef  = new coeffs;
   SgSymbol **base = new (SgSymbol *);
   SgType *btype;
-
+  
   if(IS_BY_USE(ar)) 
      return;
   
-
   if(HEADER(ar)) {
      Err_g("Illegal aligning of '%s'", ar->identifier(),126);
      return;
@@ -6166,7 +6198,11 @@ SgExpression *doShapeList(SgSymbol *ar, SgStatement *st)   /* RTS2 */
   for(i=0; i<ndim ; i++) {   
 
     pe = artype->sizeInDim(i);
-    if ((sbe=isSgSubscriptExp(pe)) != NULL) {
+    if(IS_BY_USE(ar)) {
+         u_bound = UBOUNDFunction(ar,i+1);
+         l_bound = LBOUNDFunction(ar,i+1);  
+    }
+    else if ((sbe=isSgSubscriptExp(pe)) != NULL) {
       if(sbe->ubound() && (sbe->ubound()->variant() == INT_VAL || sbe->ubound()->variant() == CONST_REF) && (!sbe->lbound() || sbe->lbound() && (sbe->lbound()->variant() == INT_VAL || sbe->lbound()->variant() == CONST_REF))) {
          u_bound =  &((sbe->ubound())->copy());
          if(sbe->lbound())
@@ -7740,7 +7776,7 @@ void ChangeArg_DistArrayRef(SgExpression *ele)
       if(IS_POINTER(e->symbol()))
         Error("Illegal POINTER reference: '%s'",e->symbol()->identifier(),138,cur_st);
       if((inparloop && parloop_by_handler || IN_COMPUTE_REGION) ) 
-        if(DUMMY_FOR_ARRAY(e->symbol()) )   
+        if(DUMMY_FOR_ARRAY(e->symbol()) && isIn_acc_array_list(*DUMMY_FOR_ARRAY(e ->symbol())) )   
         {  e->setLhs(FirstArrayElementSubscriptsForHandler(e->symbol()));
                                         //changed by first array element reference
            if(!for_host)
@@ -7968,32 +8004,28 @@ SgExpression * header_ref_in_structure (SgSymbol *ar, int n, SgExpression *struc
        //return( new SgArrayRefExp(*ar, *new SgValueExp(n)));
 }
 
+coeffs *DvmArrayCoefficients(SgSymbol *ar)
+{
+     if(!ar->attributeValue(0,ARRAY_COEF))  //BY USE
+     {
+        coeffs *c_new = new coeffs;
+        CreateCoeffs(c_new,ar);
+        ar->addAttribute(ARRAY_COEF, (void*) c_new, sizeof(coeffs));
+     }
+     return (coeffs *) ar->attributeValue(0,ARRAY_COEF); 
+}
+
 SgExpression * coef_ref (SgSymbol *ar, int n) {
 // creates cofficient for dvm-array addressing
 //array header reference Header(n)  or its copy reference
 // Header(0:n+1) - distributed array descriptor
-
   if(inparloop && !HPF_program || for_kernel) { /*ACC*/
-   
      coeffs * scoef;
-
-     if(IS_BY_USE(ar) && !ar->attributeValue(0,ARRAY_COEF) && strcmp(ar->identifier(),ORIGINAL_SYMBOL(ar)->identifier())) {
-        //adding the distributed array symbol 'ar' to symb_list 'dsym'
-        if(!(ar->attributes() & DVM_POINTER_BIT))
-           AddDistSymbList(ar);
-        // creating variables used for optimization array references in parallel loop
-        scoef  = new coeffs;
-        CreateCoeffs(scoef,ar);
-        // adding the attribute (ARRAY_COEF) to distributed array symbol
-        ar->addAttribute(ARRAY_COEF, (void*) scoef, sizeof(coeffs));
-    
-     } else
-        scoef = AR_COEFFICIENTS(ar); //(coeffs *) ar->attributeValue(0,ARRAY_COEF);
-
+     scoef = AR_COEFFICIENTS(ar); //(coeffs *) ar->attributeValue(0,ARRAY_COEF);
      dvm_ar=AddNewToSymbList(dvm_ar,ar);
      scoef->use = 1;
      return (new SgVarRefExp(*(scoef->sc[n]))); //!!!must be 2<= n <=Rank(ar)+2
-            
+     
   } else    
     return( new SgArrayRefExp(*ar, *new SgValueExp(n)));
 }
@@ -8246,8 +8278,8 @@ SgExpression *LowerBound(SgSymbol *ar, int i)
     return(NULL);
   if((sbe=isSgSubscriptExp(e)) != NULL) {
     if(sbe->lbound())
-      return(sbe->lbound());
-    else if(IS_ALLOCATABLE_POINTER(ar) || IS_TEMPLATE(ar)) {
+      return(IS_BY_USE(ar) ? Calculate(sbe->lbound()) : sbe->lbound());
+    else if(IS_ALLOCATABLE_POINTER(ar) || IS_TEMPLATE(ar)) {       
       if(HEADER(ar))
         return(header_ref(ar,Rank(ar)+3+i));
       else
@@ -8278,7 +8310,7 @@ SgExpression *UpperBound(SgSymbol *ar, int i)
     return(NULL);
   if((sbe=isSgSubscriptExp(e)) != NULL){
     if(sbe->ubound())
-      return(sbe->ubound());
+      return(IS_BY_USE(ar) ? Calculate(sbe->ubound()) : sbe->ubound());
     else if(HEADER(ar))
               //return(&(*GetSize(HeaderRefInd(ar,1),i+1)-*HeaderRefInd(ar,Rank(ar)+3+i)+*new SgValueExp(1))); 06.11.09
       return(&(*GetSize(HeaderRefInd(ar,1),ri)+*HeaderRefInd(ar,Rank(ar)+3+i)-*new SgValueExp(1)));
@@ -8453,7 +8485,7 @@ void TestShadowWidths(SgSymbol *ar, SgExpression * lbound[], SgExpression * ubou
    }
  }
  else  {//by default shadow width = 1
-   if(!IS_DUMMY(ar))
+   if(!IS_DUMMY(ar) && HEADER(ar))     
      for(i=0; i<nw; i++){
        if(lbound[i]->isInteger() && lbound[i]->valueInteger() > 1 )
          Error("Low shadow width  of  '%s' is greater than 1", ar->identifier(), 144,st); 
@@ -8729,7 +8761,8 @@ int Alignment(SgStatement *stat, SgExpression *aref, SgExpression *axis[], SgExp
        else {
          axis[nt] = new SgValueExp(num); 
          CoeffConst(e, ei, &coef[nt], &cons[nt]); 
-         TestReverse(coef[nt],stat);     
+         if(interface != 2)
+           TestReverse(coef[nt],stat);     
          if(!coef[nt]){
            err("Wrong iteration-align-subscript in PARALLEL", 160,stat);
            coef[nt] = & c0.copy();
@@ -9566,6 +9599,8 @@ void RemoteVariableList(SgSymbol *group, SgExpression *rml, SgStatement *stmt)
   SgValueExp c0(0),cm1(-1),c1(1);
   st_sign = 0;
 
+  if(options.isOn(NO_REMOTE))
+     return;    
   if(IN_COMPUTE_REGION && group)
      err("Asynchronous REMOTE_ACCESS clause in compute region",574,stmt);
 
@@ -10063,6 +10098,35 @@ symb_list  *AddNewToSymbListEnd ( symb_list *ls, SgSymbol *s)
   return(ls);
 }
 
+symb_list  *MergeSymbList(symb_list *ls1, symb_list *ls2)
+{
+  symb_list *l =ls1;
+  if(!ls1)
+     return (ls2);
+  while(l->next)
+     l = l->next;
+  l->next = ls2;
+  return ls1;
+}
+
+symb_list *CopySymbList(symb_list *ls)
+{
+  symb_list *l=NULL, *el, *cp=NULL;
+  while(ls)
+  {
+    el = new symb_list;
+    el->symb = ls->symb;
+    el->next = NULL;
+    if(l)
+      l->next  = el;
+    else
+      cp = el;
+    l = el;
+    ls = ls->next;
+  }
+  return cp;
+}
+
 void DeleteSymbList(symb_list *ls)
 {symb_list *l;
 
@@ -10198,6 +10262,7 @@ void InsertDebugStat(SgStatement *func, SgStatement* &end_of_unit)
   dbif_not_cond = 0;
   last_dvm_entry = NULL;
   all_replicated = 0; 
+  IOstat = NULL;
 
   TempVarDVM(func);
   initF90Names();
@@ -10309,8 +10374,7 @@ void InsertDebugStat(SgStatement *func, SgStatement* &end_of_unit)
 
        case(DVM_INDIRECT_GROUP_DIR):
        case(DVM_REMOTE_GROUP_DIR):
-	      //if(dvm_debug)
-           if (debug_regim)
+           if (debug_regim && !options.isOn(NO_REMOTE))
            {SgExpression * sl; 
 	    for(sl=stmt->expr(0); sl; sl = sl->rhs()){
                SgArrayType *artype;
@@ -10336,7 +10400,8 @@ void InsertDebugStat(SgStatement *func, SgStatement* &end_of_unit)
 	   }
            //including the DVM specification directive to list
            pstmt = addToStmtList(pstmt, stmt); 
-           continue;    
+           continue;
+       case(ACC_ROUTINE_DIR):    
        case(HPF_PROCESSORS_STAT):
        case(HPF_TEMPLATE_STAT):
        case(DVM_DYNAMIC_DIR):
@@ -10926,6 +10991,23 @@ void InsertDebugStat(SgStatement *func, SgStatement* &end_of_unit)
             if(perf_analysis)  
               stmt = Any_IO_Statement(stmt); 
             break;
+       case DVM_CP_CREATE_DIR:  /*Chek Point*/
+            CP_Create_Statement(stmt, WITH_ERR_MSG);
+            stmt = cur_st;
+            break;
+       case DVM_CP_SAVE_DIR:
+            CP_Save_Statement(stmt, WITH_ERR_MSG);
+            stmt = cur_st;
+            break;
+       case DVM_CP_LOAD_DIR:
+            CP_Load_Statement(stmt, WITH_ERR_MSG);
+            stmt = cur_st;
+            break;
+      case DVM_CP_WAIT_DIR:
+            CP_Wait(stmt, WITH_ERR_MSG);
+            stmt = cur_st;
+            break;            /*Chek Point*/
+
        default:
             break;     
     }
@@ -12539,7 +12621,7 @@ SgExpression *ArraySection(SgExpression *are, SgSymbol *ar, int rank, SgStatemen
  }
  if(!TestMaxDims(are->lhs(),ar,stmt)) return(0);
  for(el=are->lhs(),i=0; el; el=el->rhs(),i++)    
-    Triplet(el->lhs(),ar,i, einit,elast,estep);
+    Triplet(el->lhs(),ar,i, einit,elast,estep); 
  if(i != rank){
     Error("Wrong number of subscripts specified for '%s'",ar->identifier(),140 ,stmt);
     //return (0);
@@ -13269,8 +13351,12 @@ SgStatement *InterfaceBlock(SgStatement *hedr)
 { SgStatement *stmt;
  in_interface++;
  for(stmt=hedr->lexNext(); stmt->variant()!=CONTROL_END; stmt=stmt->lexNext())
+ {
    if(stmt->variant() == FUNC_HEDR || stmt->variant() == PROC_HEDR) //may be module procedure statement
      stmt = InterfaceBody(stmt);
+   else if(stmt->variant() != MODULE_PROC_STMT)
+     err("Misplaced directive/statement", 103, stmt);     
+ }
  //if(stmt->controlParent() != hedr)
  //  Error("Illegal END statement");
 
@@ -13279,12 +13365,23 @@ SgStatement *InterfaceBlock(SgStatement *hedr)
 }
 
 SgStatement *InterfaceBody(SgStatement *hedr)
-{ SgStatement *stmt, *last, *dvm_pred;
+{ 
+ SgStatement *stmt, *last, *dvm_pred;
  symb_list *distsym;
+ SgSymbol *s = hedr->symbol();
  distsym = NULL;
  dvm_pred = NULL;
+ 
+ if (hedr->expr(2))
+ {
+    if (hedr->expr(2)->variant() == PURE_OP)
+       SYMB_ATTR(s->thesymb) = SYMB_ATTR(s->thesymb) | PURE_BIT;
+   
+    else if (hedr->expr(2)->variant() == ELEMENTAL_OP)
+       SYMB_ATTR(s->thesymb) = SYMB_ATTR(s->thesymb) | ELEMENTAL_BIT;
+ }
  last = hedr->lastNodeOfStmt();
-
+ 
  for(stmt=hedr->lexNext(); stmt; stmt=stmt->lexNext()) {
     if(dvm_pred)
        Extract_Stmt(dvm_pred); // deleting preceding DVM-directive
@@ -13359,8 +13456,8 @@ SgStatement *InterfaceBody(SgStatement *hedr)
 
       case (DVM_VAR_DECL):
           { SgExpression *el;
-	  int eda;
-	  eda = 0;
+	    int eda;
+	    eda = 0;
             for(el = stmt->expr(2); el; el=el->rhs()) // looking through the attribute list
 	      switch(el->lhs()->variant()) {
 	          case (ALIGN_OP):
@@ -13384,8 +13481,12 @@ SgStatement *InterfaceBody(SgStatement *hedr)
               if(!IS_POINTER(sl->lhs()->symbol()))        
                 distsym = AddNewToSymbList(distsym,sl->lhs()->symbol());
          }
-         dvm_pred = stmt; 
-	 continue;
+           dvm_pred = stmt; 
+	   continue;
+       case (ACC_ROUTINE_DIR):
+           ACC_ROUTINE_Directive(stmt);
+           dvm_pred = stmt;  
+           continue;
 
        case (HPF_TEMPLATE_STAT):
        case (HPF_PROCESSORS_STAT):
@@ -13400,9 +13501,9 @@ SgStatement *InterfaceBody(SgStatement *hedr)
        case (DVM_POINTER_DIR): 
        case (DVM_HEAP_DIR):
        case (DVM_ASYNCID_DIR):
-	  dvm_pred = stmt;  
+	   dvm_pred = stmt;  
        default:
-	 continue; 
+	   continue; 
     }
 
     break;
@@ -13604,14 +13705,77 @@ SgSymbol *Rename(SgSymbol *ar, SgStatement *stmt)
  return(ar);
 }
 
-void updateUseStatementWithOnly(SgStatement *st_use, SgSymbol *s_func)
+void AddAttributeToLastElement(SgExpression *use_list)
 {
+  SgExpression *el = use_list;
+  while(el && el->rhs())
+    el = el->rhs();
+  el->addAttribute(END_OF_USE_LIST, (void*) 1, 0); 
+}
+
+void UpdateUseListWithDvmArrays(SgStatement *use_stmt)
+{
+  SgExpression *el, *coeff_list=NULL;
+  SgExpression *use_list = use_stmt->expr(0);
+  SgSymbol *s,*sloc;
+  int i,r,i0;
+  i0 = opt_base ? 1 : 2;
+  if(opt_loop_range) i0=0;
+  
+  if(use_list && use_list->variant()==ONLY_NODE)
+    use_list = use_list->lhs();
+  if(use_list)
+    AddAttributeToLastElement(use_list);
+  for(el=use_list; el; el=el->rhs())
+  { 
+    // el->lhs()->variant() is RENAME_NODE
+    sloc = el->lhs()->lhs()->symbol(); // local symbol
+    if(!IS_DVM_ARRAY(sloc)) continue;
+    r = Rank(sloc);
+    if(el->lhs()->rhs())      // use symbol reference in renaming_op: local_symbol=>use_symbol
+    {  
+       s = el->lhs()->rhs()->symbol();    //use symbol
+       if(strcmp(sloc->identifier(),s->identifier()))  // different names
+       {
+       // creating variables used for optimisation array references in parallel loop (linearization coefficients)
+         coeffs *c_new  = new coeffs;
+         CreateCoeffs(c_new,sloc);
+       // adding the attribute (ARRAY_COEF) to distributed array symbol
+         sloc->addAttribute(ARRAY_COEF, (void*) c_new, sizeof(coeffs));
+       // add  renaming_op for all coefficients (2:rank+2) to use_list: coeff_of_sloc=>coeff_of_s         
+         coeffs *c_use  =  AR_COEFFICIENTS(s);
+         for(i=i0;i<=r+2;i++)
+           if(i != r+1)
+           {
+             SgExpression *rename = new SgExpression(RENAME_NODE, new SgVarRefExp(c_new->sc[i]), new SgVarRefExp(c_use->sc[i]), NULL);
+             coeff_list = AddListToList(coeff_list,new SgExprListExp(*rename));
+           }         
+       }
+    } else
+    {
+       // add cofficients of use_symbol to use_list
+       s = el->lhs()->symbol(); //use symbol
+       coeffs *c_use  =  AR_COEFFICIENTS(s);
+       for(i=i0;i<=r+2;i++)
+         if(i != r+1) 
+           coeff_list = AddListToList(coeff_list,new SgExprListExp(*new SgVarRefExp(c_use->sc[i])));
+    }
+  }
+    if(coeff_list)
+       AddListToList(use_list,coeff_list);
+}
+       
+void updateUseStatementWithOnly(SgStatement *st_use, SgSymbol *s_func)
+{ // add name of s_func to only-list of USE statement
   SgExpression *clause = st_use->expr(0);
   if(clause && clause->variant() == ONLY_NODE)
   {
-    SgExpression *only_list = AddElementToList(clause->lhs(),new SgVarRefExp(s_func));
-    clause->setLhs(only_list);
-  } 
+     SgExpression *el = new SgExprListExp(*new SgVarRefExp(s_func));
+     if(clause->lhs())  // only-list is not empty
+       AddListToList(clause->lhs(), el);
+     else
+       clause->setLhs(el);
+  }
 }
 
 void GenCallForUSE(SgStatement *hedr,SgStatement *where_st)
@@ -13622,7 +13786,7 @@ void GenCallForUSE(SgStatement *hedr,SgStatement *where_st)
   if((attrm=DVM_PROC_IN_MODULE(smod)) && attrm->symb){
        call = new SgCallStmt(*attrm->symb);
        where_st->insertStmtBefore(*call);
-       updateUseStatementWithOnly(hedr,attrm->symb);
+       updateUseStatementWithOnly(hedr,attrm->symb); // add dvm-module-procedure name to only-list
   }
 }
 
@@ -13865,6 +14029,18 @@ void TranslateFromTo(SgStatement *first, SgStatement *last, int error_msg)
             Any_IO_Statement(stmt);
             ReadWritePrint_Statement(stmt, error_msg);
             break;
+       case DVM_CP_CREATE_DIR:      /*Check Point*/
+            CP_Create_Statement(stmt, error_msg);
+            break;
+       case DVM_CP_SAVE_DIR:
+            CP_Save_Statement(stmt, error_msg);
+            break;
+       case DVM_CP_LOAD_DIR:
+            CP_Load_Statement(stmt, error_msg);
+            break;
+       case DVM_CP_WAIT_DIR:
+            CP_Wait(stmt, error_msg);
+            break;                   /*Check Point*/
        case FOR_NODE:
             ChangeDistArrayRef(stmt->expr(0));
             ChangeDistArrayRef(stmt->expr(1));
@@ -14210,7 +14386,7 @@ SgStatement *ProcessVarDecl(SgStatement *vd)
   
   if(!(ia & POINTER_BIT))
          //Error("Inconsistent declaration of identifier '%s'",s->identifier(),16,vd); 
-     Error("DISTRIBUTE or ALIGN attribute dictates POINTER attribute  '%s'",s->identifier(),336,vd); 
+     Warning("DISTRIBUTE or ALIGN attribute dictates POINTER attribute  '%s'",s->identifier(),336,vd); 
   //create new statement for s and insert before statement vd
          // new SgVarDeclStmt(SgExpression &varRefValList, SgExpression &attributeList, SgType &type);
    e = el->lhs()->symbol() ? el->lhs() : el->lhs()->lhs();
@@ -14272,3 +14448,4 @@ int TestMaxDims(SgExpression *list, SgSymbol *ar, SgStatement *stmt)
    else
       return 1;      
 }
+

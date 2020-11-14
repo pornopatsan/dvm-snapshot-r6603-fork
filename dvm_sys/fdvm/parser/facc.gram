@@ -4,6 +4,7 @@ acc_directive: acc_region
              | acc_end_checksection
              | acc_get_actual
              | acc_actual 
+             | acc_routine
 	     ;
 
 acc_region: ACC_REGION end_spec  opt_clause 
@@ -98,3 +99,13 @@ acc_end_checksection: ACC_END_CHECKSECTION
               {  $$ = get_bfnd(fi,ACC_END_CHECKSECTION_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
               ;     
         
+acc_routine: ACC_ROUTINE in_dcl opt_targets_clause
+             {  $$ = get_bfnd(fi,ACC_ROUTINE_DIR,SMNULL,$3,LLNULL,LLNULL);} 
+           ;
+
+opt_targets_clause: needkeyword keywordoff
+	            { $$ = LLNULL; }
+                  | needkeyword targets_clause
+                    { $$ = $2;}                   
+                  ;
+

@@ -435,7 +435,7 @@ std::string getShortestPath(std::string fromDir, std::string toFile, char useSep
     return res;
 }
 
-std::string getUniqueName(std::string desired, std::set<std::string> *prohibited1, std::set<std::string> *prohibited2) {
+std::string getUniqueName(std::string desired, const std::set<std::string> *prohibited1, const std::set<std::string> *prohibited2) {
     static int curSuffix = 0;
     std::string res = desired;
     for (;;) {

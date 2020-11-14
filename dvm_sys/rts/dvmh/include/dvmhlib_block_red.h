@@ -18,8 +18,17 @@ template<typename T, void func(T *val)>
 __inline__ __device__ void __dvmh_blockReduceN(T *val)
 { return func(val); }
 template<typename T, T func(T &A)>
-__inline__ __device__ T __dvmh_blockReduce(T &val)
-{ return func(val); }
+__inline__ __device__ T __dvmh_blockReduce(T &val, bool withBcast = false)
+{ 
+    if (withBcast)
+#if __CUDACC_VER_MAJOR__ >= 9
+        return __shfl_sync(0xFFFFFFFF, func(val), 0);
+#else
+        return __shfl(func(val), 0);
+#endif
+    else
+        return func(val); 
+}
 
 // for arrays of unknown size
 template<typename T, typename CE, typename N, void func(T *val, CE coef, N num)>
@@ -100,7 +109,7 @@ template<typename T> __inline__ __device__ T __dvmh_blockReduceProd(T val);
 template<typename T> __inline__ __device__ T __dvmh_blockReduceSum(T val);
 
 template<typename T, void func(T *val, T &fin, const unsigned idx, const int lane)>
-__inline__ __device__ T __dvmh_blockReduce(T val)
+__inline__ __device__ T __dvmh_blockReduce(T val, bool withBcast = false)
 {
     unsigned idx = threadIdx.x + threadIdx.y * blockDim.x + threadIdx.z * blockDim.x * blockDim.y;
     T *shared = (T*)shMem;
@@ -141,7 +150,7 @@ __inline__ __device__ void __dvmh_blockReduceLoc(T &val, I *index)
     shared[idx] = val;
 #pragma unroll
     for (int i = 0; i < numI; ++i)
-        sharedIdx[idx + i * blockDims] = index[i];
+        sharedIdx[numI * idx + i] = index[i];
     __syncthreads();
     func(shared, sharedIdx, idx, lane);
     __syncthreads();
@@ -150,7 +159,7 @@ __inline__ __device__ void __dvmh_blockReduceLoc(T &val, I *index)
         val = shared[idx];
 #pragma unroll
         for (int i = 0; i < numI; ++i)
-            index[i] = sharedIdx[idx + i * blockDims];
+            index[i] = sharedIdx[numI * idx + i];
     }
 }
 

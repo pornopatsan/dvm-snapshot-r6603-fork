@@ -19,7 +19,6 @@ class PassContext {
 public:
     CompilerInstance *getCompiler() const { return compiler; }
     Preprocessor *getPP() const { return preprocessor; }
-    Rewriter *getRewr() const { return rewr; }
 public:
     explicit PassContext(SourceFileContext &fileCtx): cdvFile(true) {
         cdvFileName = fileCtx.getInputFile().fileName;
@@ -49,6 +48,7 @@ public:
         setup();
     }
     void parse(ASTConsumer *consumer);
+    Rewriter *getRewr(std::string name = "");
 public:
     ~PassContext() {
         clear();
@@ -69,7 +69,7 @@ protected:
 
     CompilerInstance *compiler;
     Preprocessor *preprocessor;
-    Rewriter *rewr;
+    std::map<std::string, Rewriter *> rewriters;
 };
 
 }

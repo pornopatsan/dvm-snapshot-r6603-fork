@@ -33,32 +33,103 @@ std::string genRtType(std::string baseType) {
     return result;
 }
 
-static std::string declToStr(Decl *d, bool removeStorage = true) {
-    StorageClass prevClass;
+std::string declToStr(Decl *d, bool addStatic, bool addExtern, bool truncateBody) {
     VarDecl *vd = llvm::dyn_cast<VarDecl>(d);
-    //FunctionDecl *fd = llvm::dyn_cast<FunctionDecl>(d);
-    bool hasInit = vd && vd->hasInit();
-    Stmt *initSave = 0;
-    if (hasInit) {
-        initSave = *vd->getInitAddress();
-        *vd->getInitAddress() = 0;
-    }
-    if (removeStorage) {
-        if (vd) {
-            prevClass = vd->getStorageClass();
-            vd->setStorageClass(SC_None);
+    FunctionDecl *fd = llvm::dyn_cast<FunctionDecl>(d);
+    Stmt *bodySave = 0;
+    StorageClass prevClass = SC_None;
+    if (truncateBody) {
+        if (vd && vd->hasInit()) {
+            bodySave = *vd->getInitAddress();
+            *vd->getInitAddress() = 0;
+        } else if (fd && fd->doesThisDeclarationHaveABody()) {
+            bodySave = fd->getBody();
+            fd->setLazyBody(0);
         }
+    }
+    if (addStatic || addExtern) {
+        if (vd)
+            prevClass = vd->getStorageClass();
+        else if (fd)
+            prevClass = fd->getStorageClass();
     }
     std::string ss;
     llvm::raw_string_ostream ost(ss);
+    if (addStatic && (vd || fd) && prevClass != SC_Static)
+        ost << "static ";
+    else if (addExtern && vd && prevClass != SC_Extern)
+        ost << "extern ";
     d->print(ost);
-    if (hasInit)
-        *vd->getInitAddress() = initSave;
-    if (removeStorage) {
-        if (vd)
-            vd->setStorageClass(prevClass);
-    }
+    if (vd && bodySave)
+        *vd->getInitAddress() = bodySave;
+    else if (fd &&bodySave)
+        fd->setBody(bodySave);
     return ost.str();
+}
+
+std::string convertToString(Stmt *s, CompilerInstance &comp) {
+#if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 6
+    Rewriter rewr(comp.getSourceManager(), comp.getLangOpts());
+    return rewr.ConvertToString(s);
+#else
+    std::string SStr;
+    llvm::raw_string_ostream S(SStr);
+    s->printPretty(S, 0, PrintingPolicy(comp.getLangOpts()));
+    return S.str();
+#endif
+}
+
+VarState *fillVarState(const VarDecl *vd, bool CPlusPlus, CompilerInstance &comp, VarState *varState) {
+    SourceManager &srcMgr = comp.getSourceManager();
+    SourceLocation fileLoc = srcMgr.getFileLoc(vd->getLocation());
+    std::string fileName = srcMgr.getFilename(fileLoc);
+    FileID fileID = srcMgr.getFileID(fileLoc);
+    int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
+    std::string varName = vd->getName();
+    bool hasRestrict = vd->getType().isRestrictQualified();
+    const Type *baseType = vd->getType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
+    std::vector<MyExpr> sizes;
+    if (baseType->isPointerType() || isa<IncompleteArrayType>(baseType)) {
+        sizes.push_back(MyExpr());
+        if (baseType->isPointerType())
+            baseType = baseType->getPointeeType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
+        else
+            baseType = cast<IncompleteArrayType>(baseType)->getArrayElementTypeNoTypeQual();
+        cdvmhLog(DONT_LOG, fileName, line, "Outer pointer/incomplete array type found");
+    }
+    while (baseType->isArrayType()) {
+        //checkUserErr(baseType->getAsArrayTypeUnsafe()->getSizeModifier() == ArrayType::Normal, fileName, line,
+        //        "That kind of array size modifier is not supported for variable '%s'", varName.c_str());
+        MyExpr nextSize;
+        if (const ConstantArrayType *ca = llvm::dyn_cast<const ConstantArrayType>(baseType)) {
+            nextSize.strExpr = toStr(ca->getSize().getZExtValue());
+        } else if (const VariableArrayType *va = llvm::dyn_cast<const VariableArrayType>(baseType)) {
+            Expr *e = va->getSizeExpr();
+            // TODO: Fill somehow info on references in this expression
+            nextSize.strExpr = convertToString(e, comp);
+        } else if (const DependentSizedArrayType *dsa = llvm::dyn_cast<const DependentSizedArrayType>(baseType)) {
+            nextSize.strExpr = convertToString(dsa->getSizeExpr(), comp);
+        } else {
+            //checkUserErr(false, fileName, line,
+            //        "That kind of array type is not supported for variable '%s'", varName.c_str());
+            cdvmh_log(WARNING, 52, MSG(52), baseType->getTypeClassName());
+            nextSize.strExpr = "0";
+        }
+        sizes.push_back(nextSize);
+        baseType = baseType->getArrayElementTypeNoTypeQual();
+    }
+    std::string typeName = QualType(baseType, 0).getAsString();
+    // XXX: dirty
+    if (typeName == "_Bool" && CPlusPlus)
+        typeName = "bool";
+    if (!varState)
+        varState = new VarState;
+    varState->init(varName, typeName, sizes);
+    if (strstr(baseType->getCanonicalTypeInternal().getAsString().c_str(), "type-parameter-"))
+        varState->hasDependentBaseType = true;
+    if (hasRestrict)
+        varState->canBeRestrict = true;
+    return varState;
 }
 
 // MyDeclContext
@@ -105,6 +176,7 @@ ConverterASTVisitor::ConverterASTVisitor(SourceFileContext &aFileCtx, CompilerIn
     parLoopStmt = 0;
     inParLoopBody = false;
     parLoopBodyStmt = 0;
+    parallelRmaDesc = 0;
     inHostSection = false;
     hostSectionStmt = 0;
     declContexts.push_back(new MyDeclContext());
@@ -115,11 +187,83 @@ void ConverterASTVisitor::addToDeclGroup(Decl* head, Decl* what) {
     declGroups[head].push_back(what);
 }
 
+void ConverterASTVisitor::addSeenDecl(Decl *d) {
+    if (declOrder.find(d) == declOrder.end()) {
+        int index = declOrder.size();
+        declOrder[d] = index;
+    } else {
+        PresumedLoc ploc = srcMgr.getPresumedLoc(srcMgr.getFileLoc(d->getLocation()));
+        cdvmh_log(ERROR, "Duplicate of decl in %s:%u:%u", ploc.getFilename(), ploc.getLine(), ploc.getColumn());
+    }
+}
+
+std::string ConverterASTVisitor::declToStrForBlank(bool shallow, Decl *d) {
+    VarDecl *vd = llvm::dyn_cast<VarDecl>(d);
+    FunctionDecl *fd = llvm::dyn_cast<FunctionDecl>(d);
+    bool addStatic = false;
+    bool addExtern = false;
+    bool truncateBody = false;
+    if (fd) {
+        bool hasBody = fd->doesThisDeclarationHaveABody();
+        bool isStatic = fd->getFirstDecl()->getStorageClass() == SC_Static;
+        if (shallow && !isStatic) {
+            truncateBody = true;
+        }
+        if (hasBody && !truncateBody) {
+            addStatic = true;
+        }
+    }
+    if (vd) {
+        bool isStatic = vd->getStorageClass() == SC_Static;
+        PresumedLoc ploc = srcMgr.getPresumedLoc(vd->getLocation());
+        checkUserErr(!isStatic, ploc.getFilename(), ploc.getLine(), "Static variable usage is forbidden inside regions and parallel loops");
+        if (shallow) {
+            truncateBody = true;
+            addExtern = true;
+        } else {
+            addStatic = true;
+        }
+    }
+    return declToStr(d, addStatic, addExtern, truncateBody);
+}
+
 void ConverterASTVisitor::afterTraversing() {
     if (!opts.useBlank && !addedCudaFuncs.empty()) {
         for (std::set<const FunctionDecl *>::iterator it = addedCudaFuncs.begin(); it != addedCudaFuncs.end(); it++) {
-            fileCtx.addToCudaHeading(std::string("static __device__ ") + declToStr(const_cast<FunctionDecl *>(*it)));
+            fileCtx.addToCudaHeading(std::string("__device__ ") + declToStr(const_cast<FunctionDecl *>(*it), true, false, false));
         }
+    }
+    std::map<int, Decl *> orderedDecls;
+    for (std::set<Decl *>::const_iterator it = blankHandlerDeclsDeep.begin(); it != blankHandlerDeclsDeep.end(); it++) {
+        Decl *d = *it;
+        orderedDecls[declOrder[d]] = d;
+    }
+    std::string blankHeading;
+    for (std::map<int, Decl *>::iterator it = orderedDecls.begin(); it != orderedDecls.end(); it++) {
+        Decl *d = it->second;
+        bool shallow = blankHandlerDeclsShallow.find(d) != blankHandlerDeclsShallow.end();
+        if (!shallow) {
+            blankHeading += "#ifdef CDVMH_FOR_OFFLOAD\n";
+            blankHeading += declToStrForBlank(false, d) + ";\n";
+            blankHeading += "#endif\n";
+        } else {
+            std::string shallowStr = declToStrForBlank(true, d);
+            std::string deepStr = declToStrForBlank(false, d);
+            if (shallowStr == deepStr) {
+                blankHeading += shallowStr + ";\n";
+            } else {
+                blankHeading += "#ifdef CDVMH_FOR_OFFLOAD\n";
+                blankHeading += deepStr + ";\n";
+                blankHeading += "#else\n";
+                blankHeading += shallowStr + ";\n";
+                blankHeading += "#endif\n";
+            }
+        }
+        blankHeading += "\n";
+    }
+    if (!blankHeading.empty()) {
+        blankHeading += "\n";
+        fileCtx.addToBlankHeading(blankHeading);
     }
 }
 
@@ -255,6 +399,7 @@ bool ConverterASTVisitor::VisitDecl(Decl *d) {
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
     if (!isDeclAllowed() && !(isa<VarDecl>(d) && outerPrivates.find(cast<VarDecl>(d)) != outerPrivates.end()))
         userErrN(fileName, line, 402);
+    addSeenDecl(d);
     return true;
 }
 
@@ -265,48 +410,8 @@ VarState ConverterASTVisitor::fillVarState(VarDecl *vd) {
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
     std::string varName = vd->getName();
     checkIntErrN(varStates.find(vd) == varStates.end(), 95, varName.c_str(), fileName.c_str(), line);
-    bool hasRestrict = vd->getType().isRestrictQualified();
-    const Type *baseType = vd->getType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
-    std::vector<MyExpr> sizes;
-    if (baseType->isPointerType() || isa<IncompleteArrayType>(baseType)) {
-        sizes.push_back(MyExpr());
-        if (baseType->isPointerType())
-            baseType = baseType->getPointeeType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
-        else
-            baseType = cast<IncompleteArrayType>(baseType)->getArrayElementTypeNoTypeQual();
-        cdvmhLog(DONT_LOG, fileName, line, "Outer pointer/incomplete array type found");
-    }
-    while (baseType->isArrayType()) {
-        //checkUserErr(baseType->getAsArrayTypeUnsafe()->getSizeModifier() == ArrayType::Normal, fileName, line,
-        //        "That kind of array size modifier is not supported for variable '%s'", varName.c_str());
-        MyExpr nextSize;
-        if (const ConstantArrayType *ca = llvm::dyn_cast<const ConstantArrayType>(baseType)) {
-            nextSize.strExpr = toStr(ca->getSize().getZExtValue());
-        } else if (const VariableArrayType *va = llvm::dyn_cast<const VariableArrayType>(baseType)) {
-            Expr *e = va->getSizeExpr();
-            // TODO: Fill somehow info on references in this expression
-            nextSize.strExpr = convertToString(e);
-        } else if (const DependentSizedArrayType *dsa = llvm::dyn_cast<const DependentSizedArrayType>(baseType)) {
-            nextSize.strExpr = convertToString(dsa->getSizeExpr());
-        } else {
-            //checkUserErr(false, fileName, line,
-            //        "That kind of array type is not supported for variable '%s'", varName.c_str());
-            cdvmh_log(WARNING, 52, MSG(52), baseType->getTypeClassName());
-            nextSize.strExpr = "0";
-        }
-        sizes.push_back(nextSize);
-        baseType = baseType->getArrayElementTypeNoTypeQual();
-    }
-    std::string typeName = QualType(baseType, 0).getAsString();
-    // XXX: dirty
-    if (typeName == "_Bool" && fileCtx.getInputFile().CPlusPlus)
-        typeName = "bool";
     VarState varState;
-    varState.init(varName, typeName, sizes);
-    if (strstr(baseType->getCanonicalTypeInternal().getAsString().c_str(), "type-parameter-"))
-        varState.hasDependentBaseType = true;
-    if (hasRestrict)
-        varState.canBeRestrict = true;
+    cdvmh::fillVarState(vd, fileCtx.getInputFile().CPlusPlus, comp, &varState);
     return varState;
 }
 
@@ -349,6 +454,95 @@ bool ConverterASTVisitor::VisitCompoundStmt(CompoundStmt *s) {
             declContexts.back()->add(f->getParamDecl(i));
     }
     return true;
+}
+
+// DeclUsageCollector
+
+bool DeclUsageCollector::VisitDeclRefExpr(DeclRefExpr *e) {
+    if (isa<FunctionDecl>(e->getDecl())) {
+        FunctionDecl *fd = cast<FunctionDecl>(e->getDecl());
+        FunctionDecl *first = fd->getFirstDecl();
+        addDecl(first);
+        const FunctionDecl *definition = 0;
+        if (first->hasBody(definition) && definition != first) {
+            addDecl(const_cast<FunctionDecl *>(definition), first->isExternallyVisible());
+        }
+    } else if (isa<VarDecl>(e->getDecl())) {
+        VarDecl *vd = cast<VarDecl>(e->getDecl());
+        TraverseType(vd->getType());
+    } else if (isa<EnumConstantDecl>(e->getDecl())) {
+        EnumConstantDecl *cd = cast<EnumConstantDecl>(e->getDecl());
+        DeclContext *dc = cd->getDeclContext();
+        EnumDecl *ed = cast<EnumDecl>(dc);
+        if (ed->getDefinition())
+            ed = ed->getDefinition();
+        if (ed) {
+            addDecl(ed);
+        }
+    }
+    return true;
+}
+
+bool DeclUsageCollector::TraverseType(QualType t) {
+    addType(t.getTypePtrOrNull());
+    return true;
+}
+
+bool DeclUsageCollector::VisitType(Type *t) {
+    addType(t);
+    return true;
+}
+
+bool DeclUsageCollector::VisitFunctionDecl(FunctionDecl *fd) {
+    if (fd->hasBody() && !deepMode && fd->isExternallyVisible()) {
+        becomeDeepInside = fd->getBody();
+    }
+    return true;
+}
+
+bool DeclUsageCollector::TraverseStmt(Stmt *s) {
+    if (s == becomeDeepInside) {
+        deepMode = true;
+    }
+    bool res = base::TraverseStmt(s);
+    if (s == becomeDeepInside) {
+        deepMode = false;
+        becomeDeepInside = 0;
+    }
+    return res;
+}
+
+void DeclUsageCollector::addType(const Type *t) {
+    if (!t)
+        return;
+    Decl *d = 0;
+    if (t->isRecordType()) {
+        d = t->getAs<RecordType>()->getDecl();
+    } else if (t->isEnumeralType()) {
+        d = t->getAs<EnumType>()->getDecl();
+    } else if (t->isArrayType()) {
+        addType(cast<ArrayType>(t)->getElementType().getTypePtrOrNull());
+    } else if (isa<TypedefType>(t)) {
+        d = t->getAs<TypedefType>()->getDecl();
+    }
+    if (d) {
+        addDecl(d);
+    }
+}
+
+void DeclUsageCollector::addDecl(Decl *d, bool forceDeep) {
+    bool asDeep = deepMode || forceDeep;
+    if (referencedDeclsDeep.find(d) == referencedDeclsDeep.end() || (!asDeep && referencedDeclsShallow.find(d) == referencedDeclsShallow.end())) {
+        addAsReferenced(d, asDeep);
+        DeclUsageCollector collector(referencedDeclsShallow, referencedDeclsDeep, asDeep);
+        collector.TraverseDecl(d);
+        for (std::set<Decl *>::const_iterator it = collector.getReferencedDeclsShallow().begin(); it != collector.getReferencedDeclsShallow().end(); it++) {
+            referencedDeclsShallow.insert(*it);
+        }
+        for (std::set<Decl *>::const_iterator it = collector.getReferencedDeclsDeep().begin(); it != collector.getReferencedDeclsDeep().end(); it++) {
+            referencedDeclsDeep.insert(*it);
+        }
+    }
 }
 
 }

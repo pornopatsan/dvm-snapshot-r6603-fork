@@ -101,20 +101,11 @@ void dvmh_ftn_endfile_(const DvmType *pUnit, const DvmType *pErrFlagRef, const D
 void dvmh_ftn_rewind_(const DvmType *pUnit, const DvmType *pErrFlagRef, const DvmType *pIOStatRef, const DvmType *pIOMsgStrRef);
 void dvmh_ftn_flush_(const DvmType *pUnit, const DvmType *pErrFlagRef, const DvmType *pIOStatRef, const DvmType *pIOMsgStrRef);
 
-void dvmh_create_control_point(const char *cpName, const size_t nfiles, const int mode,
-        DvmType *dvmDesc[], const size_t n_distrib_vars,
-        void **scalar_addresses, size_t *scalar_sizes, const size_t n_scalar_vars);
-void dvmh_bind_control_point(const char *cpName, DvmType *dvmDesc[], const size_t n_distrib_vars,
-        void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars);
-void dvmh_create_or_bind_control_point(const char *cpName, const size_t nfiles, const int mode,
-        DvmType *dvmDesc[], const size_t n_distrib_vars,
-        void **scalar_addresses, const size_t *scalar_sizes, const size_t n_scalar_vars);
-void dvmh_save_control_point(const char *cpName);
-void dvmh_load_control_point(const char *cpName);
-void dvmh_wait_control_point(const char *cpName);
-void dvmh_deactivate_control_point(const char *cpName);
-void dvmh_smart_void_write(DvmType dvmDesc[], FILE *file);
-void dvmh_smart_void_read(DvmType dvmDesc[], FILE *file);
+void dvmh_cp_save_filenames_(const DvmType* cpName, const DvmType *filesCount, ...);
+void dvmh_cp_next_filename_(const DvmType* pCpName, const DvmType *pPrevFile, const DvmType *pCurrFileRef);
+void dvmh_cp_check_filename_(const DvmType* pCpName, const DvmType *pFile);
+void dvmh_cp_wait_(const DvmType* pCpName, const DvmType *pStatusVarRef);
+void dvmh_cp_save_async_unit_(const DvmType* pCpName, const DvmType *pFile, const DvmType *pWriteUnit);
 
 #ifdef __cplusplus
 }

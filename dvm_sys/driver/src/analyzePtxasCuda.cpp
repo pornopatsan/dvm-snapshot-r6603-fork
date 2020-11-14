@@ -12,6 +12,7 @@ struct LoopInfo
 {
     char *version_of_sm;
     char *function_name;
+    string true_function_name;
     char *reg_info;
     char *cmem;
     char *cmem_all;
@@ -55,15 +56,30 @@ void LoopInfo::correct_sm()
 void LoopInfo::correct_name()
 {       
     char *ck = strstr(function_name, "_cuda_kernel");
+    true_function_name = "";
     if(ck)
     {
-        if (strstr(function_name, "loop_"))
+        char* strP = NULL;
+        if (strP = strstr(function_name, "loop_"))
+        {
             loop = "Loop ";
-        else if (strstr(function_name, "sequence_"))
+            strP += strlen("loop_");
+        }
+        else if (strP = strstr(function_name, "sequence_"))
+        {
             loop = "Sequence of statements ";
+            strP += strlen("sequence_");
+        }
         else
             loop = "Unknown statements ";
-
+        
+        if (strP)
+        {
+            int z = 0;
+            while (strP && strP[z] != '_')
+                true_function_name += strP[z++];
+        }
+        
         char *tmpstr = new char[2];
         tmpstr[1] = '\0';
 
@@ -438,10 +454,16 @@ int main(int argc, char** argv)
     }
     sort(allKernels.begin(), allKernels.begin() + allKernels.size() - 1, comp);
     flag_sm = count_of_arch(allKernels);
+    
+    bool ifAllProg = false;
     if(argc == 1)
         cout << "     Information of CUDA Ptx assembler for compiled module 'unknown':" << endl;
     else
+    {
         cout << "     Information of CUDA Ptx assembler for compiled module '" << argv[1] << "':" << endl;
+        ifAllProg = (argv[1] == string("ALL_PROGRAM"));
+    }
+
     if(flag_sm == 1)
         cout << "Compiled all kernels for " << allKernels[0].version_of_sm << " architecture" << endl;
     if(firstLine)
@@ -456,9 +478,14 @@ int main(int argc, char** argv)
         if(i != 0)
             cout << endl;
         if(allKernels[i].variant == 0)
-            cout << allKernels[i].loop << "on line " << allKernels[i].line_number << ":" << endl;
+            cout << allKernels[i].loop << "on line " << allKernels[i].line_number;
         else
-            cout << allKernels[i].loop << "on line " << allKernels[i].line_number << " (with " << allKernels[i].variant << " " << allKernels[i].deps << "):" << endl;
+            cout << allKernels[i].loop << "on line " << allKernels[i].line_number << " (with " << allKernels[i].variant << " " << allKernels[i].deps << ")";
+        if (ifAllProg && allKernels[i].true_function_name != "")
+            cout << " (in function '" << allKernels[i].true_function_name << "'):\n";
+        else
+            cout << ":\n";
+
         if(flag_sm != 1)
             cout << "  " << "Compiling for " << allKernels[i].version_of_sm << " architecture" << endl;
         cout << "  " << "Used " << allKernels[i].used_reds << " registers" << endl;

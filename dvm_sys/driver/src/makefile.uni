@@ -28,7 +28,7 @@ SCRIPTS:
 	@cp dvm_help $(BINDIR)
 	@cp dvm_comp $(BINDIR)
 	@cp dvm_link $(BINDIR)
-	@cp dvm_run $(BINDIR)
+	@cp $(dvm_run) $(BINDIR)/dvm_run
 	@cp $(dvmrun) $(BINDIR)
 	@cp dvm_ver $(BINDIR)
 	@cp dvm_help.txt $(BINDIR)

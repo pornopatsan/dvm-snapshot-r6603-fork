@@ -828,17 +828,24 @@ int countSizeInDim(SgExpression *ex, bool &ifDdot)
     if(ex->variant() == DDOT)
     {
         ifDdot = true;
-        result = Calculate(ex->lhs());
-        if(result->variant() == INT_VAL)
+        if (ex->lhs())
         {
-            existLB = true;
-            leftBound = result->valueInteger();
+            result = Calculate(ex->lhs());
+            if (result->variant() == INT_VAL)
+            {
+                existLB = true;
+                leftBound = result->valueInteger();
+            }
         }
-        result = Calculate(ex->rhs());
-        if(result->variant() == INT_VAL)
+
+        if (ex->rhs())
         {
-            existRB = true;
-            rightBound = result->valueInteger();
+            result = Calculate(ex->rhs());
+            if (result->variant() == INT_VAL)
+            {
+                existRB = true;
+                rightBound = result->valueInteger();
+            }
         }
         if(existLB && existRB)
             res = abs(leftBound - rightBound) + 1;
@@ -1899,7 +1906,7 @@ AnalyzeReturnGpuO1 analyzeLoopBody(int type)
                         unknownLoop = true;
                         actualDocycle.push_back(1);
                         loopMultCount[loopMultCount.size() - 1] = 1;
-                        fprintf(file, " **[ATTANTION]**: can't calculate expression << %s >> with variant %d\n", copyOfUnparse(ex->unparse()), analyze_stmt->expr(0)->variant());
+                        fprintf(file, " **[ATTENTION]**: can't calculate expression << %s >> with variant %d\n", copyOfUnparse(ex->unparse()), analyze_stmt->expr(0)->variant());
                     }
                 }
             }	
@@ -1930,7 +1937,7 @@ AnalyzeReturnGpuO1 analyzeLoopBody(int type)
             else
             {
                 if (DVM_DEBUG_LVL > 1)
-                    fprintf(file, " **[ATTENTION]**: unknown CONTROL_END!! It may be end of local \"loop_body\" \n");
+                    fprintf(file, " **[ATTENTION]**: unknown CONTROL_END in line %d!! It may be end of local \"loop_body\" \n", analyze_stmt->lineNumber());
             }
         }
         else if (analyze_stmt->variant() == IF_NODE || analyze_stmt->variant() == ELSEIF_NODE)// || analyze_stmt->variant() == LOGIF_NODE)

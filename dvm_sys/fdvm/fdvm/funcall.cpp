@@ -2657,8 +2657,8 @@ SgExpression *freeFunction(SgExpression *arg, SgStatement *scope)
 
 SgStatement *RTL_GPU_Init()
 {// generating subroutine call: call dvmh_init(DvmType *flagsRef)
-//  flags: 1 - фортран, 2 - нет регионов (-noH),
-//         4 - последовательная программа (-s), 8 - будет использоваться OpenMP.
+//  flags: 1 - Fortran, 2 - without regions (-noH),
+//         4 - sequential program (-s), 8 - OpenMP will be used.
 
   SgCallStmt *call = new SgCallStmt(*fdvm[DVMH_INIT]);
   fmask[DVMH_INIT] = 2;
@@ -2954,6 +2954,58 @@ SgExpression *CalculateLinear(SgExpression *ar_header, int n, SgExpression *inde
 
 }
 
+SgStatement *SaveCheckpointFilenames(SgExpression *cpName, std::vector<SgExpression *> filenames) {
+  fmask[CP_SAVE_FILENAMES] = 2;
+  SgCallStmt *callStmt = new SgCallStmt(*fdvm[CP_SAVE_FILENAMES]);
+  callStmt->addArg(*DvmhString(cpName));
+  
+  SgExpression *filenamesLength = DvmType_Ref(new SgValueExp((int) filenames.size()));
+  callStmt->addArg(*filenamesLength);
+  
+  std::vector<SgExpression *>::iterator it = filenames.begin();
+  for (; it != filenames.end(); it++) {
+    callStmt->addArg(*DvmhString(*it));
+  }
+  return callStmt;
+}
+
+
+SgStatement *CheckFilename(SgExpression *cpName, SgExpression *filename) {
+  fmask[CP_CHECK_FILENAME] = 2;
+  SgCallStmt *callStmt = new SgCallStmt(*fdvm[CP_CHECK_FILENAME]);
+  callStmt->addArg(*DvmhString(cpName));
+  callStmt->addArg(*DvmhString(filename));
+  
+  return callStmt;
+  
+}
+
+SgStatement *CpWait(SgExpression *cpName, SgExpression *statusVar) {
+  fmask[CP_WAIT] = 2;
+  SgCallStmt *callStmt = new SgCallStmt(*fdvm[CP_WAIT]);
+  callStmt->addArg(*DvmhString(cpName));
+  callStmt->addArg(*DvmhVariable(statusVar));
+  return callStmt;
+}
+
+SgStatement *CpSaveAsyncUnit(SgExpression *cpName, SgExpression *file, SgExpression *unit) {
+  fmask[CP_SAVE_ASYNC_UNIT] = 2;
+  SgCallStmt *callStmt = new SgCallStmt(*fdvm[CP_SAVE_ASYNC_UNIT]);
+  callStmt->addArg(*DvmhString(cpName));
+  callStmt->addArg(*DvmhString(file));
+  callStmt->addArg(*DvmType_Ref(unit));
+  return callStmt;
+}
+
+SgStatement *GetNextFilename(SgExpression *cpName, SgExpression *lastFile, SgExpression *currentFile) {
+  fmask[CP_NEXT_FILENAME] = 2;
+  SgCallStmt *callStmt = new SgCallStmt(*fdvm[CP_NEXT_FILENAME]);
+  callStmt->addArg(*DvmhString(cpName));
+  callStmt->addArg(*DvmhString(lastFile));
+  callStmt->addArg(*DvmhStringVariable(currentFile));
+  
+  return callStmt;
+}
 
 /*
 SgStatement *RegisterBufferArray(int irgn, SgSymbol *c_intent, SgExpression *bufref, int ilow, int ihigh)
@@ -3599,6 +3651,17 @@ SgStatement *SetCudaBlock_H2(int il, SgExpression *X, SgExpression *Y, SgExpress
   return(call);
 }
 
+SgStatement *Correspondence_H (int il, SgExpression *hedr, SgExpression *axis_list)
+{// generating subroutine call: dvmh_loop_array_correspondence(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pLoopAxis */...) 
+ // DvmhLoopRef - result of dvmh_loop_create()
+  SgCallStmt *call = new SgCallStmt(*fdvm[CORRESPONDENCE]);
+  fmask[CORRESPONDENCE] = 2;
+  call->addArg(*DVM000(il));
+  call->addArg(*hedr);
+  AddListToList(call->expr(0), axis_list);
+  return(call);
+}
+
 SgStatement *ShadowRenew_H(SgExpression *gref)
 {// generating subroutine call: dvmh_shadow_renew(ShadowGroupRef) 
   
@@ -3690,7 +3753,7 @@ SgStatement *LoopAcross_H(int il,SgExpression *oldGroup,SgExpression *newGroup)
   return(call);
 }
 
-SgStatement *LoopAcross_H2(int il, SgExpression *headref, int rank, SgExpression *shlist)
+SgStatement *LoopAcross_H2(int il, int isOut, SgExpression *headref, int rank, SgExpression *shlist)
 {  //generating subroutine call:  
    //            dvmh_loop_across(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...)
 
@@ -3698,6 +3761,7 @@ SgStatement *LoopAcross_H2(int il, SgExpression *headref, int rank, SgExpression
   fmask[LOOP_ACROSS_2] = 2;
   
   call -> addArg(*DVM000(il));
+  call -> addArg(*ConstRef(isOut));
   call -> addArg(*headref);
   call -> addArg(*ConstRef(rank));               
   AddListToList(call->expr(0),shlist);
@@ -4495,7 +4559,7 @@ SgExpression *CudaInitReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num,  SgS
   return(fe);
 }
 
-SgExpression *PrepareReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSymbol *s_count, SgSymbol *s_fill_flag)
+SgExpression *PrepareReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSymbol *s_count, SgSymbol *s_fill_flag, int fixedCount, int fillFlag)
 { // generating function call: loop_cuda_red_prepare_(DvmhLoopRef *InDvmhLoop, Dvmtype InRedNumRef, DvmType InCountRef, DvmType InFillFlagRef)
   // or when RTS2 is used  
   //                      dvmh_loop_cuda_red_prepare_C(DvmType curLoop, DvmType redIndex, DvmType count, DvmType fillFlag)                                                     
@@ -4507,8 +4571,14 @@ SgExpression *PrepareReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSym
   else   
      fe->addArg(* new SgVarRefExp(s_loop_ref));
   fe->addArg(* new SgVarRefExp(s_var_num));
-  fe->addArg(* new SgVarRefExp(s_count));
-  fe->addArg(* new SgVarRefExp(s_fill_flag));
+  if (fixedCount == 0)
+    fe->addArg(* new SgVarRefExp(s_count));
+  else
+    fe->addArg(*new SgValueExp(fixedCount));
+  if (fillFlag == -1)
+    fe->addArg(* new SgVarRefExp(s_fill_flag));
+  else
+    fe->addArg(* new SgValueExp(fillFlag));
   return(fe);
 }
 

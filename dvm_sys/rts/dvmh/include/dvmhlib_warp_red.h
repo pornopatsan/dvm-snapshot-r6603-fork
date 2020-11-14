@@ -15,10 +15,18 @@ template<typename T>
 inline __device__ void or_(T &A, const T &B) { A |= B; }
 template<typename T>
 inline __device__ void and_(T &A, const T &B) { A &= B; }
+#ifdef INTEL_LOGICAL_TYPE
 template<typename T>
 inline __device__ void eq_(T &A, const T &B) { A = ~(A ^ B); }
 template<typename T>
 inline __device__ void neq_(T &A, const T &B) { A ^= B; }
+#else
+template<typename T>
+inline __device__ void eq_(T &A, const T &B) { A = (A == B); }
+template<typename T>
+inline __device__ void neq_(T &A, const T &B) { A = (A != B); } 
+#endif
+
 template<typename T, typename I, int numI>
 inline __device__ void maxloc_(T &A, I *Aidx, const T &B, const I *Bidx) {
     if (B > A) {
@@ -108,21 +116,31 @@ __inline__ __device__ T __dvmh_warpReduceScalar(T &val)
     return val;
 }
 
+template<typename T, typename I>
+__inline__ __device__ T __dvmh_warpBroadcast(const T val, const I index)
+{
+#if __CUDACC_VER_MAJOR__ >= 9
+        return __shfl_sync(0xFFFFFFFF, val, index);
+#else
+        return __shfl(val, index);
+#endif
+}
+
 #else
 
 template<typename T, typename I, int numI, void func(T &A, I *B, const T&A1, const I *B1)>
 __inline__ __device__ void __dvmh_warpReduceScalarLoc(T *val, I *index, const unsigned idx, const int lane)
 {
     if (lane < 16)
-        func(val[idx], index + idx, val[idx + 16], index + idx + numI * 16);
+        func(val[idx], index + numI * idx, val[idx + 16], index + numI * (idx + 16));
     if (lane < 8)
-        func(val[idx], index + idx, val[idx + 8], index + idx + numI * 8);
+        func(val[idx], index + numI * idx, val[idx + 8], index + numI * (idx + 8));
     if (lane < 4)
-        func(val[idx], index + idx, val[idx + 4], index + idx + numI * 4);
+        func(val[idx], index + numI * idx, val[idx + 4], index + numI * (idx + 4));
     if (lane < 2)
-        func(val[idx], index + idx, val[idx + 2], index + idx + numI * 2);
+        func(val[idx], index + numI * idx, val[idx + 2], index + numI * (idx + 2));
     if (lane < 1)
-        func(val[idx], index + idx, val[idx + 1], index + idx + numI * 1);
+        func(val[idx], index + numI * idx, val[idx + 1], index + numI * (idx + 1));
 }
 
 template<typename T, void func(T &A, const T &B)>

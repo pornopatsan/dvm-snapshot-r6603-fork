@@ -797,13 +797,7 @@ static void
 
   /* malloc the memory (PHB) */
   id = (int *)      malloc(sizeof(     int) * (max+100));
-#ifdef __SPF
-  addToCollection(__LINE__, __FILE__,id, 0);
-#endif
   pt = (PTR_SYMB *) malloc(sizeof(PTR_SYMB) * (max+100));
-#ifdef __SPF
-  addToCollection(__LINE__, __FILE__,pt, 0);
-#endif
   if ((pt == 0) || (id == 0))
      { fprintf(stderr,"Out of memory in fix_next_symb\n"); exit(1); }
 

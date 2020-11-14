@@ -677,7 +677,7 @@ returns zero.
   }
 
   /* skip redistribute if launched only on 1 proc */
-  if (DVM_VMS->ProcCount == 1)
+  if ((DVM_VMS->ProcCount == 1)&&(AllowRedisRealnBypass))
   {
     if(RTL_TRACE)
         dvm_trace(ret_redis_,"IsLocal=%ld;\n", (DvmType)1);

@@ -479,10 +479,6 @@ void  statevnt(void)
 
   IsStat[ call_acsend_            ] = 0;
   IsStat[ ret_acsend_             ] = 0;
-  
-  IsStat[ call_acsend_            ] = INOUT;
-  IsStat[ ret_acsend_             ] = INOUT+QCOLLECT;
-
   IsStat[ call_acrecv_            ] = 0;
   IsStat[ ret_acrecv_             ] = 0;
 
@@ -702,9 +698,6 @@ void  statevnt(void)
   IsStat[ Event617                ] = 0;
   IsStat[ Event618                ] = 0;
   IsStat[ Event619                ] = 0;
-  
-  IsStat[ call_copy_              ] = INOUT;  //io stat
-  IsStat[ ret_copy_               ] = INOUT+QCOLLECT;  //io stat
 
   return;
 }

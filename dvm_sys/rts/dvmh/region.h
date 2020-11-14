@@ -158,6 +158,7 @@ public:
     explicit DvmhRegion(int flags, DvmhRegionPersistentInfo *persInfo);
 public:
     void renewDatas();
+    void renewData(DvmhData *data, DvmhPieces *restrictTo = 0);
     void registerData(DvmhData *data, int intent, const Interval indexes[]);
     void registerDspace(DvmhDistribSpace *dspace);
     void setDataName(DvmhData *data, const char *name, int nameLength);
@@ -177,7 +178,7 @@ public:
 public:
     ~DvmhRegion();
 protected:
-    void performRenew(DvmhRegionData *rdata, bool updateOut);
+    void performRenew(DvmhRegionData *rdata, bool updateOut, DvmhPieces *restrictTo = 0);
     void mapSpaceOnDevices(DvmhRegionMapping *mapping, DvmhRegionDistribSpace *rdspace);
     void mapDataOnDevices(DvmhRegionData *rdata);
     void allocateDatasOnDevices();

@@ -163,30 +163,45 @@ release_nodes()
 	while (p1) {
 		t1 = p1;
 		p1 = p1->thread;
+#ifdef __SPF
+        removeFromCollection(t1);
+#endif
 		free ((char *)t1);
 	}
 	
 	while (p2) {
 		t2 = p2;
 		p2 = p2->thread;
+#ifdef __SPF
+        removeFromCollection(t2);
+#endif
 		free ((char *)t2);
 	}
 	
 	while (p3) {
 		t3 = p3;
 		p3 = p3->thread;
+#ifdef __SPF
+        removeFromCollection(t3);
+#endif
 		free ((char *)t3);
 	}
 	
 	while (p4) {
 		t4 = p4;
 		p4 = p4->thread;
+#ifdef __SPF
+        removeFromCollection(t4);
+#endif
 		free ((char *)t4);
 	}
 	
 	while (p5) {
 		t5 = p5;
 		p5 = p5->next;
+#ifdef __SPF
+        removeFromCollection(t5);
+#endif
 		free ((char *)t5);
 	}
 }

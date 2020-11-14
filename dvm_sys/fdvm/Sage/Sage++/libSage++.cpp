@@ -1555,14 +1555,13 @@ SgExprListExp * isSgExprListExp(SgExpression *pt)
 }
 
 
-SgProject::SgProject(const char * proj_file_name)
+SgProject::SgProject(const char *proj_file_name)
 {
     // first let init the library we need
     if (!proj_file_name)
     {
         Message("Cannot open project: no file specified", 0);
         exit(1);
-
     }
     if (open_proj_toolbox(proj_file_name, proj_file_name) < 0)
     {
@@ -1583,7 +1582,35 @@ SgProject::SgProject(const char * proj_file_name)
 #endif
 }
 
+SgProject::SgProject(const char* proj_file_name, char** files_list, int no)
+{
+    // first let init the library we need
+    if (!proj_file_name)
+    {
+        Message("Cannot open project: no file specified", 0);
+        exit(1);
+    }
 
+    if (open_proj_files_toolbox(proj_file_name, files_list, no) < 0)
+    {
+        fprintf(stderr, "%s   ", proj_file_name);
+#if __SPF
+        throw -97;
+#else
+        Message("Cannot open project", 0);
+        exit(1);
+#endif
+    }
+    Init_Tool_Box();
+
+    // we have to initialize some specific data for this interface 
+    CurrentProject = this;
+#if __SPF
+    addToCollection(__LINE__, __FILE__, this, 1);
+#endif
+}
+
+int current_file_id;     //number of current file 
 SgFile &SgProject::file(int i)
 {
     PTR_FILE file;
@@ -1594,6 +1621,12 @@ SgFile &SgProject::file(int i)
     if (!file)
     {
         Message("SgProject::file; File not found", 0);
+#ifdef __SPF   
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+        throw -1;
+#endif
         return *pt;
     }
     pt = GetMappingInTableForFile(file);
@@ -1608,7 +1641,10 @@ SgFile &SgProject::file(int i)
 
     current_file_id = i;
     current_file = pt;
-
+#ifdef __SPF   
+    SgStatement::setCurrProcessFile(pt->filename());
+    SgStatement::setCurrProcessLine(0);
+#endif
     return *pt;
 }
 
@@ -1682,7 +1718,15 @@ SgFile::SgFile(int Language, const char * dep_file_name)
 {
 
     if (new_empty_file(Language, dep_file_name) == 0)
+    {
         Message("create failed", 0);
+#ifdef __SPF
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+        throw -1;
+#endif
+    }
 
     filept = GetPointerOnFile(dep_file_name);
     SetCurrentFileTo(filept);
@@ -1690,6 +1734,12 @@ SgFile::SgFile(int Language, const char * dep_file_name)
     if (!filept)
     {
         Message("File not found in SgFile; failed!", 0);
+#ifdef __SPF   
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+        throw -1;
+#endif
         return;
     }
     SetMappingInTableForFile(filept, (void *)this);
@@ -1699,10 +1749,19 @@ SgFile::SgFile(int Language, const char * dep_file_name)
 #endif
 }
 
+static inline std::string replaceSlash(const std::string &in)
+{
+    std::string out = in;
+    for (int z = 0; z < in.size(); ++z)
+        if (out[z] == '\\')
+            out[z] = '/';
+    return out;
+}
+
 std::map<std::string, std::pair<SgFile*, int> > SgFile::files;
 int SgFile::switchToFile(const std::string &name)
 {
-    std::map<std::string, std::pair<SgFile*, int> >::iterator it = files.find(name);
+    std::map<std::string, std::pair<SgFile*, int> >::iterator it = files.find(replaceSlash(name));
     if (it == files.end())
         return -1;
     else
@@ -1712,6 +1771,9 @@ int SgFile::switchToFile(const std::string &name)
             SgFile *file = &(CurrentProject->file(it->second.second));
             current_file_id = it->second.second;
             current_file = file;
+
+            SgStatement::setCurrProcessFile(file->filename());
+            SgStatement::setCurrProcessLine(0);
         }
     }
 
@@ -1720,13 +1782,16 @@ int SgFile::switchToFile(const std::string &name)
 
 void SgFile::addFile(const std::pair<SgFile*, int> &toAdd)
 {
-    files[toAdd.first->filename()] = toAdd;
+    files[replaceSlash(toAdd.first->filename()).c_str()] = toAdd;
 }
 
 
 std::map<int, std::map<std::pair<std::string, int>, SgStatement*> > SgStatement::statsByLine;
 std::map<SgExpression*, SgStatement*> SgStatement::parentStatsForExpression;
+
 bool SgStatement::consistentCheckIsActivated = false;
+std::string SgStatement::currProcessFile = "";
+int SgStatement::currProcessLine = -1;
 
 void SgStatement::checkConsistence()
 {
@@ -1752,7 +1817,7 @@ void SgStatement::updateStatsByLine(std::map<std::pair<std::string, int>, SgStat
     for (; node; node = node->thread)
     {
         SgStatement *st = BfndMapping(node);
-        toUpdate[std::make_pair(st->fileName(), st->lineNumber())] = st;
+        toUpdate[std::make_pair(replaceSlash(st->fileName()), st->lineNumber())] = st;
     }
 }
 
@@ -1766,7 +1831,7 @@ SgStatement* SgStatement::getStatementByFileAndLine(const std::string &fName, co
     if (itID->second.size() == 0)
         updateStatsByLine(itID->second);
     
-    std::map<std::pair<std::string, int>, SgStatement*>::iterator itPair = itID->second.find(make_pair(fName, lineNum));
+    std::map<std::pair<std::string, int>, SgStatement*>::iterator itPair = itID->second.find(make_pair(replaceSlash(fName), lineNum));
     if (itPair == itID->second.end())
         return NULL;
     else
@@ -1809,7 +1874,7 @@ void SgStatement::updateStatsByExpression()
     current_file = save;
 }
 
-SgStatement* SgStatement::getStatmentByExpression(SgExpression *toFind)
+SgStatement* SgStatement::getStatmentByExpression(SgExpression* toFind)
 {
     if (parentStatsForExpression.size() == 0)
         updateStatsByExpression();
@@ -1832,6 +1897,12 @@ SgStatement* SgFile::functions(int i)
   if (!bif)
     {
       Message("SgFile::functions; Function not found",0);
+#ifdef __SPF   
+      char buf[512];
+      sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+      addToGlobalBufferAndPrint(buf);
+      throw -1;
+#endif
       return pt;
     }
   pt = GetMappingInTableForBfnd(bif);
@@ -1882,6 +1953,12 @@ SgStatement::SgStatement(int variant)
     if (!isABifNode(variant))
     {
         Message("Attempt to create a bif node with a variant that is not", 0);
+#ifdef __SPF   
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thebif = (PTR_BFND)newNode(BASIC_BLOCK);
     }
@@ -1965,6 +2042,14 @@ SgExpression * SgStatement::expr(int i)
     default:
        ll = BIF_LL1(thebif);
       Message("A bif node can only have 3 expressions (0,1,2)",BIF_LINE(thebif));
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
     }
   return LlndMapping(ll);
 }
@@ -2016,6 +2101,14 @@ void SgStatement::setExpression(int i, SgExpression &e)
         break;
     default:
         Message("A bif node can only have 3 expressions (0, 1, 2)", BIF_LINE(thebif));
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
     }
 }
 
@@ -2046,6 +2139,14 @@ void SgStatement::setExpression(int i, SgExpression *e)
         break;
     default:
         Message("A bif node can only have 3 expressions (0, 1, 2)", BIF_LINE(thebif));
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
     }
 }
 
@@ -2157,6 +2258,14 @@ SgExpression::SgExpression(int variant)
     if (!isALoNode(variant))
     {
         Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF  
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thellnd = (PTR_LLND)newNode(EXPR_LIST);
     }
@@ -2186,6 +2295,14 @@ SgExpression::SgExpression(int variant, SgExpression &lhs, SgExpression &rhs,
     if (!isALoNode(variant))
     {
         Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thellnd = (PTR_LLND)newNode(EXPR_LIST);
     }
@@ -2203,12 +2320,19 @@ SgExpression::SgExpression(int variant, SgExpression &lhs, SgExpression &rhs,
 }
 
 /* Pointer constructor by ajm 26-Jan-94. */
- SgExpression::SgExpression(int variant, SgExpression *lhs, SgExpression *rhs,
-     SgSymbol *s, SgType *type)
+ SgExpression::SgExpression(int variant, SgExpression *lhs, SgExpression *rhs, SgSymbol *s, SgType *type)
  {
      if (!isALoNode(variant))
      {
          Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thellnd = (PTR_LLND)newNode(EXPR_LIST);
      }
@@ -2227,12 +2351,19 @@ SgExpression::SgExpression(int variant, SgExpression &lhs, SgExpression &rhs,
 #endif
  }
 
- SgExpression::SgExpression(int variant, SgExpression *lhs, SgExpression *rhs,
-     SgSymbol *s)
+ SgExpression::SgExpression(int variant, SgExpression *lhs, SgExpression *rhs, SgSymbol *s)
  {
      if (!isALoNode(variant))
      {
          Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thellnd = (PTR_LLND)newNode(EXPR_LIST);
      }
@@ -2242,6 +2373,62 @@ SgExpression::SgExpression(int variant, SgExpression &lhs, SgExpression &rhs,
      NODE_OPERAND0(thellnd) = ((lhs != 0) ? lhs->thellnd : 0);
      NODE_OPERAND1(thellnd) = ((rhs != 0) ? rhs->thellnd : 0);
      NODE_SYMB(thellnd) = ((s != 0) ? s->thesymb : 0);
+
+#if __SPF
+     addToCollection(__LINE__, __FILE__, this, 1);
+#endif
+ }
+
+ SgExpression::SgExpression(int variant, SgExpression* lhs, SgExpression* rhs) 
+ {
+     if (!isALoNode(variant))
+     {
+         Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
+         // arbitrary choice for the variant
+         thellnd = (PTR_LLND)newNode(EXPR_LIST);
+     }
+     else
+         thellnd = (PTR_LLND)newNode(variant);
+     SetMappingInTableForLlnd(thellnd, (void*)this);
+     NODE_OPERAND0(thellnd) = ((lhs != 0) ? lhs->thellnd : 0);
+     NODE_OPERAND1(thellnd) = ((rhs != 0) ? rhs->thellnd : 0);
+     NODE_SYMB(thellnd) = 0;
+
+#if __SPF
+     addToCollection(__LINE__, __FILE__, this, 1);
+#endif
+ }
+
+ SgExpression::SgExpression(int variant, SgExpression* lhs) 
+ { 
+     if (!isALoNode(variant))
+     {
+         Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
+         // arbitrary choice for the variant
+         thellnd = (PTR_LLND)newNode(EXPR_LIST);
+     }
+     else
+         thellnd = (PTR_LLND)newNode(variant);
+     SetMappingInTableForLlnd(thellnd, (void*)this);
+     NODE_OPERAND0(thellnd) = ((lhs != 0) ? lhs->thellnd : 0);
+     NODE_OPERAND1(thellnd) = 0;
+     NODE_SYMB(thellnd) = 0;
 
 #if __SPF
      addToCollection(__LINE__, __FILE__, this, 1);
@@ -2274,6 +2461,14 @@ SgExpression *SgExpression::operand(int i)
     default:
       ll = NODE_OPERAND0(thellnd);
       Message("A ll node can only have 2 child (1,2)",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
     }
   return LlndMapping(ll);
 }
@@ -2296,6 +2491,14 @@ int SgExpression::linearRepresentation(int *coeff, SgSymbol **symb, int *cst, in
     if (size > maxElem)
     {
         Message(" Too many symbols in linearRepresentation ", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         return ERR_TOOMANYSYMS;
     }
     for (i = 0; i < size; i++)
@@ -2518,6 +2721,14 @@ SgSymbol::SgSymbol(int variant, const char *name)
     if (!isASymbNode(variant))
     {
         Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thesymb = newSymbol(VARIABLE_NAME, name, NULL);
     }
@@ -2540,6 +2751,14 @@ SgSymbol::SgSymbol(int variant)
     if (!isASymbNode(variant))
     {
         Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thesymb = newSymbol(VARIABLE_NAME, NULL, NULL);
     }
@@ -2586,6 +2805,14 @@ SgSymbol::SgSymbol(int variant, const char *identifier, SgType &t, SgStatement &
      if (!isASymbNode(variant))
      {
          Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thesymb = newSymbol(VARIABLE_NAME, identifier, NULL);
      }
@@ -2609,6 +2836,14 @@ SgSymbol::SgSymbol(int variant, const char *identifier, SgType &t, SgStatement &
      if (!isASymbNode(variant))
      {
          Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thesymb = newSymbol(VARIABLE_NAME, identifier, NULL);
      }
@@ -2648,6 +2883,14 @@ SgSymbol::SgSymbol(int variant, const char *identifier, SgType &t, SgStatement &
      if (!isASymbNode(variant))
      {
          Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thesymb = newSymbol(VARIABLE_NAME, identifier, NULL);
      }
@@ -2672,6 +2915,14 @@ SgSymbol::SgSymbol(int variant, const char *identifier, SgType &t, SgStatement &
      if (!isASymbNode(variant))
      {
          Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+         {
+             char buf[512];
+             sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+             addToGlobalBufferAndPrint(buf);
+         }
+         throw -1;
+#endif
          // arbitrary choice for the variant
          thesymb = newSymbol(VARIABLE_NAME, identifier, NULL);
      }
@@ -2735,6 +2986,14 @@ SgStatement *SgSymbol::body()
         } else
           {
             Message("Body of collection or class not found",0);
+#ifdef __SPF   
+            {
+                char buf[512];
+                sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                addToGlobalBufferAndPrint(buf);
+            }
+            throw -1;
+#endif
           }
     } else
       {
@@ -2749,6 +3008,14 @@ SgStatement *SgSymbol::body()
           } else
             {
               Message("Body not found, may not be implemented yet",0);
+#ifdef __SPF   
+              {
+                  char buf[512];
+                  sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                  addToGlobalBufferAndPrint(buf);
+              }
+              throw -1;
+#endif
               SORRY;
             }	
       }
@@ -2764,6 +3031,14 @@ SgType::SgType(int variant)
     if (!isATypeNode(variant))
     {
         Message("Attempt to create a type node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thetype = (PTR_TYPE)newNode(T_INT);
     }
@@ -3511,7 +3786,19 @@ SgExpression *SgMakeDeclExp(SgSymbol *sym, SgType *t) {
                       break;
         case T_FUNCTION: {
             SgFunctionType *f = isSgFunctionType(t);
-            if (s == NULL) { Message("error in AddArg", 0); return NULL; }
+            if (s == NULL) 
+            {
+                Message("error in AddArg", 0);
+#ifdef __SPF   
+                {
+                    char buf[512];
+                    sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                    addToGlobalBufferAndPrint(buf);
+                }
+                throw -1;
+#endif
+                return NULL; 
+            }
             s = new SgFuncPntrExp(*s);
 #ifdef __SPF   
             addToCollection(__LINE__, __FILE__, s, 1);
@@ -3547,7 +3834,18 @@ SgExpression * SgFuncPntrExp::AddArg(SgSymbol *f,  char *name, SgType &t)
   PTR_SYMB symb;
   SgExpression *arg = NULL;
   SgSymbol *s;
-  if(!f) Message("SgFuncPntrExp::AddArg: must have non-null funct. symb",0 );
+  if (!f)
+  {
+      Message("SgFuncPntrExp::AddArg: must have non-null funct. symb", 0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
+  }
   s = new SgVariableSymb(name, t, *f->scope()); //create the variable with scope
 #ifdef __SPF   
   addToCollection(__LINE__, __FILE__, s, 1);
@@ -3555,8 +3853,17 @@ SgExpression * SgFuncPntrExp::AddArg(SgSymbol *f,  char *name, SgType &t)
   symb = s->thesymb;
   appendSymbToArgList(f->thesymb,symb); 
 
-  if(LibFortranlanguage()){
+  if(LibFortranlanguage())
+  {
         Message("Fortran function args do not have arg lists", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
 	}
  else{
         arg = SgMakeDeclExp(s, &t); 
@@ -4167,8 +4474,10 @@ SgExecutableStatement* isSgExecutableStatement(SgStatement *pt)
                  var == DVM_HEAP_DIR || var == DVM_CONSISTENT_DIR || var == DVM_POINTER_DIR ||
                  var == HPF_TEMPLATE_STAT || var == HPF_PROCESSORS_STAT || var == DVM_TASK_DIR || 
                  var == DVM_INDIRECT_GROUP_DIR || var == DVM_REMOTE_GROUP_DIR || var == DVM_REDUCTION_GROUP_DIR ||
-                 var == DVM_CONSISTENT_GROUP_DIR || var == DVM_ASYNCID_DIR)
+                 var == DVM_CONSISTENT_GROUP_DIR || var == DVM_ASYNCID_DIR || var == ACC_ROUTINE_DIR)
             return NULL;
+        else if (var == SPF_ANALYSIS_DIR)
+            return isSgExecutableStatement(pt->lexNext());
         else
             return (SgExecutableStatement*)pt;
 #else
@@ -4569,6 +4878,14 @@ SgIOControlStmt::SgIOControlStmt(int variant, SgExpression &controlSpecifierList
     break;
   default:
     Message("illegal variant for SgIOControlStmt",0);
+#ifdef __SPF   
+    {
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+    }
+    throw -1;
+#endif
   }
   
   BIF_LL2(thebif) = controlSpecifierList.thellnd;
@@ -4730,6 +5047,14 @@ SgVarListDeclStmt::SgVarListDeclStmt(int variant, SgExpression &):SgDeclarationS
                    break;
               default:
                    Message("Illegal variant for SgVarListDeclStmt",0);
+#ifdef __SPF   
+                   {
+                       char buf[512];
+                       sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                       addToGlobalBufferAndPrint(buf);
+                   }
+                   throw -1;
+#endif
             };
 
 //            findStatementAttribute(variant, attribute);
@@ -4756,6 +5081,14 @@ SgVarListDeclStmt::SgVarListDeclStmt(int variant, SgSymbol &, SgStatement &):SgD
                    break;
               default:
                    Message("Illegal variant for SgVarListDeclStmt",0);
+#ifdef __SPF   
+                   {
+                       char buf[512];
+                       sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                       addToGlobalBufferAndPrint(buf);
+                   }
+                   throw -1;
+#endif
             };
 
 //            findStatementAttribute(variant,attribute);
@@ -4826,6 +5159,14 @@ SgNestedVarListDeclStmt::SgNestedVarListDeclStmt(int variant, SgExpression &list
     break;
   default:
     Message("Illegal variant in SgNestedVarListDeclStmt",0);
+#ifdef __SPF   
+    {
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+    }
+    throw -1;
+#endif
   };
   BIF_CODE(thebif) = variant;
 //            checkIfListOfVariant(listVariant, listOfVarList);            
@@ -5379,6 +5720,14 @@ SgFunctionSymb::SgFunctionSymb(int variant):SgSymbol(variant)
     break;
   default:
     Message("SgFunctionSymb variant invalid",0);
+#ifdef __SPF 
+    {
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+    }
+    throw -1;
+#endif
   }
 }
 
@@ -5393,6 +5742,14 @@ SgFunctionSymb::SgFunctionSymb(int variant, char *identifier, SgType &t,
     break;
   default:
     Message("SgFunctionSymb variant invalid",0);
+#ifdef __SPF  
+    {
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+    }
+    throw -1;
+#endif
   }
   SYMB_TYPE(thesymb) = t.thetype;
 }
@@ -5408,6 +5765,14 @@ SgFunctionSymb::SgFunctionSymb(int variant, const char *identifier, SgType &t,
         break;
     default:
         Message("SgFunctionSymb variant invalid", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
     }
     SYMB_TYPE(thesymb) = t.thetype;
 }
@@ -5421,6 +5786,14 @@ SgExpression * SgFunctionRefExp::AddArg( char *name, SgType &t)
   SgSymbol *f = this->funName();
   if(!f){
     Message("SgFunctionRefExp::AddArg: no symbol for function_ref", 0);
+#ifdef __SPF 
+    {
+        char buf[512];
+        sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+        addToGlobalBufferAndPrint(buf);
+    }
+    throw -1;
+#endif
   }
   s = new SgVariableSymb(name, t, *f->scope()); //create the variable with scope
 #ifdef __SPF   
@@ -5431,6 +5804,14 @@ SgExpression * SgFunctionRefExp::AddArg( char *name, SgType &t)
 
   if(LibFortranlanguage()){
         Message("Fortran function protos do not have arg lists", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
 	}
  else{
         arg = SgMakeDeclExp(s, &t); 
@@ -6058,6 +6439,14 @@ SgReturnStmt::SgReturnStmt(SgExpression &returnValue):SgExecutableStatement(RETU
   if (CurrentProject->Fortranlanguage())
     {
       Message("Fortran return does not have expression",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       BIF_CODE(thebif) = RETURN_STAT;
     }
 }
@@ -6476,6 +6865,14 @@ void SgFile::saveAttributes(char *file)
   if (!outfilea)
     {
       Message("Cannot open output file; unparsing stdout",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       outfilea = stdout;
     }
   nba = this->numberOfAttributes();
@@ -6503,6 +6900,14 @@ void SgFile::saveAttributes(char *file, void  (*savefunction)(void *dat,FILE *f)
   if (!outfilea)
     {
       Message("Cannot open output file; unparsing stdout",0);
+#ifdef __SPF  
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       outfilea = stdout;
     }
   nba = this->numberOfAttributes();
@@ -6536,6 +6941,14 @@ void SgFile::readAttributes(char *file)
   if (!infilea)
     {
       Message("Cannot open input file",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       return;
     }
   // first read the number of attributes;
@@ -6604,6 +7017,14 @@ void SgFile::readAttributes(char *file, void * (*readfunction)(FILE *f))
   if (!infilea)
     {
       Message("Cannot open input file",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       return;
     }
   // first read the number of attributes;
@@ -8042,6 +8463,14 @@ void markExpression(SgExpression *exp)
   if (!isALoNode(exp->variant())) 
     {
       Message("Trying to mark a non Expression Node in Garbage Collection",0);
+#ifdef __SPF   
+      {
+          char buf[512];
+          sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+          addToGlobalBufferAndPrint(buf);
+      }
+      throw -1;
+#endif
       return;
     }
 
@@ -8146,6 +8575,14 @@ int SgFile::expressionGarbageCollection(int deleteExpressionNode, int verbose)
           if (!isALoNode(exp->variant())  || (exp->variant() == DEFAULT))
             {
               Message("Trying to USE a non Expression Node in Garbage Collection",0);
+#ifdef __SPF   
+              {
+                  char buf[512];
+                  sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                  addToGlobalBufferAndPrint(buf);
+              }
+              throw -1;
+#endif
             }
           if (!exp->getAttribute(0,NOGARBAGE_ATTRIBUTE))
             {
@@ -8183,6 +8620,14 @@ int SgFile::expressionGarbageCollection(int deleteExpressionNode, int verbose)
           if (!isALoNode(exp->variant())  || (exp->variant() == DEFAULT)) 
             {
               Message("Trying to USE (1) a non Expression Node in Garbage Collection",0);
+#ifdef __SPF   
+              {
+                  char buf[512];
+                  sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+                  addToGlobalBufferAndPrint(buf);
+              }
+              throw -1;
+#endif
             }
           nbatt = exp->numberOfAttributes();
           for (j = 0; j < nbatt ; j++)
@@ -8348,24 +8793,19 @@ SgSymbol * SgDerivedTemplateType::typeName(){
 
 SgStatement::SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e1, SgExpression *e2, SgExpression *e3)
 {
-
     thebif = (PTR_BFND)newNode(code);
+
     BIF_SYMB(thebif) = NULL;
     BIF_LL1(thebif) = NULL;
     BIF_LL2(thebif) = NULL;
     BIF_LL3(thebif) = NULL;
     BIF_LABEL(thebif) = NULL;
 
-    if (lab)
-        BIF_LABEL(thebif) = lab->thelabel;
-    if (symb)
-        BIF_SYMB(thebif) = symb->thesymb;
-    if (e1)
-        BIF_LL1(thebif) = e1->thellnd;
-    if (e2)
-        BIF_LL2(thebif) = e2->thellnd;
-    if (e3)
-        BIF_LL3(thebif) = e3->thellnd;
+    if (lab)  BIF_LABEL(thebif) = lab->thelabel;
+    if (symb) BIF_SYMB(thebif) = symb->thesymb;
+    if (e1)   BIF_LL1(thebif) = e1->thellnd;
+    if (e2)   BIF_LL2(thebif) = e2->thellnd;
+    if (e3)   BIF_LL3(thebif) = e3->thellnd;
 
     // this should be function of low_level.c
     switch (BIF_CODE(thebif))
@@ -8376,7 +8816,7 @@ SgStatement::SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e
     case  PROS_HEDR:
     case  BASIC_BLOCK:
     case  IF_NODE:
-    case WHERE_BLOCK_STMT:
+    case  WHERE_BLOCK_STMT:
     case  LOOP_NODE:
     case  FOR_NODE:
     case  FORALL_NODE:
@@ -8393,7 +8833,7 @@ SgStatement::SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e
     case  TECLASS_DECL:
     case  COLLECTION_DECL:
     case  SWITCH_NODE:
-    case   EXTERN_C_STAT:
+    case  EXTERN_C_STAT:
         addControlEndToStmt(thebif);
         break;
     }
@@ -8406,12 +8846,19 @@ SgStatement::SgStatement(int code, SgLabel *lab, SgSymbol *symb, SgExpression *e
 #endif
 }
 
-
 SgType::SgType(int var, SgExpression *len, SgType *base)
 {
     if (!isATypeNode(var))
     {
         Message("Attempt to create a type node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thetype = (PTR_TYPE)newNode(T_INT);
     }
@@ -8438,6 +8885,14 @@ SgType::SgType(int var, SgSymbol *symb, SgExpression *len, SgType *base)
     if (!isATypeNode(var))
     {
         Message("Attempt to create a type node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thetype = (PTR_TYPE)newNode(T_INT);
     }
@@ -8468,6 +8923,14 @@ SgType::SgType(int var, SgSymbol *symb)
     if (!isATypeNode(var))
     {
         Message("Attempt to create a type node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thetype = (PTR_TYPE)newNode(T_INT);
     }
@@ -8489,6 +8952,14 @@ SgType::SgType(int var, SgSymbol *firstfield, SgStatement *structstmt)
     if (!isATypeNode(var))
     {
         Message("Attempt to create a type node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thetype = (PTR_TYPE)newNode(T_INT);
     }
@@ -8539,6 +9010,14 @@ SgSymbol::SgSymbol(int variant, const char *identifier, SgType *type, SgStatemen
     if (!isASymbNode(variant))
     {
         Message("Attempt to create a symbol node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thesymb = newSymbol(VARIABLE_NAME, identifier, NULL);
     }
@@ -8582,6 +9061,14 @@ SgExpression::SgExpression(int variant, char *str)
     if (!isALoNode(variant))
     {
         Message("Attempt to create a low level node with a variant that is not", 0);
+#ifdef __SPF   
+        {
+            char buf[512];
+            sprintf(buf, "Internal error at line %d and file libSage++.cpp\n", __LINE__);
+            addToGlobalBufferAndPrint(buf);
+        }
+        throw -1;
+#endif
         // arbitrary choice for the variant
         thellnd = (PTR_LLND)newNode(EXPR_LIST);
     }

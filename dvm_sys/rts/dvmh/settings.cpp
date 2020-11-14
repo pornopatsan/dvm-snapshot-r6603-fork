@@ -114,6 +114,7 @@ void AdjustableSettings::setDefault() {
     alwaysSync = false;
     useFortranNotation = false;
     cacheGpuAllocations = true;
+    pageLockHostMemory = true;
     useGenblock = false;
     std::string sett = toLower(trim(getEnv("I_MPI_PIN")));
     if (sett == "disable" || sett == "no" || sett ==  "off" || sett == "0")
@@ -126,6 +127,9 @@ void AdjustableSettings::setDefault() {
 #ifdef _OPENMP
     if (!trim(getEnv("KMP_AFFINITY")).empty())
         setAffinity = false;
+#endif
+#ifdef _MPI_STUBS_
+    setAffinity = false;
 #endif
     optimizeParams = false;
     noDirectCopying = false;
@@ -361,6 +365,7 @@ std::vector<ValueSetReport> AdjustableSettings::loadFromEnv() {
     setValueFromEnv(res, "DVMH_SYNC_CUDA", &alwaysSync);
     setValueFromEnv(res, "DVMH_FORTRAN_NOTATION", &useFortranNotation);
     setValueFromEnv(res, "DVMH_CACHE_CUDA_ALLOC", &cacheGpuAllocations);
+    setValueFromEnv(res, "DVMH_PAGE_LOCK_HOST_MEM", &pageLockHostMemory);
     setValueFromEnv(res, "DVMH_USE_GENBLOCK", &useGenblock);
     setValueFromEnv(res, "DVMH_SET_AFFINITY", &setAffinity);
     setValueFromEnv(res, "DVMH_OPT_PARAMS", &optimizeParams);

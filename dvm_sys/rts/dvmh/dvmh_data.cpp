@@ -26,7 +26,8 @@ DvmhRepresentative::DvmhRepresentative(DvmhBuffer *aBuffer, bool owning) {
     actualState = new DvmhPieces(buffer->getRank());
     cleanTransformState = false;
     ownBuffer = owning;
-    buffer->pageLock();
+    if (dvmhSettings.pageLockHostMemory)
+        buffer->pageLock();
 }
 
 bool DvmhRepresentative::ownsMemory() const {
@@ -359,41 +360,41 @@ void DvmhData::getActual(const Interval indexes[], bool addToActual) {
     }
 }
 
-void DvmhData::getActualEdges(const Interval aLocalPart[], const ShdWidth shdWidths[], bool addToActual) {
-    assert(hasLocal());
+struct BlockAccumulator: private Uncopyable {
+    DvmhPieces *p;
+    DvmType order;
+    explicit BlockAccumulator(int rank, DvmType aOrder = ABS_ORDER): order(aOrder) { p = new DvmhPieces(rank); }
+    void operator()(const Interval realBlock[]) { p->appendOne(realBlock, order); }
+    ~BlockAccumulator() { delete p; }
+};
+
+template <typename T>
+static void doWithEveryEdge(int rank, const Interval localPart[], const Interval bounds[], const ShdWidth shdWidths[], T &f) {
+    // Inner shadow edges
 #ifdef NON_CONST_AUTOS
     Interval realBlock[rank];
 #else
     Interval realBlock[MAX_ARRAY_RANK];
 #endif
-    const Interval *curLocalPart;
-    if (aLocalPart)
-        curLocalPart = aLocalPart;
-    else
-        curLocalPart = localPart;
-    realBlock->blockAssign(rank, curLocalPart);
+    realBlock->blockAssign(rank, localPart);
     for (int j = 0; j < rank; j++) {
         Interval leftPart;
-        leftPart[0] = curLocalPart[j][0];
-        leftPart[1] = curLocalPart[j][1];
-        if (shdWidths[j][1] > 0 && localPart[j][0] > space[j][0]) {
-            realBlock[j][0] = curLocalPart[j][0];
+        leftPart[0] = localPart[j][0];
+        leftPart[1] = localPart[j][1];
+        if (shdWidths[j][1] > 0 && localPart[j][0] > bounds[j][0]) {
+            realBlock[j][0] = localPart[j][0];
             realBlock[j][1] = std::min(realBlock[j][0] + shdWidths[j][1] - 1, localPart[j][1]);
-            dvmh_log(TRACE, "actualizing edge");
-            custom_log(TRACE, blockOut, rank, realBlock);
-            getActualBaseOne(0, realBlock, 0, addToActual);
+            f(realBlock);
             leftPart[0] = realBlock[j][1] + 1;
         }
 
-        if (shdWidths[j][0] > 0 && localPart[j][1] < space[j][1]) {
-            realBlock[j][1] = curLocalPart[j][1];
+        if (shdWidths[j][0] > 0 && localPart[j][1] < bounds[j][1]) {
+            realBlock[j][1] = localPart[j][1];
             realBlock[j][0] = std::max(realBlock[j][1] - (shdWidths[j][0] - 1), localPart[j][0]);
             if (realBlock[j][0] < leftPart[0])
                 realBlock[j][0] = leftPart[0];
             if (realBlock[j][0] <= realBlock[j][1]) {
-                dvmh_log(TRACE, "actualizing edge");
-                custom_log(TRACE, blockOut, rank, realBlock);
-                getActualBaseOne(0, realBlock, 0, addToActual);
+                f(realBlock);
             }
             leftPart[1] = realBlock[j][0] - 1;
         }
@@ -402,6 +403,13 @@ void DvmhData::getActualEdges(const Interval aLocalPart[], const ShdWidth shdWid
             break;
         realBlock[j] = leftPart;
     }
+}
+
+void DvmhData::getActualEdges(const Interval aLocalPart[], const ShdWidth shdWidths[], bool addToActual) {
+    assert(hasLocal());
+    BlockAccumulator edgesAccumulator(rank);
+    doWithEveryEdge(rank, aLocalPart, space, shdWidths, edgesAccumulator);
+    getActualBase(0, edgesAccumulator.p, 0, addToActual);
 }
 
 void DvmhData::getActualIndirectEdges(int axis, const std::string &shadowName, bool addToActual) {
@@ -477,19 +485,11 @@ static void doWithEveryShadow(const DvmhAlignRule *alignRule, const Interval loc
     }
 }
 
-struct ShadowsAccumulator: private Uncopyable {
-    DvmhPieces *p;
-    DvmType order;
-    explicit ShadowsAccumulator(int rank, DvmType aOrder = ABS_ORDER): order(aOrder) { p = new DvmhPieces(rank); }
-    void operator()(const Interval realBlock[]) { p->appendOne(realBlock, order); }
-    ~ShadowsAccumulator() { delete p; }
-};
-
 void DvmhData::getActualShadow(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[], bool addToActual) {
     assert(hasLocal());
     dvmh_log(TRACE, "Requested to get actual shadow widths:");
     custom_log(TRACE, blockOut, rank, (Interval *)curShdWidths);
-    ShadowsAccumulator shadowsAccumulator(rank);
+    BlockAccumulator shadowsAccumulator(rank);
     doWithEveryShadow(rank, curLocalPart, localPlusShadow, curShdWidths, cornerFlag, shadowsAccumulator);
     getActualBase(dev, shadowsAccumulator.p, curLocalPart, addToActual);
 }
@@ -538,7 +538,7 @@ void DvmhData::clearActualOne(const Interval piece[], int exceptDev) {
 }
 
 void DvmhData::clearActualShadow(const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[], int exceptDev) {
-    ShadowsAccumulator shadowsAccumulator(rank);
+    BlockAccumulator shadowsAccumulator(rank);
     doWithEveryShadow(rank, curLocalPart, localPlusShadow, curShdWidths, cornerFlag, shadowsAccumulator);
     clearActual(shadowsAccumulator.p, exceptDev);
 }
@@ -570,20 +570,30 @@ void DvmhData::setActual(const Interval indexes[]) {
     }
 }
 
-void DvmhData::setActualShadow(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[]) {
-    ShadowsAccumulator shadowsAccumulator(rank);
+void DvmhData::setActualEdges(int dev, const Interval curLocalPart[], const ShdWidth curShdWidths[], DvmhPieces **piecesDone) {
+    BlockAccumulator edgesAccumulator(rank);
+    doWithEveryEdge(rank, curLocalPart, localPlusShadow, curShdWidths, edgesAccumulator);
+    performSetActual(dev, edgesAccumulator.p);
+    if (piecesDone)
+        (*piecesDone)->unite(edgesAccumulator.p);
+}
+
+void DvmhData::setActualShadow(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[], DvmhPieces **piecesDone) {
+    BlockAccumulator shadowsAccumulator(rank);
     doWithEveryShadow(rank, curLocalPart, localPlusShadow, curShdWidths, cornerFlag, shadowsAccumulator);
     performSetActual(dev, shadowsAccumulator.p);
+    if (piecesDone)
+        (*piecesDone)->unite(shadowsAccumulator.p);
 }
 
 void DvmhData::setActualIndirectShadow(int dev, int axis, const std::string &shadowName) {
-    ShadowsAccumulator shadowsAccumulator(rank);
+    BlockAccumulator shadowsAccumulator(rank);
     doWithEveryShadow(alignRule, localPart, axis, shadowName, shadowsAccumulator);
     performSetActual(dev, shadowsAccumulator.p);
 }
 
 void DvmhData::shadowComputed(int dev, const Interval curLocalPart[], bool cornerFlag, const ShdWidth curShdWidths[]) {
-    ShadowsAccumulator shadowsAccumulator(rank, maxOrder + 1);
+    BlockAccumulator shadowsAccumulator(rank, maxOrder + 1);
     doWithEveryShadow(rank, curLocalPart, localPlusShadow, curShdWidths, cornerFlag, shadowsAccumulator);
     representatives[dev]->getActualState()->unite(shadowsAccumulator.p);
 }
@@ -601,7 +611,7 @@ void DvmhData::updateShadowProfile(bool cornerFlag, ShdWidth curShdWidths[]) {
         curBounds[i][0] = -shdWidths[i][0];
         curBounds[i][1] = shdWidths[i][1];
     }
-    ShadowsAccumulator shadowsAccumulator(rank, maxOrder);
+    BlockAccumulator shadowsAccumulator(rank, maxOrder);
     doWithEveryShadow(rank, curLocalPart, curBounds, curShdWidths, cornerFlag, shadowsAccumulator);
     shadowProfile->unite(shadowsAccumulator.p);
     dvmh_log(TRACE, "New maxOrder=" DTFMT " and new shadow profile:", maxOrder);

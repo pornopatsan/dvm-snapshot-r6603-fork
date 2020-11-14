@@ -278,6 +278,8 @@ extern int AlignCount;    /* */    /*E0143*/
 
 extern DvmType AlltoallMem;     /* */    /*E0144*/
 
+extern byte AllowRedisRealnBypass;  /* flag for allowing to bypass realign and redistribute */
+
 /* */    /*E0145*/
 
 extern DVMUSERVAR

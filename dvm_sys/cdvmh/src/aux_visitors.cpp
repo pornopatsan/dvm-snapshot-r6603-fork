@@ -74,6 +74,26 @@ bool CollectNamesVisitor::VisitDeclRefExpr(DeclRefExpr *e) {
     return true;
 }
 
+// PPDirectiveCollector
+
+void PPDirectiveCollector::addDirective(SourceLocation beginLoc) {
+    FileID fileID = comp.getSourceManager().getFileID(beginLoc);
+    const char *fileText = comp.getSourceManager().getBufferData(fileID).data();
+    unsigned begOffs = comp.getSourceManager().getFileOffset(beginLoc);
+    while (begOffs > 0 && fileText[begOffs] != '\n')
+        begOffs--;
+    if (fileText[begOffs] == '\n')
+        begOffs++;
+    unsigned endOffs = begOffs;
+    unsigned fileSize = comp.getSourceManager().getBufferData(fileID).size();
+    while (endOffs < fileSize && (fileText[endOffs] != '\n' || (endOffs > 0 && fileText[endOffs - 1] == '\\')))
+        endOffs++;
+    endOffs--;
+    SourceLocation begLoc = comp.getSourceManager().getLocForStartOfFile(fileID).getLocWithOffset(begOffs);
+    SourceLocation endLoc = comp.getSourceManager().getLocForStartOfFile(fileID).getLocWithOffset(endOffs);
+    directives[fileID.getHashValue()][begOffs] = SourceRange(begLoc, endLoc);
+}
+
 // IncludeCollector
 
 void IncludeCollector::FileChanged(SourceLocation Loc, FileChangeReason Reason, SrcMgr::CharacteristicKind FileType, FileID PrevFID) {
@@ -183,7 +203,7 @@ void IncludeCollector::commitInclusion(SrcMgr::CharacteristicKind FileType) {
 
 // PragmaExpander
 
-void PragmaExpander::HandlePragma(Preprocessor &PP, PragmaIntroducerKind Introducer, Token &PragmaTok) {
+void PragmaExpander::HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &PragmaTok) {
     std::string lastDirective;
     int linesSinceDirective = 0;
     {

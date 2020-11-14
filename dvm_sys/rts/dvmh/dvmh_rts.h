@@ -64,6 +64,15 @@ extern int currentLine;
 extern char currentFile[1024];
 extern std::map<const void *, RegularVar *> regularVars;
 extern DvmhSpinLock regularVarsLock;
+  
+extern std::map<int, DvmhFile *> fortranFiles;
+  
+struct stringLessComparator {
+  bool operator()(const char *a, const char *b) const {
+    return strcmp(a, b) < 0;
+  }
+};
+
 
 char *getStr(DvmType ref, bool clearTrailingBlanks = false, bool toUpper = false);
 inline char *getStr(const DvmType *pRef, bool clearTrailingBlanks = false, bool toUpper = false) { return getStr(*pRef, clearTrailingBlanks, toUpper); }

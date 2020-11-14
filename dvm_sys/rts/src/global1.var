@@ -348,6 +348,8 @@ int  AlignCount=0;    /* */    /*E0148*/
 
 DvmType AlltoallMem=0;   /* */    /*E0149*/
 
+byte AllowRedisRealnBypass=1;  /* flag for allowing to bypass realign and redistribute */
+
 /* */    /*E0150*/
 
 DVMUSERFUN

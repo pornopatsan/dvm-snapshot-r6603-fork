@@ -3,6 +3,7 @@ spf_directive: spf_analysis
              | spf_transform
              | spf_parallel_reg
              | spf_end_parallel_reg
+             | spf_checkpoint
 	     ;
 
 spf_analysis: SPF_ANALYSIS  LEFTPAR analysis_spec_list RIGHTPAR 
@@ -17,9 +18,35 @@ spf_transform: SPF_TRANSFORM  LEFTPAR transform_spec_list RIGHTPAR
              {  $$ = get_bfnd(fi,SPF_TRANSFORM_DIR,SMNULL,$3,LLNULL,LLNULL);}
              ;
 
-spf_parallel_reg: SPF_PARALLEL_REG region_name
-                { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,LLNULL,LLNULL,LLNULL);}
+spf_parallel_reg: SPF_PARALLEL_REG region_name 
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,LLNULL,LLNULL,LLNULL);}
+                | SPF_PARALLEL_REG region_name COMMA needkeyword  SPF_APPLY_REGION  LEFTPAR characteristic_list RIGHTPAR opt_clause_apply_fragment
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,$7,$9,LLNULL);}
+                | SPF_PARALLEL_REG region_name COMMA needkeyword SPF_APPLY_FRAGMENT LEFTPAR characteristic_list RIGHTPAR opt_clause_apply_region
+                  { $$ = get_bfnd(fi,SPF_PARALLEL_REG_DIR,$2,$9,$7,LLNULL);}
                 ;
+
+characteristic_list:  characteristic
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  characteristic_list COMMA characteristic
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+characteristic: needkeyword SPF_CODE_COVERAGE
+               { $$ = make_llnd(fi,SPF_CODE_COVERAGE_OP,LLNULL,LLNULL,SMNULL);}
+              ;
+
+opt_clause_apply_fragment: 
+                           { $$ = LLNULL;}
+                         | COMMA needkeyword SPF_APPLY_FRAGMENT LEFTPAR characteristic_list RIGHTPAR
+                           { $$ = $5;}
+                         ;
+
+opt_clause_apply_region: 
+                           { $$ = LLNULL;}
+                         | COMMA needkeyword SPF_APPLY_REGION LEFTPAR characteristic_list RIGHTPAR
+                           { $$ = $5;}
+                         ;
 
 spf_end_parallel_reg: SPF_END_PARALLEL_REG
                 { $$ = get_bfnd(fi,SPF_END_PARALLEL_REG_DIR,SMNULL,LLNULL,LLNULL,LLNULL);}
@@ -32,16 +59,30 @@ analysis_spec_list:  analysis_spec
              ;
 
 analysis_spec: analysis_reduction_spec
-             | analysis_private_spec     
+             | analysis_private_spec
+             | analysis_parameter_spec     
              ;
 
 analysis_reduction_spec: needkeyword REDUCTION LEFTPAR reduction_list RIGHTPAR
                { $$ = make_llnd(fi,REDUCTION_OP,$4,LLNULL,SMNULL); }    
                        ;
 
-analysis_private_spec: needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
+analysis_private_spec:   needkeyword PRIVATE LEFTPAR variable_list RIGHTPAR
                { $$ = make_llnd(fi,ACC_PRIVATE_OP,$4,LLNULL,SMNULL);} 
                      ;
+
+analysis_parameter_spec: needkeyword PARAMETER LEFTPAR spf_parameter_list RIGHTPAR
+               { $$ = make_llnd(fi,SPF_PARAMETER_OP,$4,LLNULL,SMNULL);}
+                     ;   
+spf_parameter_list: spf_parameter
+	       { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	     | spf_parameter_list COMMA spf_parameter
+               { $$ = set_ll_list($1, $3, EXPR_LIST); }
+             ;
+
+spf_parameter: array_element EQUAL expr
+	     { $$ = make_llnd(fi, ASSGN_OP, $1, $3, SMNULL); }
+	     ;
 
 parallel_spec_list:  parallel_spec
 	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
@@ -53,7 +94,6 @@ parallel_spec: parallel_shadow_spec
              | parallel_across_spec
              | parallel_remote_access_spec     
              ;
-
 
 parallel_shadow_spec:  needkeyword SHADOW LEFTPAR shadow_list RIGHTPAR
                 { $$ = make_llnd(fi,SHADOW_OP,$4,LLNULL,SMNULL);}
@@ -75,13 +115,63 @@ transform_spec_list:  transform_spec
 
 transform_spec: needkeyword SPF_NOINLINE
                 { $$ = make_llnd(fi,SPF_NOINLINE_OP,LLNULL,LLNULL,SMNULL);}
-              | needkeyword SPF_FISSION LEFTPAR loop_var_list RIGHTPAR
+              | needkeyword SPF_FISSION LEFTPAR ident_list RIGHTPAR
                 { $$ = make_llnd(fi,SPF_FISSION_OP,$4,LLNULL,SMNULL);}
               | needkeyword SPF_PRIVATES_EXPANSION 
                 { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,LLNULL,LLNULL,SMNULL);}
-              | needkeyword SPF_PRIVATES_EXPANSION LEFTPAR loop_var_list RIGHTPAR
+              | needkeyword SPF_PRIVATES_EXPANSION LEFTPAR ident_list RIGHTPAR
                 { $$ = make_llnd(fi,SPF_PRIVATES_EXPANSION_OP,$4,LLNULL,SMNULL);}
+           /*   | needkeyword SPF_SHRINK LEFTPAR ident LEFTPAR digit_list RIGHTPAR RIGHTPAR  */
+              | needkeyword SPF_SHRINK LEFTPAR array_element_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_SHRINK_OP,$4,LLNULL,SMNULL);}
               ;
+
 region_name: name
            { $$ = make_parallel_region($1);}
-           ;   
+           ; 
+  
+array_element_list: array_element
+	           { $$ = set_ll_list($1, LLNULL, EXPR_LIST); }
+	          | array_element_list COMMA array_element 
+	           { $$ = set_ll_list($1, $3, EXPR_LIST); }
+	          ;
+
+spf_checkpoint:  SPF_CHECKPOINT LEFTPAR checkpoint_spec_list RIGHTPAR 
+             {  $$ = get_bfnd(fi,SPF_CHECKPOINT_DIR,SMNULL,$3,LLNULL,LLNULL);}
+             ;
+
+checkpoint_spec_list:  checkpoint_spec
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             |  checkpoint_spec_list COMMA checkpoint_spec
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+checkpoint_spec: needkeyword TYPE LEFTPAR spf_type_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_TYPE_OP,$4,LLNULL,SMNULL);}
+              | needkeyword VARLIST LEFTPAR ident_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_VARLIST_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_EXCEPT LEFTPAR ident_list RIGHTPAR
+                { $$ = make_llnd(fi,SPF_EXCEPT_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_FILES_COUNT LEFTPAR expr RIGHTPAR
+                { $$ = make_llnd(fi,SPF_FILES_COUNT_OP,$4,LLNULL,SMNULL);}
+              | needkeyword SPF_INTERVAL LEFTPAR interval_spec COMMA expr RIGHTPAR
+                { $$ = make_llnd(fi,SPF_INTERVAL_OP,$4,$6,SMNULL);}
+              ;
+
+spf_type_list: spf_type
+	       { $$ = set_ll_list($1,LLNULL,EXPR_LIST); }
+             | spf_type_list COMMA spf_type
+	       { $$ = set_ll_list($1,$3,EXPR_LIST); }	
+             ;
+
+spf_type:       needkeyword ACC_ASYNC
+              { $$ = make_llnd(fi,ACC_ASYNC_OP, LLNULL,LLNULL,SMNULL);}
+             |  needkeyword SPF_FLEXIBLE
+              { $$ = make_llnd(fi,SPF_FLEXIBLE_OP, LLNULL,LLNULL,SMNULL);}
+             ;
+
+interval_spec:  needkeyword SPF_TIME
+                { $$ = make_llnd(fi,SPF_TIME_OP, LLNULL,LLNULL,SMNULL);}
+             |  needkeyword SPF_ITER
+                { $$ = make_llnd(fi,SPF_ITER_OP, LLNULL,LLNULL,SMNULL);}
+             ;

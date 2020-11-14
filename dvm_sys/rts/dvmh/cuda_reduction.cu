@@ -99,6 +99,20 @@ inline __device__ double_complex __shfl_down_sync(unsigned mask, const double_co
     ret.im = ::__shfl_down_sync(mask, c1.im, delta);
     return ret;
 }
+
+inline __device__ float_complex __shfl_sync(unsigned mask, const float_complex &c1, const int src) {
+    float_complex ret;
+    ret.re = ::__shfl_sync(mask, c1.re, src);
+    ret.im = ::__shfl_sync(mask, c1.im, src);
+    return ret;
+}
+
+inline __device__ double_complex __shfl_sync(unsigned mask, const double_complex &c1, const int src) {
+    double_complex ret;
+    ret.re = ::__shfl_sync(mask, c1.re, src);
+    ret.im = ::__shfl_sync(mask, c1.im, src);
+    return ret;
+}
 #else
 inline __device__ float_complex __shfl_down(const float_complex &c1, const unsigned delta) {
     float_complex ret;
@@ -111,6 +125,20 @@ inline __device__ double_complex __shfl_down(const double_complex &c1, const uns
     double_complex ret;
     ret.re = ::__shfl_down(c1.re, delta);
     ret.im = ::__shfl_down(c1.im, delta);
+    return ret;
+}
+
+inline __device__ float_complex __shfl(const float_complex &c1, const int src) {
+    float_complex ret;
+    ret.re = ::__shfl(c1.re, src);
+    ret.im = ::__shfl(c1.im, src);
+    return ret;
+}
+
+inline __device__ double_complex __shfl(const double_complex &c1, const int src) {
+    double_complex ret;
+    ret.re = ::__shfl(c1.re, src);
+    ret.im = ::__shfl(c1.im, src);
     return ret;
 }
 #endif
@@ -127,8 +155,13 @@ DEF_HOST(max, {if (a < b) {a = b; return true;} return false;})
 DEF_HOST(min, {if (a > b) {a = b; return true;} return false;})
 DEF_HOST(and, {a &= b; return false;})
 DEF_HOST(or, {a |= b; return false;})
+#ifdef INTEL_LOGICAL_TYPE
 DEF_HOST(neq, {a ^= b; return false;})
 DEF_HOST(eq, {a = ~(a ^ b); return false;})
+#else
+DEF_HOST(neq, {a = (a != b); return false;})
+DEF_HOST(eq, {a = (a == b); return false;})
+#endif
 
 #undef DEF_HOST
 

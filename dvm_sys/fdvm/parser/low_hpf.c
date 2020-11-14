@@ -24,8 +24,12 @@ PTR_FILE pointer_on_file_proj;
 /*static int number_of_symb_node  = 0;
 static int number_of_type_node = 0;*/
 char  *default_filename;
-int Warning_count = 0;
 
+#ifdef __SPF_BUILT_IN_PARSER
+static int Warning_count = 0;
+#else
+int Warning_count = 0;
+#endif
 /* FORWARD DECLARATIONS (phb) */
 void Message();
 char * filter();
@@ -62,7 +66,11 @@ PTR_BFND  getFunctionHeader();
 
 /* Modified to return a pointer (64bit clean) (phb) */
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+char* xmalloc_temp(size)
+#else
 char* xmalloc(size)
+#endif
      int size;
 {
   char *val;
@@ -78,7 +86,11 @@ static ptstack_chaining Current_Allocated_Data = NULL;
 static ptstack_chaining First_STACK= NULL;
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+void make_a_malloc_stack_temp()
+#else
 void make_a_malloc_stack()
+#endif
 {
   ptstack_chaining pt;
     
@@ -105,7 +117,11 @@ void make_a_malloc_stack()
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+char* mymalloc_temp(size)
+#else
 char* mymalloc(size)
+#endif
 int size;
 {
   char *pt1;
@@ -154,6 +170,7 @@ int size;
  *                                                                        *
  **************************************************************************/
 
+#ifndef __SPF_BUILT_IN_PARSER
 /***************************************************************************/
 int isATypeNode(variant)
 int variant;
@@ -181,9 +198,14 @@ int variant;
 {
   return (LLNODE == (int) node_code_kind[variant]);
 }
+#endif
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int hasTypeBaseType_temp(variant)
+#else
 int hasTypeBaseType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -198,7 +220,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isStructType_temp(variant)
+#else
 int isStructType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -213,7 +239,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isPointerType_temp(variant)
+#else
 int isPointerType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -229,7 +259,11 @@ int variant;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isUnionType_temp(variant)
+#else
 int isUnionType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -245,7 +279,11 @@ int variant;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isEnumType_temp(variant)
+#else
 int isEnumType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -261,7 +299,11 @@ int variant;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int hasTypeSymbol_temp(variant)
+#else
 int hasTypeSymbol(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -276,7 +318,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isAtomicType_temp(variant)
+#else
 int isAtomicType(variant)
+#endif
 int variant;
 {
   if (!isATypeNode(variant))
@@ -291,7 +337,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int hasNodeASymb_temp(variant)
+#else
 int hasNodeASymb(variant)
+#endif
 int variant;
 {
   if ((!isABifNode(variant)) && (!isALoNode(variant)))
@@ -306,7 +356,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isNodeAConst_temp(variant)
+#else
 int isNodeAConst(variant)
+#endif
 int variant;
 {
   if ((!isABifNode(variant)) && (!isALoNode(variant)))
@@ -322,7 +376,11 @@ int variant;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isAStructDeclBif_temp(variant)
+#else
 int isAStructDeclBif(variant)
+#endif
 int variant;
 {
   if (!isABifNode(variant))
@@ -337,7 +395,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isAUnionDeclBif_temp(variant)
+#else
 int isAUnionDeclBif(variant)
+#endif
 int variant;
 {
   if (!isABifNode(variant))
@@ -352,7 +414,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isAEnumDeclBif_temp(variant)
+#else
 int isAEnumDeclBif(variant)
+#endif
 int variant;
 {
   if (!isABifNode(variant))
@@ -367,7 +433,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isADeclBif_temp(variant)
+#else
 int isADeclBif(variant)
+#endif
 int variant;
 {
   if (!isABifNode(variant))
@@ -382,7 +452,11 @@ int variant;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int isAControlEnd_temp(variant)
+#else
 int isAControlEnd(variant)
+#endif
 int variant;
 {
   if (!isABifNode(variant))
@@ -398,7 +472,11 @@ int variant;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+void Message_temp(s, l)
+#else
 void Message(s, l)
+#endif
 char *s;
 int l;
 {
@@ -409,7 +487,11 @@ int l;
  Warning_count++;
 }
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int Check_Lang_Fortran_temp(proj)
+#else
 int Check_Lang_Fortran(proj)
+#endif
 PTR_PROJ proj;
 {
   PTR_FILE ptf;
@@ -431,7 +513,11 @@ PTR_PROJ proj;
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+char* filter_temp(s)
+#else
 char* filter(s)
+#endif
 char *s;
 {
   char c;
@@ -591,7 +677,11 @@ static int        NbValues   = 0;
 static int        NbElement   = 0;
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+void allocateValueEvaluate_temp()
+#else
 void allocateValueEvaluate()
+#endif
 {
   int i;
   PTR_SYMB  *pt1;
@@ -612,6 +702,10 @@ void allocateValueEvaluate()
   }
   
   if (NbValues) {
+#ifdef __SPF
+      removeFromCollection(ValuesSymb);
+      removeFromCollection(ValuesInt);
+#endif
     free(ValuesSymb);
     free(ValuesInt);
   }
@@ -622,7 +716,11 @@ void allocateValueEvaluate()
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+void addElementEvaluate_temp(symb, val)
+#else
 void addElementEvaluate(symb, val)
+#endif
      PTR_SYMB symb;
      int val;
 {
@@ -639,7 +737,11 @@ void addElementEvaluate(symb, val)
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int getElementEvaluate_temp(symb)
+#else
 int getElementEvaluate(symb)
+#endif
      PTR_SYMB symb;
 {
   int i;
@@ -655,20 +757,38 @@ int getElementEvaluate(symb)
 
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+void resetPresetEvaluate_temp()
+#else
 void resetPresetEvaluate()
+#endif
 {
   NbValues = 0;
   NbElement  = 0;
   if (ValuesSymb)
-    free(ValuesSymb);
+  {
+#ifdef __SPF
+      removeFromCollection(ValuesSymb);
+#endif
+      free(ValuesSymb);
+  }
   if (ValuesInt)
-    free(ValuesInt);
+  {
+#ifdef __SPF
+      removeFromCollection(ValuesInt);
+#endif
+      free(ValuesInt);
+  }
   ValuesSymb = NULL;
   ValuesInt = NULL;
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int* evaluateExpression_temp(expr)
+#else
 int* evaluateExpression(expr)
+#endif
      PTR_LLND expr;
 {
   int *res, *op1, *op2;
@@ -689,6 +809,10 @@ int* evaluateExpression(expr)
     {
     case INT_VAL:
       res [1] = NODE_INT_CST_LOW (expr);
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
     case ADD_OP :
@@ -698,6 +822,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] + op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
    case MULT_OP :
@@ -707,6 +835,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] * op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
    case SUBT_OP :
@@ -716,6 +848,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] - op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
    case DIV_OP :
@@ -725,6 +861,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] / op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
    case MOD_OP :
@@ -734,6 +874,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] % op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
    case EXP_OP :
@@ -743,6 +887,10 @@ int* evaluateExpression(expr)
         res [0] = -1;
       else
         res [1] = op1 [1] ^ op2 [1];
+#ifdef __SPF
+      removeFromCollection(op1);
+      removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
 
@@ -751,7 +899,10 @@ int* evaluateExpression(expr)
       if (op1 [0] == -1)
         res [0] = -1;
       else
-        res [1] = - op1 [1];      
+        res [1] = - op1 [1];  
+#ifdef __SPF
+      removeFromCollection(op1);
+#endif
       free(op1);
       return res;
     case VAR_REF: /* assume here that some value for Symbole are given*/
@@ -760,11 +911,19 @@ int* evaluateExpression(expr)
         if ((ind = getElementEvaluate(NODE_SYMB(expr))) != -1)
           {
              res [1] = ValuesInt[ind];
+#ifdef __SPF
+             removeFromCollection(op1);
+             removeFromCollection(op2);
+#endif
              free(op1); free(op2);
              return res;
            } else
              {
                 res [0] = -1;
+#ifdef __SPF
+                removeFromCollection(op1);
+                removeFromCollection(op2);
+#endif
                 free(op1); free(op2);
                 return res;
              }
@@ -772,6 +931,10 @@ int* evaluateExpression(expr)
       }
    default :
      res [0] = -1;
+#ifdef __SPF
+     removeFromCollection(op1);
+     removeFromCollection(op2);
+#endif
       free(op1); free(op2);
       return res;
     }
@@ -779,7 +942,11 @@ int* evaluateExpression(expr)
 }
 
 /***************************************************************************/
+#ifdef __SPF_BUILT_IN_PARSER
+int patternMatchExpression_temp(ll1, ll2)
+#else
 int patternMatchExpression(ll1,ll2)
+#endif
      PTR_LLND ll1,ll2;
 {
   int *res1, *res2;
@@ -799,22 +966,38 @@ int patternMatchExpression(ll1,ll2)
       (res2[0] != -1) &&
       (res1[1] == res2[1]))
     {
+#ifdef __SPF
+      removeFromCollection(res1);
+      removeFromCollection(res2);
+#endif
       free(res1);
       free(res2);
       return TRUE;
     }
   if ((res1[0] != -1) && (res2[0] == -1))
     {
+#ifdef __SPF
+      removeFromCollection(res1);
+      removeFromCollection(res2);
+#endif
       free(res1);
       free(res2);
       return FALSE;
     }
   if ((res1[0] == -1) && (res2[0] != -1))
     {
+#ifdef __SPF
+      removeFromCollection(res1);
+      removeFromCollection(res2);
+#endif
       free(res1);
       free(res2);
       return FALSE;
     }
+#ifdef __SPF
+  removeFromCollection(res1);
+  removeFromCollection(res2);
+#endif
   free(res1);
   free(res2);
 
@@ -845,8 +1028,11 @@ int patternMatchExpression(ll1,ll2)
   return FALSE;
 }
 
-
+#ifdef __SPF_BUILT_IN_PARSER
+PTR_LLND Follow_Llnd_temp(ll, c)
+#else
 PTR_LLND Follow_Llnd(ll,c)
+#endif
 PTR_LLND ll;
 int c;
 {

@@ -336,7 +336,7 @@ Parse_Annotation(string,scope)
   ANNOTATE_NODE = NULL;
   LENSTRINGTOPARSE = strlen(string) +1;
   
-  yyparse();
+  yyparse_annotate();
 
   return  ANNOTATE_NODE;
 }

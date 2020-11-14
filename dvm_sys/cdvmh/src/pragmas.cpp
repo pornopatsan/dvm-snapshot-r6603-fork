@@ -85,7 +85,7 @@ int ClauseAcross::getDepCount() const {
 
 // ClauseRemoteAccess
 
-bool ClauseRemoteAccess::matches(std::string seenExpr, int idx) {
+bool ClauseRemoteAccess::matches(std::string seenExpr, int idx) const {
     assert(idx >= 0 && idx < rank && "Invalid number of axis");
     if (axisRules[idx].axisNumber == -1)
         return true;
@@ -107,7 +107,9 @@ bool ClauseRemoteAccess::matches(std::string seenExpr, int idx) {
             i2++;
         }
     }
-    return (i1 >= (int)seenExpr.size() && i2 >= (int)origExpr.size());
+    bool res = (i1 >= (int)seenExpr.size() && i2 >= (int)origExpr.size());
+    cdvmh_log(TRACE, "Matches: seenExpr=%s, origExpr=%s, result=%d", seenExpr.c_str(), origExpr.c_str(), (int)res);
+    return res;
 }
 
 // PragmaRegion

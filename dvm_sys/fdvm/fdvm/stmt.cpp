@@ -890,6 +890,9 @@ void doLogIfForIOstat(SgSymbol *s, SgExpression *espec, SgStatement *stmt)
   SgStatement *if_stmt =  new SgLogIfStmt(*cond,*goto_stmt);  
   stmt->insertStmtAfter(*if_stmt, *stmt->controlParent());
   (if_stmt->lexNext()->lexNext()) -> extractStmt(); //extract ENDIF 
+  BIF_LINE(if_stmt->thebif)   = stmt->lineNumber();
+  BIF_LINE(goto_stmt->thebif) = stmt->lineNumber();
+   
 }
 
 void doIfForDelete(SgSymbol *sg, SgStatement *stmt)

@@ -9,6 +9,13 @@ struct MyVarState: public VarState {
     MyVarState(): isWeirdRma(false) {}
 };
 
+struct ClauseBlankRma {
+    std::string origName;
+    std::string substName;
+    std::vector<std::string> indexExprs;
+    std::vector<int> appearances;
+};
+
 struct PragmaHandlerStub {
     int line;
     std::set<std::string> dvmArrays;
@@ -18,6 +25,7 @@ struct PragmaHandlerStub {
     std::vector<ClauseReduction> reductions;
     std::set<std::string> privates;
     std::set<std::string> weirdRmas;
+    std::vector<ClauseBlankRma> rmas;
     int minAcross;
     int maxAcross;
 };
@@ -26,7 +34,7 @@ class BlankPragmaHandler: public PragmaHandler {
 public:
     explicit BlankPragmaHandler(CompilerInstance &aComp): PragmaHandler("dvm"), comp(aComp) {}
 public:
-    void HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken);
+    void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &FirstToken);
 public:
     PragmaHandlerStub *getPragmaAtLine(int line) {
         if (pragmas.find(line) != pragmas.end())
@@ -37,6 +45,43 @@ public:
 protected:
     CompilerInstance &comp;
     std::map<int, PragmaHandlerStub *> pragmas;
+};
+
+class BlankRemoteVisitor: public RecursiveASTVisitor<BlankRemoteVisitor> {
+    typedef RecursiveASTVisitor<BlankRemoteVisitor> base;
+public:
+    explicit BlankRemoteVisitor(CompilerInstance &aComp, Rewriter &aRewr, BlankPragmaHandler *aPh, const std::set<std::string> &seenMacroNames):
+            comp(aComp), rewr(aRewr), srcMgr(rewr.getSourceMgr()), ph(aPh), seenMacroNames(seenMacroNames), curPragma(0), parLoopBodyStmt(0),
+            inParLoopBody(false), parLoopBodyExprCounter(0)
+    {}
+public:
+    bool VisitFunctionDecl(FunctionDecl *f);
+    bool TraverseStmt(Stmt *s);
+    bool VisitExpr(Expr *e);
+protected:
+    CompilerInstance &comp;
+    Rewriter &rewr;
+    SourceManager &srcMgr;
+
+    BlankPragmaHandler *ph;
+    const std::set<std::string> &seenMacroNames;
+
+    PragmaHandlerStub *curPragma;
+    Stmt *parLoopBodyStmt;
+    bool inParLoopBody;
+    int parLoopBodyExprCounter;
+};
+
+class BlankRemoteConsumer: public ASTConsumer {
+public:
+    explicit BlankRemoteConsumer(CompilerInstance &comp, Rewriter &rewr, BlankPragmaHandler *ph, const std::set<std::string> &seenMacroNames):
+            rv(comp, rewr, ph, seenMacroNames) {}
+public:
+    virtual void HandleTranslationUnit(ASTContext &Ctx) {
+        rv.TraverseDecl(Ctx.getTranslationUnitDecl());
+    }
+protected:
+    BlankRemoteVisitor rv;
 };
 
 class Blank2HostVisitor: public RecursiveASTVisitor<Blank2HostVisitor> {

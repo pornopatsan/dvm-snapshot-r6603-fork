@@ -175,9 +175,11 @@ struct reduction_operation_list {
        SgExpression *actual_arg;
        SgExpression *value_arg;
        SgExpression *dimSize_arg;
+       SgExpression *lowBound_arg;
        SgSymbol *red_grid;
        SgSymbol *loc_grid;
        SgSymbol *red_init;
+       SgSymbol *red_host;
       /* SgSymbol *red_offset;
        SgSymbol *loc_offset;
        SgSymbol *red_base;
@@ -254,6 +256,8 @@ const int RTS2_CREATED      = 1046; /*RTS2*/
 const int HANDLER_HEADER    = 1047; /*ACC*/
 const int MODULE_USE        = 1048; /*ACC*/
 const int DEFERRED_SHAPE    = 1049; 
+const int END_OF_USE_LIST   = 1050; /*ACC*/
+const int ROUTINE_ATTR      = 1051; /*ACC*/
 
 const int MAX_LOOP_LEVEL = 10; // 7 - maximal number of loops in parallel loop nest 
 const int MAX_LOOP_NEST = 25;  // maximal number of nested loops
@@ -271,7 +275,7 @@ UNFORMATTED_,POSITION_,ACTION_,READWRITE_,READ_,WRITE_,DELIM_,PAD_,CONVERT_, NUM
 
 enum {SIZE,LBOUND,UBOUND,LEN,CHAR,KIND,F_INT,F_REAL,F_CHAR,F_LOGICAL,F_CMPLX,MAX_,MIN_,IAND_,IOR_,ALLOCATED_,ASSOCIATED_}; //intrinsic functions of Fortran 90
 
-enum {NEW_,REDUCTION_,SHADOW_RENEW_,SHADOW_START_,SHADOW_WAIT_,SHADOW_COMPUTE_,REMOTE_ACCESS_,CONSISTENT_,STAGE_,PRIVATE_,CUDA_BLOCK_,ACROSS_}; //clauses of PARALLEL directive
+enum {NEW_,REDUCTION_,SHADOW_RENEW_,SHADOW_START_,SHADOW_WAIT_,SHADOW_COMPUTE_,REMOTE_ACCESS_,CONSISTENT_,STAGE_,PRIVATE_,CUDA_BLOCK_,ACROSS_,TIE_}; //clauses of PARALLEL directive
 
 
 const int Integer   = 0;
@@ -312,7 +316,9 @@ const int Logical_8 = 12;
 #define TASK_HPS_ARRAY(A) (*((SgSymbol **)(ORIGINAL_SYMBOL(A))->attributeValue(0,TSK_HPS_ARRAY)))
 #define TASK_AUTO(A) ((A)->attributeValue(0,TSK_AUTO))
 #define RTS2_OBJECT(A) ((A)->attributeValue(0,RTS2_CREATED))
-#define AR_COEFFICIENTS(A)  ( (A)->attributeValue(0,ARRAY_COEF) ?  (coeffs *) (A)->attributeValue(0,ARRAY_COEF) : (coeffs *) (ORIGINAL_SYMBOL(A))->attributeValue(0,ARRAY_COEF))
+#define IS_LIST_END(A) ((A)->attributeValue(0,END_OF_USE_LIST))
+/*#define AR_COEFFICIENTS(A)  ( (A)->attributeValue(0,ARRAY_COEF) ?  (coeffs *) (A)->attributeValue(0,ARRAY_COEF) : (coeffs *) (ORIGINAL_SYMBOL(A))->attributeValue(0,ARRAY_COEF))*/
+#define AR_COEFFICIENTS(A)  (DvmArrayCoefficients(A))
 #define MAX_DVM   maxdvm = (maxdvm < ndvm) ? ndvm-1 : maxdvm  
 #define FREE_DVM(A)  maxdvm = (maxdvm < ndvm) ? ndvm-1 : maxdvm;  ndvm-=A  
 #define SET_DVM(A)   maxdvm = (maxdvm < ndvm) ? ndvm-1 : maxdvm;  ndvm=A  
@@ -409,6 +415,7 @@ const int Logical_8 = 12;
 #define HEADER_FOR_HANDLER(A)  ( (SgSymbol **)(A)->attributeValue(0,HANDLER_HEADER) )
 #define USE_STATEMENTS_ARE_REQUIRED ( (int *) first_do_par->attributeValue(0,MODULE_USE) )
 #define DEFERRED_SHAPE_TEMPLATE(A) ( (ORIGINAL_SYMBOL(A))->attributeValue(0,DEFERRED_SHAPE) )
+#define HAS_ROUTINE_ATTR(A) ((A)->attributeValue(0,ROUTINE_ATTR))
 
 EXTERN
 SgFunctionSymb * fdvm [MAX_LIBFUN_NUM];
@@ -453,7 +460,6 @@ EXTERN int send;  //set to 1 if I/O statement require 'send' operation
 EXTERN char *fin_name; //input file name
 EXTERN SgStatement *cur_st;  // current statement  (for inserting)
 EXTERN SgFile *current_file;    //current file
-EXTERN int current_file_id;     //number of current file  
 EXTERN SgStatement *where;//used in doAssignStmt: new statement is inserted before 'where' statement
 EXTERN int nio;
 EXTERN SgSymbol *bufIO[Ntp],*IOstat;
@@ -512,7 +518,7 @@ EXTERN int dbg_if_regim; //set by option -dbif
 EXTERN int deb_mpi; //set by option -dmpi
 EXTERN int d_no_index; //set by option -dnoind
 EXTERN  int IOBufSize; //set by option -bufio
-EXTERN  int UnparserBufSize; //set by option -ubuf
+EXTERN  int UnparserBufSize; //set by option -bufUnparser
 EXTERN  int collapse_loop_count; //set by option -collapse
 EXTERN SgSymbol *dbg_var;
 EXTERN int HPF_program;
@@ -576,7 +582,7 @@ EXTERN SgConstantSymb *region_const[Nregim];                       /*ACC*/
 EXTERN SgExpression *cuda_block;                                   /*ACC*/
 EXTERN SgExpression *allocated_list;                               /*ACC*/
 EXTERN SgStatement *first_do_par;                                  /*ACC*/
-EXTERN int in_checksection,undefined_Tcuda;                        /*ACC*/
+EXTERN int in_checksection,undefined_Tcuda, cuda_functions;        /*ACC*/
 EXTERN symb_list *RGname_list;                                     /*ACC*/
 EXTERN int parloop_by_handler; //set to 1 by option -Opl and       /*ACC*/
                                //    to 2 by option -Opl2
@@ -675,7 +681,9 @@ int   TestShapeSpec(SgExpression *e);
 void  AddToGroupNameList (SgSymbol *s);
 symb_list *AddToSymbList( symb_list *ls, SgSymbol *s);
 symb_list *AddNewToSymbList ( symb_list *ls, SgSymbol *s);
-symb_list  *AddNewToSymbListEnd ( symb_list *ls, SgSymbol *s);
+symb_list *AddNewToSymbListEnd ( symb_list *ls, SgSymbol *s);
+symb_list *MergeSymbList(symb_list *ls1, symb_list *ls2);
+symb_list *CopySymbList(symb_list *ls);
 void  DistArrayRef(SgExpression *e, int modified, SgStatement *st);
 void  GoRoundEntry(SgStatement *stmt);
 void  BeginBlockForEntry(SgStatement *stmt);
@@ -751,6 +759,7 @@ void Triplet(SgExpression *e,SgSymbol *ar,int i, SgExpression *einit[],SgExpress
 void AsynchronousCopy(SgStatement *stmt);
 void CreateCoeffs(coeffs* scoef,SgSymbol *ar);
 SgExpression * coef_ref (SgSymbol *ar, int n);
+coeffs *DvmArrayCoefficients(SgSymbol *ar);
 void DeleteShadowGroups(SgStatement *stmt);
 void InitShadowGroups();
 int doSectionIndex(SgExpression *esec, SgSymbol *ar, SgStatement *st, int idv[], int ileft, SgExpression *lrec[], SgExpression *rrec[]);
@@ -889,8 +898,10 @@ void TemplateDeclarationTest(SgStatement *stmt);
 int DeferredShape(SgExpression *eShape);
 void Template_Create(SgStatement *stmt);
 void Template_Delete(SgStatement *stmt);
-void RenamingDvmArraysByUse(SgStatement *stmt);
+//void RenamingDvmArraysByUse(SgStatement *stmt);
 void RemovingDifferentNamesOfVar(SgStatement *first);
+void UpdateUseListWithDvmArrays(SgStatement *use_stmt);
+char *doOutFileName(const char *fdeb_name);
 
 /*  parloop.cpp */
 int ParallelLoop(SgStatement *stmt);
@@ -918,7 +929,7 @@ void CreateShadowGroupsForAccrossNeg(SgExpression *in_spec,SgStatement * stmt,Sg
 int Recurrences(SgExpression *shl, SgExpression *lrec[], SgExpression *rrec[],int n);
 int DepList (SgExpression *el, SgStatement *st, SgExpression *gref, int dep);
 int doDepLengthArrays(SgExpression *shl, SgSymbol *ar, SgStatement *st, int dep);
-void AcrossList(int ilh, SgExpression *el, SgStatement *st);
+void AcrossList(int ilh, int isOut, SgExpression *el, SgStatement *st, SgExpression *tie_clause);
 SgExpression *doLowHighList(SgExpression *shl, SgSymbol *ar, SgStatement *st);
 void ReceiveArray(SgExpression *spec_accr,SgStatement *parst);
 void SendArray(SgExpression *spec_accr);
@@ -930,9 +941,16 @@ int LocElemNumber(SgExpression *en);
 int Reduction_Debug(SgStatement *stmt);
 int TestReductionClause(SgExpression *e);
 align *CopyAlignTreeNode(SgSymbol *ar);
+void InOutAcross(SgExpression *e, SgExpression* e_spec[], SgStatement *stmt);
+void InOutSpecification(SgExpression *ea, SgExpression* e_spec[]);
+SgExpression *AxisList(SgStatement *stmt, SgExpression *tied_array_ref);
+int isInTieList(SgSymbol *ar, SgExpression *tie_list);
+
 /*  acc.cpp */
 SgStatement *RegistrateDVMArray(SgSymbol *ar,int ireg,int inflag,int outflag);
 void RegisterVariablesInRegion(SgExpression *evl, int intent, int irgn);
+int TargetsList(SgExpression *tgs);
+void ACC_ROUTINE_Directive(SgStatement *stmt);
 SgStatement *ACC_REGION_Directive(SgStatement *stmt);
 SgStatement *ACC_END_REGION_Directive(SgStatement *stmt);
 SgStatement *ACC_DATA_REGION_Directive(SgStatement *stmt);
@@ -1014,7 +1032,7 @@ SgSymbol *RedBlockSymbolInKernel(SgSymbol *s,SgType *type);
 void CreateReductionBlocks(SgStatement *stat,int nloop,SgExpression *red_op_list,SgSymbol *red_count_symb);
 SgSymbol *IndVarInKernel(SgSymbol *s);
 void ReductionBlockInKernel(SgStatement *stat,int nloop,SgSymbol *i_var,SgSymbol *j_var,SgExpression *ered, reduction_operation_list *rsl,SgSymbol *red_count_symb,int n);
-void ReductionBlockInKernel_On_C_Cuda(SgStatement*, SgSymbol*, SgExpression*, reduction_operation_list*, SgIfStmt*, SgIfStmt*&, SgIfStmt*&, int&);
+void ReductionBlockInKernel_On_C_Cuda(SgStatement*, SgSymbol*, SgExpression*, reduction_operation_list*, SgIfStmt*, SgIfStmt*&, SgIfStmt*&, int&, bool withGridRed = false, bool across = false);
 SgSymbol *SyncthreadsSymbol();
 const char* RedFunctionInKernelC(const int num_red, const unsigned num_E, const unsigned num_IE);
 SgStatement *RedOp_Assign(SgSymbol *i_var, SgSymbol *s_block, SgExpression *ered, SgSymbol *d, int k);
@@ -1082,6 +1100,10 @@ void  CudaBlockSize(SgExpression *cuda_block_list,SgExpression *esize[]);
 int ListElemNumber(SgExpression *list);
 SgStatement *Create_Host_Across_Loop_Subroutine(SgSymbol *sHostProc);
 SgStatement *Create_Host_Loop_Subroutine(SgSymbol *sHostProc, int type);
+char * BoundName(SgSymbol *s, int i, int isLower);
+SgSymbol *DummyBoundSymbol(SgSymbol *rv, int i, int isLower, SgStatement *st_hedr);
+SgExpression *CreateDummyBoundListOfArray(SgSymbol *ar, reduction_operation_list *rl, SgStatement *st_hedr);
+SgExpression * DummyListForReductionArrays(SgStatement *st_hedr);
 SgExpression *CreateBaseMemoryList();
 SgExpression *ConstRef_F95(int ic);
 SgExpression *DvmType_Ref(SgExpression *e);
@@ -1111,6 +1133,7 @@ SgExpression *CoefficientList();
 SgExpression *ArrayRefList();
 SgExpression *UsedValueRef(SgSymbol *susg,SgSymbol *s);
 SgType *C_Type(SgType *type);
+void UsesInPrivateArrayDeclarations(SgExpression *privates);
 SgExpression *UsesList(SgStatement *first,SgStatement *last);
 void RefInExpr(SgExpression *e, int mode);
 SgStatement *InnerMostLoop(SgStatement *dost,int nloop);
@@ -1123,7 +1146,7 @@ SgExpression *isInUsesListByChar(const char *symb);
 //int IntrinsicInd(SgSymbol *sf);
 
 void Call(SgSymbol *s, SgExpression *e);
-void Argument(SgExpression *e, int i);
+void Argument(SgExpression *e, int i, SgSymbol *s);
 SgSymbol *FunctionResultVar(SgStatement *func);
 int isParDoIndexVar(SgSymbol *s);
 SgSymbol *IntentConst(int intent);
@@ -1186,6 +1209,7 @@ SgExpression *DoReductionOperationList(SgStatement *par);
 SgStatement *Create_Empty_Stat();
 void DoHeadersForNonDvmArrays();
 int HeaderForNonDvmArray(SgSymbol *s, SgStatement *stat);
+SgExpression *HeaderForArrayInParallelDir(SgSymbol *ar, SgStatement *st);
 SgSymbol *CreateReplicatedArray(SgSymbol *s);
 void StoreLowerBoundsOfNonDvmArray(SgSymbol *ar);
 void DeleteNonDvmArrays();
@@ -1257,7 +1281,9 @@ SgStatement *CreateLoopKernel(SgSymbol *skernel, AnalyzeReturnGpuO1 &infoGpuO1, 
 char * DimSizeName(SgSymbol *s,int i);
 SgExpression *MallocExpr(SgSymbol *var,SgExpression *eldim);
 SgSymbol *FormalDimSizeSymbol(SgSymbol *var, int i);
+SgSymbol *FormalLowBoundSymbol(SgSymbol *var, int i);
 SgExpression *CreateFormalDimSizeList(SgSymbol *var);
+SgExpression *CreateFormalLowBoundList(SgSymbol *var);
 SgSymbol *RedInitValSymbolInKernel(SgSymbol *s,SgExpression *dimSizeArgs);
 SgSymbol *InitValSymbolForRedInAdapter(SgSymbol *s, SgStatement *st_hedr);
 SgSymbol *IndexSymbolForRedVarInKernel(int i);
@@ -1268,6 +1294,9 @@ SgSymbol *IndexLoopVar(int i);
 SgExpression *SubscriptListOfRedArray(SgSymbol *ar);
 SgSymbol *RedVariableSymbolInKernel(SgSymbol *s,SgExpression *dimSizeArgs);
 SgExpression *DimSizeListOfReductionArrays();
+SgExpression *isConstantBound(SgSymbol *rv, int i, int isLower);
+SgExpression *CreateBoundListOfArray(SgSymbol *ar);
+SgExpression * BoundListOfReductionArrays();
 SgStatement * makeSymbolDeclaration_T(SgStatement *st_hedr);
 void CreateComplexTypeSymbols(SgStatement *st_bl);
 void SaveLineNumbers(SgStatement *stat_copy);
@@ -1334,6 +1363,8 @@ void RefInImplicitLoop(SgExpression *eim, int mode);
 SgSymbol *dvm000SymbolForHost(int host_dvm, SgStatement *hedr);
 SgExpression *Red_grid_index(SgSymbol *sind);
 SgExpression *BlockDimsProduct();
+SgExpression *LowerShiftForArrays (SgSymbol *ar, int i);
+SgExpression *UpperShiftForArrays (SgSymbol *ar, int i);
 SgExpression *coefProd(int i, SgExpression *ec);
 SgExpression *LinearFormForRedArray (SgSymbol *ar,  SgExpression *el, reduction_operation_list *rsl);
 void CreateCalledFunctionDeclarations(SgStatement *st_hedr);
@@ -1359,11 +1390,15 @@ void CleanAllocatedList();
 SgStatement *CreateIndirectDistributionProcedure(SgSymbol *sProc,symb_list *paramList,symb_list *dummy_index_list,SgExpression *derived_elem_list,int flag);
 SgExpression *FirstArrayElementSubscriptsForHandler(SgSymbol *ar);
 SgSymbol *HeaderSymbolForHandler(SgSymbol *ar);
-
+void TestRoutineAttribute(SgSymbol *s, SgStatement *routine_interface);
+int LookForRoutineDir(SgStatement *interfaceFunc);
+SgStatement *Interface(SgSymbol *s);
+SgStatement *getInterface(SgSymbol *s);
 /*   acc_analyzer.cpp   */
 //void Private_Vars_Analyzer(SgStatement *firstSt, SgStatement *lastSt);
 //void Private_Vars_Function_Analyzer(SgStatement* start);
 void Private_Vars_Project_Analyzer();
+void TieList(SgStatement *par);
 
 /*  hpf.cpp    */ 
 int SearchDistArrayRef(SgExpression *e, SgStatement *stmt);
@@ -1463,7 +1498,9 @@ SgStatement *endif_dir();
 SgStatement *else_dir();
 SgExpression *CalculateArrayBound(SgExpression *edim,SgSymbol *ar, int flag_private);
 void ReplaceArrayBoundsInDeclaration(SgExpression *e);
+int ExplicitShape(SgExpression *eShape);
 SgSymbol *ArraySymbolInHostHandler(SgSymbol *ar,SgStatement *scope);
+SgSymbol *DeclareSymbolInHostHandler(SgSymbol *var, SgStatement *st_hedr, SgSymbol *loc_var);
 char *RegisterConstName();
 int TightlyNestedLoops_Test(SgStatement *prev_do, SgStatement *dost);
 SgStatement *NextExecStat(SgStatement *st);
@@ -1750,13 +1787,13 @@ SgExpression *RedPost(SgSymbol *loop_s, SgSymbol *s_var_num, SgSymbol *sRed,SgSy
 SgExpression *CudaInitReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSymbol *s_dev_red, SgSymbol *s_dev_loc);
 SgExpression *CudaReplicate(SgSymbol *Addr, SgSymbol *recordSize, SgSymbol *quantity, SgSymbol *devPtr);
 SgStatement *LoopAcross_H(int il,SgExpression *oldGroup,SgExpression *newGroup);
-SgStatement *LoopAcross_H2(int il, SgExpression *headref, int rank, SgExpression *shlist);
+SgStatement *LoopAcross_H2(int il, int isOut, SgExpression *headref, int rank, SgExpression *shlist);
 SgExpression *GetDependencyMask(SgSymbol *s_loop_ref) ;
 SgExpression *CudaTransform(SgSymbol *s_loop_ref, SgSymbol *s_head, SgSymbol *s_BackFlag, SgSymbol *s_headH, SgSymbol *s_addrParam); 
 SgExpression *CudaAutoTransform(SgSymbol *s_loop_ref, SgSymbol *s_head);
 SgExpression *ApplyOffset(SgSymbol *s_head, SgSymbol *s_base, SgSymbol *s_headH) ;
 SgExpression *GetConfig(SgSymbol *s_loop_ref,SgSymbol *s_shared_perThread,SgSymbol *s_regs_perThread,SgSymbol *s_threads,SgSymbol *s_stream, SgSymbol *s_shared_perBlock);
-SgExpression *PrepareReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSymbol *s_count, SgSymbol *s_fill_flag);
+SgExpression *PrepareReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num, SgSymbol *s_count, SgSymbol *s_fill_flag, int fixedCount = 0, int fillFlag = -1);
 SgExpression *FinishReduction(SgSymbol *s_loop_ref,  SgSymbol *s_var_num);
 SgExpression *Register_Red(SgSymbol *s_loop_ref, SgSymbol *s_var_num, SgSymbol *s_red_array, SgSymbol *s_loc_array,SgSymbol *s_offset,SgSymbol *s_loc_offset);
 SgExpression *ChangeFilledBounds(SgSymbol *s_low,SgSymbol *s_high,SgSymbol *s_idx, SgSymbol *s_n,SgSymbol *s_dep,SgSymbol *s_type,SgSymbol *s_idxs);
@@ -1777,6 +1814,11 @@ SgExpression *DvmhConnected(SgExpression *unit, SgExpression *failIfYes);
 SgExpression *DvmhStringVariable(SgExpression *v); 
 SgExpression *DvmhVariable(SgExpression *v);
 SgExpression *VarGenHeader(SgExpression *item); 
+SgStatement *SaveCheckpointFilenames(SgExpression *cpName, std::vector<SgExpression *> filenames);
+SgStatement *CheckFilename(SgExpression *cpName, SgExpression *filename);
+SgStatement *GetNextFilename(SgExpression *cpName, SgExpression *lastFile, SgExpression *currentFile);
+SgStatement *CpWait(SgExpression *cpName, SgExpression *statusVar);
+SgStatement *CpSaveAsyncUnit(SgExpression *cpName, SgExpression *file, SgExpression *unit);
 SgStatement *Dvmh_Line(int line, SgStatement *stmt);
 SgStatement *DvmhArrayCreate(SgSymbol *das, SgExpression *array_header, int rank, SgExpression *arglist);
 SgStatement *DvmhTemplateCreate(SgSymbol *das, SgExpression *array_header, int rank, SgExpression *arglist);
@@ -1802,6 +1844,7 @@ SgStatement *ForgetHeader(SgExpression *objref);
 SgExpression *DvmhArraySlice(int rank, SgExpression *slice_list);
 SgStatement *DvmhArrayCopy( SgExpression *array_header_right, int rank_right, SgExpression *slice_list_right, SgExpression *array_header_left, int rank_left, SgExpression *slice_list_left );
 SgStatement *DvmhArrayCopyWhole( SgExpression *array_header_right, SgExpression *array_header_left );
+SgStatement *Correspondence_H (int il, SgExpression *hedr, SgExpression *axis_list);
 
 /*  io.cpp      */
 void IO_ThroughBuffer(SgSymbol *ar, SgStatement *stmt);
@@ -1895,6 +1938,12 @@ int hasEndErrControlSpecifier(SgStatement *stmt, SgExpression *ioEnd[] );
 void ChangeSpecifierByIOSTAT(SgExpression *e);
 void ChangeControlList(SgStatement *stmt, SgExpression *ioEnd[] );
 void ReplaceStatementWithEndErrSpecifier(SgStatement *stmt, SgExpression *ioEnd[] );
+
+/* checkpoint.cpp */
+void CP_Create_Statement(SgStatement *st, int error_msg);
+void CP_Save_Statement(SgStatement *st, int error_msg);
+void CP_Load_Statement(SgStatement *st, int error_msg);
+void CP_Wait(SgStatement *stmt, int error_msg);
 
 /*  debug.cpp   */
 void D_AddToDoList (int Nloop, int Nline, SgLabel *lab, SgSymbol *var);
@@ -2027,6 +2076,7 @@ SgStatement* createKernelCallsInCudaHandler(SgFunctionCallExp *baseFunc, SgSymbo
 int isIntrinsicFunctionName(const char *name);
 void addNumberOfFileToAttribute(SgProject *project);
 int getIntrinsicFunctionTypeSize(const char* name);
+void recExpressionPrintFdvm(SgExpression* exp);
 
 /* calls.cpp */
 void ProjectStructure(SgProject &project);
@@ -2039,17 +2089,23 @@ void Arg_FunctionCallSearch(SgExpression *e) ;
 void FunctionCallSearch_Left(SgExpression *e);
 void Call_Site (SgSymbol *s, int inlined);
 SgSymbol * GetProcedureHeaderSymbol(SgSymbol *s);
+void MarkAsRoutine(SgSymbol *s);
 void MarkAsCalled(SgSymbol *s);
 void MarkAsUserProcedure(SgSymbol *s);
 void MakeFunctionCopy(SgSymbol *s);
 SgStatement *HeaderStatement(SgSymbol *s);
 void InsertCalledProcedureCopies();
-SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, SgStatement *after);
+SgStatement *InsertProcedureCopy(SgStatement *st_header, SgSymbol *sproc, int is_routine, SgStatement *after);
+int FromOtherFile(SgSymbol *s);
+int findParameterNumber(SgSymbol *s, char *name); 
+int isInParameter(SgSymbol *s, int i);
+SgSymbol *ProcedureSymbol(SgSymbol *s);
 int IsPureProcedure(SgSymbol *s);
 int IsElementalProcedure(SgSymbol *s);
 int IsRecursiveProcedure(SgSymbol *s);
 int IsNoBodyProcedure(SgSymbol *s);
 int isUserFunction(SgSymbol *s);
+int IsInternalProcedure(SgSymbol *s);
 SgExpression *FunctionDummyList(SgSymbol *s);
 char *FunctionResultIdentifier(SgSymbol *sfun);
 SgSymbol *isSameNameInProcedure(char *name, SgSymbol *sfun);
@@ -2060,10 +2116,12 @@ void ExtractDeclarationStatements(SgStatement *header);
 void MakeFunctionDeclarations(SgStatement *header, SgSymbol *s_last);
 SgSymbol *LastSymbolOfFunction(SgStatement *header);
 void ConvertArrayReferences(SgStatement *first, SgStatement *last);
-void doPrototype(SgStatement *func_hedr, SgStatement *block_header);
+void doPrototype(SgStatement *func_hedr, SgStatement *block_header, int static_flag);
 SgStatement *FunctionPrototype(SgSymbol *sf);
 bool CreateIntefacePrototype(SgStatement *header);
-
+SgStatement *hasInterface(SgSymbol *s);
+void SaveInterface(SgSymbol *s, SgStatement *interface);
+SgStatement  *TranslateProcedureHeader_To_C(SgStatement *new_header);
 //-----------------------------------------------------------------------
 extern "C" char* funparse_bfnd(...);
 extern "C" char* Tool_Unparse2_LLnode(...);
@@ -2110,8 +2168,8 @@ void ConvertLoopWithLabelToEnddoLoop (SgStatement *stat); /*OMP*/
 // options on FDVM converter
 enum OPTIONS {
     AUTO_TFM = 0, ONE_THREAD, SPEED_TEST_L0, SPEED_TEST_L1, GPU_O0, GPU_O1, RTC, C_CUDA, OPT_EXP_COMP,
-    O_HOST, NO_CUDA, NO_BL_INFO, LOOP_ANALYSIS, PRIVATE_ANALYSIS, IO_RTS, NUM_OPT
-};
+    O_HOST, NO_CUDA, NO_BL_INFO, LOOP_ANALYSIS, PRIVATE_ANALYSIS, IO_RTS, READ_ALL, NO_REMOTE, NO_PURE_FUNC, 
+    GPU_IRR_ACC, NUM_OPT};
 // ONE_THREAD - compile one thread CUDA-kernels only for across (TODO for all CUDA-kernels)
 // SPEED_TEST_L0, SPEED_TEST_L1 - debug options for speed testof CUDA-kernels for across
 // RTC - enable CUDA run-time compilation of all CUDA-kernels
@@ -2123,6 +2181,8 @@ enum OPTIONS {
 // LOOP_ANALYSIS - enable loop analysis for all parallel loops (default: only for across parallel loops)
 // PRIVATE_ANALYSIS - enable private analysis for all parallel loops
 // IO_RTS - enable new interface for parallel IO operations on DVMH programs
+// READ_ALL - READ statement execution by all processes
+// NO_REMOTE - ignore REMOTE_ACCESS specifications (compilation mode for single processor execution)
 // NUM_OPT - it is not an option, it is a maximum value of enum
 
 class Options
@@ -2177,6 +2237,24 @@ public:
             states[GPU_O0] = false;
         }
 
+        if (states[GPU_IRR_ACC])
+        {
+            if (states[NO_CUDA] || !states[NO_BL_INFO])
+            {
+                states[LOOP_ANALYSIS] = false;
+                states[OPT_EXP_COMP] = false;
+                states[GPU_IRR_ACC] = false;
+                if (states[NO_CUDA])
+                    fprintf(stderr, "switch off -dvmIrregAnalysis option because -noCuda option is on\n");
+                else
+                    fprintf(stderr, "switch off -dvmIrregAnalysis option because -noBI option is off\n");
+            }
+            else
+            {
+                states[LOOP_ANALYSIS] = true;
+                states[OPT_EXP_COMP] = true;
+            }
+        }
         //freeze all changes after initialization
         freezed = true;
     }

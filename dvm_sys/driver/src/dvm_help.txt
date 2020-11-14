@@ -55,6 +55,7 @@ Convertation options:
                     programs.
     -i8             Assume default kind of integer to be 8 for Fortran-DVMH
                     programs.
+    -noLimitLine    Unlimited line length of free form output file
 
 Optimization options:
     -autoTfm        Allow DVMH-runtime system to select optimal layout of
@@ -76,7 +77,21 @@ Optimization options:
                     existing PRIVATE clauses for PARALLEL loops.
 -dvmLoopAnalysis    Enable loop analysis and optimizations for all PARALLEL
                     loops (for PARALLEL loops with ACROSS always enabled).
-
+-dvmLoopAnalysisEC  Enable '-dvmLoopAnalysis' with expression computation 
+                    analysis.
+-dvmIrregAnalysis   Enable irregular access optimization for GPU code. It 
+                    activates 'dvmLoopAnalysisEC' option.
+    -read_all       READ, OPEN and CLOSE operator (only for not distributed 
+                    variables) are executed by all processes (instead of 
+                    read from root process and broadcast to others).
+    -noRemote       Allow DVM compiler to ignore REMOTE_ACCESS directives to
+                    speedup single process execution. 
+    -noPureFunc     Allow DVM compiler to ignore lack of PURE indication for
+                    functions (Fortran only).
+    -dynComp        Allow NVCC to compile procedures and functions with 
+                    ROUTINE directive separately. It can be used both 
+                    during compilation and linking passes.
+    
                Input files
 --------------------------------------------------------------------------
     <file>.<ext>    Input <file> with <ext> = fdv|f|ftn|for|f90|f95|f03 in
@@ -146,6 +161,9 @@ Program:
                                    Default depends on main module source
                                    language.
     DVMH_CACHE_CUDA_ALLOC          Boolean value. Cache CUDA memory allocations.
+                                   Default is 1.
+    DVMH_PAGE_LOCK_HOST_MEM        Boolean value. Page-lock main memory for
+                                   distributed arrays.
                                    Default is 1.
     DVMH_SET_AFFINITY    Boolean value. Let DVM system to set CPU thread
                          affinity. Default depends on I_MPI_PIN,

@@ -65,6 +65,7 @@
 #define dvmh_loop_shadow_compute_ dvmh_loop_shadow_compute
 #define dvmh_loop_consistent_ dvmh_loop_consistent
 #define dvmh_loop_remote_access_ dvmh_loop_remote_access
+#define dvmh_loop_array_correspondence_ dvmh_loop_array_correspondence
 #define dvmh_loop_register_handler_ dvmh_loop_register_handler
 #define dvmh_loop_perform_ dvmh_loop_perform
 #define dvmh_loop_get_dependency_mask_ dvmh_loop_get_dependency_mask
@@ -100,5 +101,11 @@
 #define dvmh_ftn_endfile_ dvmh_ftn_endfile
 #define dvmh_ftn_rewind_ dvmh_ftn_rewind
 #define dvmh_ftn_flush_ dvmh_ftn_flush
+
+#define dvmh_cp_save_filenames_ dvmh_cp_save_filenames
+#define dvmh_cp_next_filename_ dvmh_cp_next_filename
+#define dvmh_cp_check_filename_ dvmh_cp_check_filename
+#define dvmh_cp_wait_ dvmh_cp_wait
+#define dvmh_cp_save_async_unit_ dvmh_cp_save_async_unit
 
 #endif

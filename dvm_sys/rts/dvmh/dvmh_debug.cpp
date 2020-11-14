@@ -1,10 +1,6 @@
 #include "dvmh_debug.h"
 
-#include "include/dvmhlib_debug.h"
-#include "include/dvmh_runtime_api.h"
-#include "include/dvmhlib_const.h"
-#include "include/dvmhlib_types.h"
-
+#include "include/dvmhlib2.h"
 #include "dvmlib_incs.h"
 
 #include "dvmh_log.h"
@@ -25,8 +21,10 @@ typedef std::map<std::string, DvmhDebugReduction*> MappingsMap;
 struct DebugLoopData {
     DvmType no;
     UDvmType line;
+    std::string filename;
 
-    DebugLoopData(DvmType aNo, UDvmType aLine) : no(aNo), line(aLine) {}
+    DebugLoopData(DvmType aNo, UDvmType aLine, const char *aFilename)
+    : no(aNo), line(aLine), filename(std::string(aFilename)) { }
 };
 
 
@@ -117,7 +115,7 @@ DvmType dvmh_dbg_read_var_C(DvmType plType, DvmType addr, DvmType handle, char *
 
 // Sequental loop beginning
 DvmType dvmh_dbg_loop_seq_start_C(DvmType no) {
-    debugLoopsStack.push_back(DebugLoopData(no, (UDvmType)currentLine));
+    debugLoopsStack.push_back(DebugLoopData(no, (UDvmType)currentLine, currentFile));
     return dbegsl_(&no);
 }
 
@@ -127,6 +125,9 @@ DvmType dvmh_dbg_loop_end_C() {
     DebugLoopData data = debugLoopsStack.back();
     debugLoopsStack.pop_back();
 
+    // NOTE: Record end of the loop with the same line number as beggining
+    //       (this logic is more stable with several converter phases)
+    dvmh_line_C((DvmType)data.line, data.filename.c_str());
     return dendl_(&data.no, &data.line);
 }
 
@@ -173,7 +174,7 @@ DvmType dvmh_dbg_loop_par_start_C(DvmType no, DvmType rank, ...) {
     }
     va_end(pars);
 
-    debugLoopsStack.push_back(DebugLoopData(no, (UDvmType)currentLine));
+    debugLoopsStack.push_back(DebugLoopData(no, (UDvmType)currentLine, currentFile));
 
     return dbegpl_(&rank, &no, init, last, step);
 }

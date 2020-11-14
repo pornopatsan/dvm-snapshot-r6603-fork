@@ -52,7 +52,15 @@ void initIntrinsicFunctionNames()
         return;
 
     intrinsicF.insert(string("abs"));
+#ifdef __SPF
+        intrinsicF.insert(string("adjustl"));
+#endif
     intrinsicF.insert(string("and"));
+#ifdef __SPF
+    intrinsicF.insert(string("any"));
+    intrinsicF.insert(string("associated"));
+    intrinsicF.insert(string("allocated"));
+#endif
     intrinsicF.insert(string("amod"));
     intrinsicF.insert(string("aimax0"));
     intrinsicF.insert(string("ajmax0"));
@@ -143,6 +151,7 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("dflotk"));
 #ifdef __SPF
     intrinsicF.insert(string("dint"));
+    intrinsicF.insert(string("dvtime"));
 #endif
     intrinsicF.insert(string("dmax1"));
     intrinsicF.insert(string("dmin1"));
@@ -191,11 +200,17 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("erf"));
     intrinsicF.insert(string("erfc"));
     intrinsicF.insert(string("erfc_scaled"));
+#ifdef __SPF
+    intrinsicF.insert(string("etime"));
+#endif
     intrinsicF.insert(string("float"));    
     intrinsicF.insert(string("floati"));
     intrinsicF.insert(string("floatj"));
     intrinsicF.insert(string("floatk"));
     intrinsicF.insert(string("floor"));
+#ifdef __SPF
+    intrinsicF.insert(string("flush"));
+#endif
     intrinsicF.insert(string("gamma"));
     intrinsicF.insert(string("habs"));
     intrinsicF.insert(string("hbclr"));
@@ -212,8 +227,14 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("hshftc"));
     intrinsicF.insert(string("hsign"));
     intrinsicF.insert(string("htest"));
-    intrinsicF.insert(string("hypot"));
+#ifdef __SPF
+    intrinsicF.insert(string("huge"));
+#endif
+    intrinsicF.insert(string("hypot"));    
     intrinsicF.insert(string("iiabs"));
+#ifdef __SPF
+    intrinsicF.insert(string("iargc"));
+#endif
     intrinsicF.insert(string("iiand"));
     intrinsicF.insert(string("iibclr"));
     intrinsicF.insert(string("iibits"));
@@ -236,6 +257,8 @@ void initIntrinsicFunctionNames()
 #ifdef __SPF
     intrinsicF.insert(string("idnint"));
     intrinsicF.insert(string("ichar"));
+    intrinsicF.insert(string("iachar"));    
+    intrinsicF.insert(string("isnan"));
 #endif
     intrinsicF.insert(string("iand"));
     intrinsicF.insert(string("ior"));
@@ -293,6 +316,9 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("kmod"));
     intrinsicF.insert(string("knot"));
     intrinsicF.insert(string("len"));
+#ifdef __SPF
+    intrinsicF.insert(string("len_trim"));
+#endif
     intrinsicF.insert(string("lge"));
     intrinsicF.insert(string("lgt"));
     intrinsicF.insert(string("lle"));
@@ -318,15 +344,26 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("not"));
 #ifdef __SPF
     intrinsicF.insert(string("nint"));
+    intrinsicF.insert(string("null"));
 #endif
     intrinsicF.insert(string("or"));
     intrinsicF.insert(string("popcnt"));
     intrinsicF.insert(string("poppar"));
+    intrinsicF.insert(string("random_number"));
     intrinsicF.insert(string("real"));
     intrinsicF.insert(string("reshape"));
+#ifdef __SPF      
+    intrinsicF.insert(string("present"));    
+    intrinsicF.insert(string("repeat"));
+#endif
     intrinsicF.insert(string("rshft"));
     intrinsicF.insert(string("rshift"));
     intrinsicF.insert(string("sign"));
+#ifdef __SPF
+    intrinsicF.insert(string("size"));
+    intrinsicF.insert(string("scan"));
+    intrinsicF.insert(string("sizeof"));    
+#endif
     intrinsicF.insert(string("sngl"));
     intrinsicF.insert(string("sqrt"));
     intrinsicF.insert(string("sin"));
@@ -339,6 +376,9 @@ void initIntrinsicFunctionNames()
     intrinsicF.insert(string("tan"));
     intrinsicF.insert(string("tand"));
     intrinsicF.insert(string("tanh"));
+#ifdef __SPF
+    intrinsicF.insert(string("tiny"));
+#endif
     intrinsicF.insert(string("trailz"));
     intrinsicF.insert(string("trim"));
     intrinsicF.insert(string("xor"));
@@ -593,9 +633,11 @@ extern "C" void addToCollection(const int line, const char *file, void *pointer,
 
 void addNumberOfFileToAttribute(SgProject *project)
 {
-    for (int i = 0; i < project->numberOfFiles(); ++i)
+    int numOfFiles = project->numberOfFiles();
+    for (int i = 0; i < numOfFiles; ++i)
     {
         SgFile *currF = &(project->file(i));
+        string t = currF->filename();
         int *num = new int[1];
 #ifdef __SPF
         addToCollection(__LINE__, __FILE__, num, 2);
@@ -1010,7 +1052,7 @@ void recExpressionPrintFdvm(SgExpression *exp)
     recExpressionPrint(exp, 0, "L", allNum, allNum);
     if (allNum == 0 && exp)
         printf("\"%d_%d_%s_%s_%s\";\n", allNum, 0, "L", tag[exp->variant()], getValue(exp).c_str());
-    printf("};\n");
+    printf("}\n");
     fflush(NULL);
 }
 #endif

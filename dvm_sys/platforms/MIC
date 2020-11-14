@@ -3,16 +3,16 @@
  CC="icc -g"
  CXX="icpc -g"
  LINKER="icpc -g"
- LLVMCONFIG="llvm-config"
+ LLVMCONFIG="/opt/clang/current/bin/llvm-config"
 # for parallel programs
- PCC="/nethome/intel/impi/latest/bin64/mpiicc -g -O3 -qopenmp"
- PCXX="/nethome/intel/impi/latest/bin64/mpiicpc -g -O3 -qopenmp"
- PFORT="/nethome/intel/impi/latest/bin64/mpiifort -g -O3 -qopenmp"
- PLINKER="/nethome/intel/impi/latest/bin64/mpiicpc -g -qopenmp"
- PFLINKER="/nethome/intel/impi/latest/bin64/mpiifort -g -qopenmp"
+ PCC="/opt/intel/impi/current/intel64/bin/mpiicc -g -O3 -qopenmp"
+ PCXX="/opt/intel/impi/current/intel64/bin/mpiicpc -g -O3 -qopenmp"
+ PFORT="/opt/intel/impi/current/intel64/bin/mpiifort -g -O3 -qopenmp"
+ PLINKER="/opt/intel/impi/current/intel64/bin/mpiicpc -g -qopenmp"
+ PFLINKER="/opt/intel/impi/current/intel64/bin/mpiifort -g -qopenmp"
  CUDA_PATH="/opt/cuda/current"
- NVCC="$CUDA_PATH/bin/nvcc -arch=sm_35 -O2 -lineinfo -DCUDA_NO_SM_20_INTRINSICS -DPGI_COMPILE_BITCODE"
- PGI_PATH="/nethome/pgi/linux86-64/2016"
+ NVCC="$CUDA_PATH/bin/nvcc -arch=sm_75 -O2 -lineinfo -DCUDA_NO_SM_20_INTRINSICS -DPGI_COMPILE_BITCODE"
+ PGI_PATH="/opt/pgi/linux86-64/current"
  NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=8.0 -O2 -ta=nvidia:keepgpu,cc35,nollvm"
 # launch settings
  dvmrun="runmpi"
@@ -21,4 +21,4 @@
  DVMH_NUM_CUDAS=0
 # machine configuration for more predefined presets
  CPUS_PER_NODE=12
- CUDAS_PER_NODE=1
+ CUDAS_PER_NODE=2

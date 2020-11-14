@@ -48,6 +48,7 @@ static int Parser_Initiated = 0;
 static int Function_Language = 0; /* 0 - undefined, 1 - C language, 2 - Fortran language */
 
 extern void Message();
+extern int out_free_form;
 
 /* FORWARD DECLARATIONS */
 int BufPutString();
@@ -617,6 +618,46 @@ char *alloc_str(size)
   memset(pt, 0, size);
   return pt;
 }     
+
+int next_letter(str)
+    char *str;
+{
+  int i = 0;
+  while(isspace(str[i])) 
+    i++;
+  return i;
+}
+
+char *unparse_stmt_str(str)
+     char *str;
+{
+  char *pt;
+  int i,j,len;
+  char c;
+  if(!out_free_form)
+    return str;
+  if (!str)
+    return NULL;
+  pt = (char *) xmalloc(strlen(str)+2);
+
+  i = next_letter(str);  /*first letter*/
+  c = tolower(str[i]);
+  if(c == 'd')
+    len = 4;
+  else if (c == 'f')
+    len = 6;
+ 
+  for(j=1; j < len; j++)
+    i = i + next_letter(str+i+1) + 1;            
+  
+  if(len == 4) 
+    strcpy(pt,"data ");
+  else
+    strcpy(pt,"format ");
+
+  strcpy(pt+len+1,str+i+1);
+  return pt;  
+}
 
 void Reset_Unparser()
 {
@@ -2249,6 +2290,12 @@ Tool_Unparse2_LLnode(ll)
               BufPutString (NODE_STR (ll),0);
               i += strlen("STRVAL");
             } else
+          if (strncmp(&(str[i]),"STMTSTR", strlen("STMTSTR"))== 0)  /* %STMTSTR : String Value */
+            {
+              BufPutString (unparse_stmt_str(NODE_STR (ll)),0);
+              i += strlen("STMTSTR");
+            } else
+
           if (strncmp(&(str[i]),"BOOLVAL", strlen("BOOLVAL"))== 0)       /* %BOOLVAL : String Value */
             {
               BufPutString (NODE_BV (ll) ? ".TRUE." : ".FALSE.",0);

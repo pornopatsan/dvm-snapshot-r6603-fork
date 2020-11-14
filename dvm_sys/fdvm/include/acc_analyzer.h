@@ -584,18 +584,20 @@ struct ArraySubscriptData
     SgExpression *left_bound;
     SgExpression *right_bound;
 
-    ArraySubscriptData() : loop(NULL), left_bound(NULL), right_bound(NULL)
+    ArraySubscriptData() : loop(NULL), left_bound(NULL), right_bound(NULL) 
     {
-#if __SPF
+        defined = false;
+        step = 0;
+        coefs[0] = coefs[1] = 0;
+        bound_modifiers[0] = bound_modifiers[1] = 0;
+        
+        //nowhere allocated 
+/*#if __SPF
         addToCollection(__LINE__, __FILE__, this, 15);
-#endif
+#endif*/
     }
     ~ArraySubscriptData()
-    {
-#if __SPF
-        removeFromCollection(this);
-#endif
-    }
+    { }
 };
 
 class CArrayVarEntryInfo : public CVarEntryInfo

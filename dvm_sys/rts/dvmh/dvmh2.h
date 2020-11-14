@@ -325,9 +325,9 @@ void dvmh_loop_reduction_C(DvmType curLoop, DvmType redType, void *arrayAddr, Dv
 void dvmh_loop_reduction_(const DvmType *pCurLoop, const DvmType *pRedType, void *arrayAddr, const DvmType *pVarType, const DvmType *pArrayLength,
         void *locAddr, const DvmType *pLocSize);
 
-// Добавление зависимости по данным в цикл. Первый параметр - описатель цикла. Второй параметр - заголовочный массив. Третий параметр - количество измерений массива. Далее идут пары по количеству измерений массива: читаемая ширина нижней теневой грани, читаемая ширина верхней теневой грани.
-void dvmh_loop_across_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...);
-void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...);
+// Добавление зависимости по данным в цикл. Первый параметр - описатель цикла. Второй параметр - признак, что будет запись, а не только чтение. Третий параметр - заголовочный массив. Четвертый параметр - количество измерений массива. Далее идут пары по количеству измерений массива: читаемая или записываемая ширина нижней теневой грани, читаемая или записываемая ширина верхней теневой грани.
+void dvmh_loop_across_C(DvmType curLoop, DvmType isOut, const DvmType dvmDesc[], DvmType rank, /* DvmType shadowLow, DvmType shadowHigh */...);
+void dvmh_loop_across_(const DvmType *pCurLoop, const DvmType *pIsOut, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pShadowLow, const DvmType *pShadowHigh */...);
 
 // Указание ширины расширения локальной части витков параллельного цикла клаузой SHADOW_COMPUTE. Первый параметр - описатель цикла. Второй параметр - заголовочный массив, являющийся шаблоном выравнивания для данного цикла. Третий параметр - количество измерений шаблона (если указаны). Далее (если указаны) идут пары по количеству измерений массива: вычисляемая ширина нижней теневой грани по измерению, вычисляемая ширина верхней теневой грани по измерению.
 void dvmh_loop_shadow_compute_C(DvmType curLoop, const DvmType templDesc[], DvmType specifiedRank, /* DvmType shadowLow, DvmType shadowHigh */...);
@@ -345,6 +345,10 @@ void dvmh_loop_consistent_(const DvmType *pCurLoop, const DvmType dvmDesc[], con
 // Добавление REMOTE_ACCESS в цикл. Первый параметр - описатель цикла. Второй параметр - заголовочный массив источника. Третий параметр - количество измерений. Четвертый и последующие по количеству измерений - значения, вернутые вспомогательными функциями семейства dvmh_alignment_*.
 void dvmh_loop_remote_access_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType alignmentHelper */...);
 void dvmh_loop_remote_access_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pAlignmentHelper */...);
+
+// Задание соответствия измерений параллельного цикла и массива (полезно если не удаётся ее проследить по отображению цикла). Первый параметр - описатель цикла. Второй параметр - заголовочный массив. Третий параметр - количество измерений массива. Четвертый и последующие - нуль, если нет соответствия; положительный номер оси цикла, если соответствие прямое; отрицательный номер оси цикла, если соответствие обратное.
+void dvmh_loop_array_correspondence_C(DvmType curLoop, const DvmType dvmDesc[], DvmType rank, /* DvmType loopAxis */...);
+void dvmh_loop_array_correspondence_(const DvmType *pCurLoop, const DvmType dvmDesc[], const DvmType *pRank, /* const DvmType *pLoopAxis */...);
 
 // Регистрация обработчика параллельного цикла. Первый параметр - описатель цикла. Второй параметр - тип устройства, для которого подготовлен обработчик (DEVICE_TYPE_HOST = 1, DEVICE_TYPE_CUDA = 2). Третий параметр - тип обработчика (битовый набор флагов HANDLER_TYPE_PARALLEL = 1, HANDLER_TYPE_MASTER = 2). Четвертый параметр - обработчик, исполняющий порцию цикла (использовать dvmh_handler_func).
 void dvmh_loop_register_handler_C(DvmType curLoop, DvmType deviceType, DvmType handlerType, DvmType handlerHelper);
@@ -482,6 +486,17 @@ void dvmh_ftn_rewind_(const DvmType *pUnit, const DvmType *pErrFlagRef, const Dv
 // Сброс буферов ВВ/ВЫВ.
 void dvmh_ftn_flush_(const DvmType *pUnit, const DvmType *pErrFlagRef, const DvmType *pIOStatRef, const DvmType *pIOMsgStrRef);
 
+// Контрольные точки
+// Сохранение имён контрольных точек при их создании. Первый параметр – имя контрольной точки, второй – количество файлов, далее идут все имена файлов.
+void dvmh_cp_save_filenames_(const DvmType* cpName, const DvmType *filesCount, ...);
+// Получение следующего имени файла для записи КТ по предыдущему. Первый параметр – имя контрольной точки, второй – имя прыдущего файла, прочитанное из служебного файла, третий – выходной параметр, в который записывается имя следующего файла.
+void dvmh_cp_next_filename_(const DvmType* pCpName, const DvmType *pPrevFile, const DvmType *pCurrFileRef);
+// Проверка имени файла, прочитанного из служебного файла, перед чтением контрольной точки.
+void dvmh_cp_check_filename_(const DvmType* pCpName, const DvmType *pFile);
+// Ожидание завершения записи асинхронной КТ. Дожидается окончания записи во все файлы данной контрольной точки, вызывая синхронную операцию – закрытие файлов. Второй параметр выходной, в него записывается состояние файлов.
+void dvmh_cp_wait_(const DvmType* pCpName, const DvmType *pStatusVarRef);
+// Сохранение unit'a перед началом асинхронной записи КТ. 
+void dvmh_cp_save_async_unit_(const DvmType* pCpName, const DvmType *pFile, const DvmType *pWriteUnit);
 
 // Сравнительная отладка
 // Трассировка записи нового значения в переменную (вызывается перед записью). Первый параметр - тип переменной, второй параметр - адрес переменной, третий параметр - Handle массива (NULL если переменная не является массиваом), четвертый параметр - имя переменной.

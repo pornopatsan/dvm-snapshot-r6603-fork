@@ -16,6 +16,7 @@ struct graph_node {
     SgStatement *st_header;
     SgStatement *st_last;
     SgStatement *st_copy;
+    SgStatement *st_interface;
     SgSymbol *symb;              //??? st_header->symbol()
     char *name;
     struct edge *to_called;      //outcoming
@@ -26,7 +27,8 @@ struct graph_node {
     int visited;   //flag for partition algorithm
     int clone;     //flag is clone node
     int count;     //counter of inline expansions or calls
-
+    int is_routine; // has ROUTINE attribute - 1, else - 0
+    
 #if __SPF
     graph_node() { addToCollection(__LINE__, __FILE__, this, 1); }
     ~graph_node() { removeFromCollection(this); }

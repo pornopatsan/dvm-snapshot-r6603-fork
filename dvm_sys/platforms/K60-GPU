@@ -21,6 +21,7 @@
  dvmrun="suppz_k60_gpu.run"
  maxtime=30
  restart=0
+ quantum=0
 # DVMH options for default preset 
  DVMH_PPN=32
  DVMH_NUM_THREADS=1

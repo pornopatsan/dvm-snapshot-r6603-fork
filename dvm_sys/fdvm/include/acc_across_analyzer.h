@@ -94,6 +94,8 @@ class Loop
 {
 private:
     bool enable_opt;
+    bool irregular_acc_opt;
+    bool do_irreg_opt;
     std::vector<BasicBlock> blocks;
     std::map<SgStatement*, int> blockIn;
 
@@ -114,6 +116,7 @@ private:
     void buildCFG();
     void setupSubstitutes();
     void analyzeAssignments(SgExpression* ex, const int blockIndex);
+    void analyzeInderectAccess();
 
 public:
     const std::vector<BasicBlock>& getBlocks() const { return blocks; }
@@ -124,7 +127,7 @@ public:
     std::map<SgSymbol*, Array*>& getArrays() { return arrays; }
     std::set<SgSymbol*>& getPrivateList() { return privateList; }
 
-    Loop(SgStatement* loop_body, bool enable_opt);
+    Loop(SgStatement* loop_body, bool enable_opt, bool irreg_access = false);
 
     // only for RD/AE analyses, which can be later performed only on statements in loop_body
     // usage: Loop* loop = new Loop(loop_body_stmt); RDs = loop->RDsAt(stmtI); AEs = loop->AEsAt(stmtJ);
@@ -142,6 +145,7 @@ public:
     SgExpression* simplify(SgExpression* expr) const;
     void visualize(const char* scriptName) const;
 
+    bool irregularAnalysisIsOn() const;
     ~Loop()
     {
         delete [] acrossDims;

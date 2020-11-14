@@ -47,6 +47,7 @@ OBJS = $(OUTDIR)/acc.obj \
 	   $(OUTDIR)/aks_analyzeLoops.obj \
 	   $(OUTDIR)/aks_structs.obj \
 	   $(OUTDIR)/calls.obj \
+           $(OUTDIR)/checkpoint.obj \
 	   $(OUTDIR)/debug.obj \
 	   $(OUTDIR)/dvm.obj \
 	   $(OUTDIR)/funcall.obj \
@@ -111,6 +112,9 @@ aks_structs.obj: aks_structs.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMI
 	$(FDVMINCL)/dvm.h $(FDVMINCL)/aks_structs.h
 
 calls.obj: calls.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
+	$(FDVMINCL)/dvm.h
+
+checkpoint.obj: checkpoint.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \
 	$(FDVMINCL)/dvm.h
 
 debug.obj: debug.cpp $(FDVMINCL)/fdvm.h $(FDVMINCL)/libnum.h $(FDVMINCL)/libdvm.h \

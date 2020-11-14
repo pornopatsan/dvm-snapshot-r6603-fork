@@ -37,3 +37,5 @@ extern "C" unsigned char trace_Dump(int, unsigned int, int);
 extern "C" unsigned int TraceBufCountArr[];
 extern "C" int TraceBufFullArr[];
 extern "C" int MPS_CurrentProc;
+
+extern "C" byte AllowRedisRealnBypass;

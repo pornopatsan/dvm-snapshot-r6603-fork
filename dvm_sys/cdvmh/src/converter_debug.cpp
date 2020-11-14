@@ -4,14 +4,14 @@
 
 namespace cdvmh {
 
-DebugASTVisitor::DebugASTVisitor(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &R):
+DebugASTVisitor::DebugASTVisitor(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &R): 
     fileCtx(aFileCtx),
-    projectCtx(fileCtx.getProjectCtx()),
-    opts(projectCtx.getOptions()),
-    comp(aComp),
-    rewr(R),
-    srcMgr(rewr.getSourceMgr()),
-    langOpts(rewr.getLangOpts())
+    projectCtx(fileCtx.getProjectCtx()), 
+    opts(projectCtx.getOptions()), 
+    comp(aComp), 
+    rewr(R), 
+    srcMgr(rewr.getSourceMgr()), 
+    langOpts(rewr.getLangOpts()) 
 {
     inFunction = false;
     inVarDecl = false;
@@ -202,7 +202,7 @@ bool DebugASTVisitor::HandleExpr(Expr *e) {
                         //if (!startLoc.isMacroID() && !endLoc.isMacroID()) {
                             rewr.InsertTextBefore(getRealLoc(startLoc), startInsert);
                             rewr.InsertTextAfter(getRealLoc(endLoc), endInsert);
-                        //}
+                        //} 
                     }
                 }
             }
@@ -436,7 +436,7 @@ SourceLocation DebugASTVisitor::getRealLoc(SourceLocation loc) {
 
 bool DebugASTVisitor::isLoopVar(const std::string &name) const {
     for (int i = 0; i < (int)loopVarsStack.size(); ++i) {
-        if (name == loopVarsStack[i].second)
+        if (name == loopVarsStack[i].second) 
             return true;
     }
     return false;
@@ -630,7 +630,7 @@ std::string DebugASTVisitor::genDvmWriteVarArray(SourceLocation loc, const VarSt
     std::string toInsert = "DVMH_DBG_WRITE_VAR(" + fileName + ", " + line + ", " + varName + ", " + base + ", " + varType + ", ";
     return toInsert;
 }
-
+ 
 void DebugASTVisitor::genSeqLoopCalls(ForStmt *curLoop, int curLoopNumber) {
     SourceLocation startLoc = curLoop->getBeginLoc();
     SourceLocation endLoc = getNormalStmtEndLoc(curLoop);
