@@ -142,7 +142,7 @@ void printVariantName(int i)
 //***********************************
 
 #define BUFLEN 5000
-char buffer[BUFLEN], *bp;
+char buffer1[BUFLEN], *bp1; // duplicate symbol in db_unp.o
 #define binop(n)	(n >= EQ_OP && n <= NEQV_OP)
 
 static const char *fop_name[] = {
@@ -246,8 +246,8 @@ static char  precedence[] = {	/* precedence table of the operators */
 ****************************************************************/
 void addstr(const char *s)
 {
-    while ((*bp = *s++) != 0)
-        bp++;
+    while ((*bp1 = *s++) != 0)
+        bp1++;
 }
 
 /****************************************************************
@@ -295,16 +295,16 @@ void unp_llnd(PTR_LLND pllnd)
         addstr(pllnd->entry.string_val);
         break;
     case STRING_VAL:
-        *bp++ = '\'';
+        *bp1++ = '\'';
         addstr(pllnd->entry.string_val);
-        *bp++ = '\'';
+        *bp1++ = '\'';
         break;
     case COMPLEX_VAL:
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.Template.ll_ptr1);
-        *bp++ = ',';
+        *bp1++ = ',';
         unp_llnd(pllnd->entry.Template.ll_ptr2);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case KEYWORD_VAL:
         addstr(pllnd->entry.string_val);
@@ -322,10 +322,10 @@ void unp_llnd(PTR_LLND pllnd)
         break;
     case CHAR_VAL:
         /* if (! in_impli)  */
-        *bp++ = '\'';
-        *bp++ = pllnd->entry.cval;
+        *bp1++ = '\'';
+        *bp1++ = pllnd->entry.cval;
         /* if (! in_impli)  */
-        *bp++ = '\'';
+        *bp1++ = '\'';
         break;
     case CONST_REF:
     case VAR_REF:
@@ -343,16 +343,16 @@ void unp_llnd(PTR_LLND pllnd)
     case ARRAY_REF:
         addstr(pllnd->entry.array_ref.symbol->ident);
         if (pllnd->entry.array_ref.index) {
-            *bp++ = '(';
+            *bp1++ = '(';
             unp_llnd(pllnd->entry.array_ref.index);
-            *bp++ = ')';
+            *bp1++ = ')';
         }
         break;
     case ARRAY_OP:
         unp_llnd(pllnd->entry.Template.ll_ptr1);
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.Template.ll_ptr2);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case RECORD_REF:
         unp_llnd(pllnd->entry.Template.ll_ptr1);
@@ -361,9 +361,9 @@ void unp_llnd(PTR_LLND pllnd)
         break;
     case STRUCTURE_CONSTRUCTOR:
         addstr(pllnd->entry.Template.symbol->ident);
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.Template.ll_ptr1);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case CONSTRUCTOR_REF:
         addstr("(/");
@@ -373,9 +373,9 @@ void unp_llnd(PTR_LLND pllnd)
     case ACCESS_REF:
         unp_llnd(pllnd->entry.access_ref.access);
         if (pllnd->entry.access_ref.index != NULL) {
-            *bp++ = '(';
+            *bp1++ = '(';
             unp_llnd(pllnd->entry.access_ref.index);
-            *bp++ = ')';
+            *bp1++ = ')';
         }
         break;
     case OVERLOADED_CALL:
@@ -389,25 +389,25 @@ void unp_llnd(PTR_LLND pllnd)
         unp_llnd(pllnd->entry.access.array);
         addstr(", FORALL=(");
         addstr(pllnd->entry.access.control_var->ident);
-        *bp++ = '=';
+        *bp1++ = '=';
         unp_llnd(pllnd->entry.access.range);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case IOACCESS:
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.ioaccess.array);
         addstr(", ");
         addstr(pllnd->entry.ioaccess.control_var->ident);
-        *bp++ = '=';
+        *bp1++ = '=';
         unp_llnd(pllnd->entry.ioaccess.range);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case PROC_CALL:
     case FUNC_CALL:
         addstr(pllnd->entry.proc.symbol->ident);
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.proc.param_list);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case EXPR_LIST:
         unp_llnd(pllnd->entry.list.item);
@@ -422,9 +422,9 @@ void unp_llnd(PTR_LLND pllnd)
         }
         break;
     case EQUI_LIST:
-        *bp++ = '(';
+        *bp1++ = '(';
         unp_llnd(pllnd->entry.list.item);
-        *bp++ = ')';
+        *bp1++ = ')';
         if (pllnd->entry.list.next) {
             addstr(", ");
             unp_llnd(pllnd->entry.list.next);
@@ -433,9 +433,9 @@ void unp_llnd(PTR_LLND pllnd)
     case COMM_LIST:
     case NAMELIST_LIST:
         if (pllnd->entry.Template.symbol) {
-            *bp++ = '/';
+            *bp1++ = '/';
             addstr(pllnd->entry.Template.symbol->ident);
-            *bp++ = '/';
+            *bp1++ = '/';
         }
         unp_llnd(pllnd->entry.list.item);
         if (pllnd->entry.list.next) {
@@ -455,7 +455,7 @@ void unp_llnd(PTR_LLND pllnd)
     case DDOT:
         if (pllnd->entry.binary_op.l_operand)
             unp_llnd(pllnd->entry.binary_op.l_operand);
-        *bp++ = ':';
+        *bp1++ = ':';
         if (pllnd->entry.binary_op.r_operand)
             unp_llnd(pllnd->entry.binary_op.r_operand);
         break;
@@ -466,13 +466,13 @@ void unp_llnd(PTR_LLND pllnd)
     case SEQ:
         unp_llnd(pllnd->entry.seq.ddot);
         if (pllnd->entry.seq.stride) {
-            *bp++ = ':';
+            *bp1++ = ':';
             unp_llnd(pllnd->entry.seq.stride);
         }
         break;
     case SPEC_PAIR:
         unp_llnd(pllnd->entry.spec_pair.sp_label);
-        *bp++ = '=';
+        *bp1++ = '=';
         unp_llnd(pllnd->entry.spec_pair.sp_value);
         break;
     case EQ_OP:
@@ -499,11 +499,11 @@ void unp_llnd(PTR_LLND pllnd)
                       j = p->variant;
                       if (binop(j) && precedence[i] < precedence[j - EQ_OP]) {
                           num_paren++;
-                          *bp++ = '(';
+                          *bp1++ = '(';
                       }
                       unp_llnd(p);
                       if (num_paren) {
-                          *bp++ = ')';
+                          *bp1++ = ')';
                           num_paren--;
                       }
                       addstr(fop_name[i]); /* print the op name */
@@ -511,11 +511,11 @@ void unp_llnd(PTR_LLND pllnd)
                       j = p->variant;
                       if (binop(j) && precedence[i] <= precedence[j - EQ_OP]) {
                           num_paren++;
-                          *bp++ = '(';
+                          *bp1++ = '(';
                       }
                       unp_llnd(p);
                       if (num_paren) {
-                          *bp++ = ')';
+                          *bp1++ = ')';
                           num_paren--;
                       }
                       break;
@@ -523,17 +523,17 @@ void unp_llnd(PTR_LLND pllnd)
     case MINUS_OP:
         addstr(" -(");
         unp_llnd(pllnd->entry.unary_op.operand);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case UNARY_ADD_OP:
         addstr(" +(");
         unp_llnd(pllnd->entry.unary_op.operand);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case NOT_OP:
         addstr(" .not. (");
         unp_llnd(pllnd->entry.unary_op.operand);
-        *bp++ = ')';
+        *bp1++ = ')';
         break;
     case PAREN_OP:
         addstr("(");
@@ -665,14 +665,14 @@ char* funparse_llnd(PTR_LLND llnd)
     int len;
     char *p;
 
-    bp = buffer;	/* reset the buffer pointer */
+    bp1 = buffer1;	/* reset the buffer pointer */
     unp_llnd(llnd);
     /*  *bp++ = '\n'; */
-    *bp++ = '\0';
-    len = (bp - buffer) + 1; /* calculate the string length */
+    *bp1++ = '\0';
+    len = (bp1 - buffer1) + 1; /* calculate the string length */
     p = (char *)malloc(len);	/* allocate space for returned value */
-    strcpy(p, buffer); 	/* copy the buffer for output */
-    *buffer = '\0';
+    strcpy(p, buffer1); 	/* copy the buffer for output */
+    *buffer1 = '\0';
     return p;
 }
 
@@ -976,18 +976,18 @@ char* SymbListString(symb_list *symbl)
     int len;
     char *p;
 
-    bp = buffer;	/* reset the buffer pointer */
+    bp1 = buffer1;	/* reset the buffer pointer */
     for (sl = symbl; sl; sl = sl->next)
     {
         if (sl != symbl)
             addstr(", ");
         addstr(sl->symb->identifier());
     }
-    *bp++ = '\0';
-    len = (bp - buffer) + 1; /* calculate the string length */
+    *bp1++ = '\0';
+    len = (bp1 - buffer1) + 1; /* calculate the string length */
     p = (char *)malloc(len);	/* allocate space for returned value */
-    strcpy(p, buffer); 	/* copy the buffer for output */
-    *buffer = '\0';
+    strcpy(p, buffer1); 	/* copy the buffer for output */
+    *buffer1 = '\0';
 
     return p;
 }

@@ -23,7 +23,7 @@ public:
     explicit DvmPragmaHandler(SourceFileContext &aFileCtx, CompilerInstance &aComp, Rewriter &aRewr): PragmaHandler("dvm"), fileCtx(aFileCtx),
             projectCtx(fileCtx.getProjectCtx()), comp(aComp), rewr(aRewr) {}
 public:
-    void HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &FirstToken);
+    void HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken);
 protected:
     DerivedAxisRule parseDerivedAxisRule(Preprocessor &PP, Token &Tok);
     DistribRule parseDistribRule(Preprocessor &PP, Token &Tok);

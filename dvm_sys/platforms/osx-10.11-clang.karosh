@@ -1,8 +1,8 @@
 #For Apple OS X 10.11 El Capitan PLATFORM
 # for DVM tools
- CC='/usr/local/opt/llvm/bin/clang -g -O2'
- CXX='/usr/local/opt/llvm/bin/clang++ -g -O2'
- LINKER='/usr/local/opt/llvm/bin/clang++ -g'
+ CC='/Library/Developer/CommandLineTools/usr/bin/gcc -g -O2'
+ CXX='/Library/Developer/CommandLineTools/usr/bin/c++ -std=c++14 -g -O2'
+ LINKER='/Library/Developer/CommandLineTools/usr/bin/c++ -g'
  LLVMCONFIG='llvm-config'
 # for parallel programs
  PCC='mpicc -g -O2 -fopenmp'

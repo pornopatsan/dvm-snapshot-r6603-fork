@@ -22,7 +22,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
     Token &Tok = FirstToken;
     PP.LexNonComment(Tok);
     checkIntErrN(Tok.isAnyIdentifier(), 914);
-    std::string tokStr = Tok.getIdentifierInfo()->getName();
+    std::string tokStr = Tok.getIdentifierInfo()->getName().str();
     checkIntErrN(tokStr == "handler_stub", 914);
     PragmaHandlerStub *curPragma = new PragmaHandlerStub;
     curPragma->line = line;
@@ -30,13 +30,13 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
     curPragma->maxAcross = 0;
     PP.LexNonComment(Tok);
     while (Tok.isAnyIdentifier() || Tok.is(tok::kw_private)) {
-        std::string clauseName = Tok.getIdentifierInfo()->getName();
+        std::string clauseName = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         checkIntErrN(Tok.is(tok::l_paren), 914);
         PP.LexNonComment(Tok);
         if (clauseName == "dvm_array") {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->dvmArrays.insert(tokStr);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
@@ -47,7 +47,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
             }
         } else if (clauseName == "regular_array") {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->regArrays.insert(tokStr);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
@@ -58,7 +58,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
             }
         } else if (clauseName == "scalar") {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->scalars.insert(tokStr);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
@@ -70,7 +70,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
         } else if (clauseName == "loop_var") {
             while (Tok.isAnyIdentifier()) {
                 LoopVarDesc loopVar;
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 loopVar.name = tokStr;
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::l_paren), 914);
@@ -99,20 +99,20 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
         } else if (clauseName == "reduction") {
             while (Tok.isAnyIdentifier()) {
                 ClauseReduction red;
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 red.redType = ClauseReduction::guessRedType(tokStr);
                 checkIntErrN(!red.redType.empty(), 914);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::l_paren), 914);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.isAnyIdentifier(), 914);
-                red.arrayName = Tok.getIdentifierInfo()->getName();
+                red.arrayName = Tok.getIdentifierInfo()->getName().str();
                 PP.LexNonComment(Tok);
                 if (red.isLoc()) {
                     checkIntErrN(Tok.is(tok::comma), 914);
                     PP.LexNonComment(Tok);
                     checkIntErrN(Tok.isAnyIdentifier(), 914);
-                    red.locName = Tok.getIdentifierInfo()->getName();
+                    red.locName = Tok.getIdentifierInfo()->getName().str();
                     PP.LexNonComment(Tok);
                     checkIntErrN(Tok.is(tok::comma), 914);
                     PP.LexNonComment(Tok);
@@ -132,7 +132,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
             }
         } else if (clauseName == "private") {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->privates.insert(tokStr);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
@@ -143,7 +143,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
             }
         } else if (clauseName == "weird_rma") {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->weirdRmas.insert(tokStr);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 914);
@@ -167,7 +167,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
         } else if (clauseName == "remote_access") {
             while (Tok.isAnyIdentifier()) {
                 ClauseBlankRma clause;
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 clause.origName = tokStr;
                 PP.LexNonComment(Tok);
                 while (!Tok.is(tok::l_paren)) {
@@ -179,7 +179,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
                     if (Tok.is(tok::r_square)) {
                         clause.indexExprs.push_back("");
                     } else if (Tok.isAnyIdentifier()) {
-                        tokStr = Tok.getIdentifierInfo()->getName();
+                        tokStr = Tok.getIdentifierInfo()->getName().str();
                         clause.indexExprs.push_back(tokStr);
                         PP.LexNonComment(Tok);
                     } else {
@@ -195,7 +195,7 @@ void BlankPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introdu
                 checkIntErrN(Tok.is(tok::comma), 914);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.isAnyIdentifier(), 914);
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 checkIntErrN(tokStr == "appearances", 914);
                 PP.LexNonComment(Tok);
                 checkIntErrN(Tok.is(tok::l_paren), 914);
@@ -238,7 +238,7 @@ bool BlankRemoteVisitor::VisitFunctionDecl(FunctionDecl *f) {
     FileID fileID = srcMgr.getFileID(f->getBeginLoc());
     int pragmaLine = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(f->getBeginLoc())) - 1;
     PragmaHandlerStub *curPragma = ph->getPragmaAtLine(pragmaLine);
-    std::string funcName = f->getName();
+    std::string funcName = f->getName().str();
     bool isHandler = curPragma != 0;
     if (!isHandler || curPragma->rmas.empty()) {
         return true;
@@ -353,7 +353,7 @@ bool Blank2HostVisitor::VisitFunctionDecl(FunctionDecl *f) {
     FileID fileID = srcMgr.getFileID(f->getBeginLoc());
     int pragmaLine = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(f->getBeginLoc())) - 1;
     PragmaHandlerStub *curPragma = ph->getPragmaAtLine(pragmaLine);
-    std::string funcName = f->getName();
+    std::string funcName = f->getName().str();
     bool toConvert = reqs.find(funcName) != reqs.end();
     bool isHandler = curPragma != 0;
     if (!withHeading && firstHandler && isHandler) {

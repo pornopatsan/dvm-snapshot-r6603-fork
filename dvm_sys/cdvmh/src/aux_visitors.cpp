@@ -11,7 +11,7 @@ namespace cdvmh {
 
 bool CollectNamesVisitor::VisitVarDecl(VarDecl *vd) {
     if (ignoreDepth == 0)
-        names.insert(vd->getName());
+        names.insert(vd->getName().str());
     const Type *baseType = vd->getType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
     if (baseType->isPointerType() || isa<IncompleteArrayType>(baseType)) {
         if (baseType->isPointerType())
@@ -29,14 +29,14 @@ bool CollectNamesVisitor::VisitVarDecl(VarDecl *vd) {
 
 bool CollectNamesVisitor::VisitTypedefDecl(TypedefDecl *td) {
     if (ignoreDepth == 0)
-        names.insert(td->getName());
+        names.insert(td->getName().str());
     return true;
 }
 
 bool CollectNamesVisitor::VisitFunctionDecl(FunctionDecl *f) {
     if (ignoreDepth == 0)
         if (f->getDeclName().isIdentifier())
-            names.insert(f->getName());
+            names.insert(f->getName().str());
     const FunctionDecl *Definition;
     bool hasBody = f->hasBody(Definition);
     bool bodyIsHere = hasBody && Definition == f;
@@ -57,7 +57,7 @@ bool CollectNamesVisitor::TraverseFunctionDecl(FunctionDecl *f) {
 
 bool CollectNamesVisitor::VisitRecordDecl(RecordDecl *d) {
     if (ignoreDepth == 0)
-        names.insert(d->getName());
+        names.insert(d->getName().str());
     ignoreDepth++;
     return true;
 }
@@ -97,7 +97,7 @@ void PPDirectiveCollector::addDirective(SourceLocation beginLoc) {
 // IncludeCollector
 
 void IncludeCollector::FileChanged(SourceLocation Loc, FileChangeReason Reason, SrcMgr::CharacteristicKind FileType, FileID PrevFID) {
-    std::string prevFN = (PP.getSourceManager().getFileEntryForID(PrevFID) ? PP.getSourceManager().getFileEntryForID(PrevFID)->getName() : "");
+    std::string prevFN = (PP.getSourceManager().getFileEntryForID(PrevFID) ? PP.getSourceManager().getFileEntryForID(PrevFID)->getName().str() : "");
     std::string newFN = PP.getSourceManager().getFilename(Loc).str().c_str();
     if (Reason == EnterFile) {
         FileID fid = PP.getSourceManager().getFileID(Loc);
@@ -147,18 +147,18 @@ void IncludeCollector::InclusionDirective(SourceLocation HashLoc, const Token &I
         pendingInclusion.isAngled = IsAngled;
         pendingInclusion.isImport = PP.getSpelling(IncludeTok) == "import";
         pendingInclusion.isIncludeNext = PP.getSpelling(IncludeTok) == "include_next";
-        pendingInclusion.spellingFN = FileName;
+        pendingInclusion.spellingFN = FileName.str();
         pendingInclusion.hashLoc = HashLoc;
         pendingInclusion.where.first = PP.getSourceManager().getFileOffset(HashLoc);
         pendingInclusion.where.second = PP.getSourceManager().getFileOffset(FilenameRange.getEnd());
-        pendingInclusion.what = getCanonicalFileName(File->getName());
+        pendingInclusion.what = getCanonicalFileName(File->getName().str());
         pendingInclusion.isSkipped = false;
         pendingInclusion.valid = true;
 #if CLANG_VERSION_MAJOR < 4
         cdvmh_log(TRACE, "Found include '%s' angled=%d import=%d inc_next=%d spell='%s' start=%d end=%d target='%s' FileEntry='%s'",
                 PP.getSpelling(IncludeTok).c_str(), (int)pendingInclusion.isAngled, (int)pendingInclusion.isImport, (int)pendingInclusion.isIncludeNext,
                 pendingInclusion.spellingFN.c_str(), pendingInclusion.where.first, pendingInclusion.where.second, pendingInclusion.what.c_str(),
-                File->getName());
+                File->getName().str());
 #else
         cdvmh_log(TRACE, "Found include '%s' angled=%d import=%d inc_next=%d spell='%s' start=%d end=%d target='%s' FileEntry='%s'",
                 PP.getSpelling(IncludeTok).c_str(), (int)pendingInclusion.isAngled, (int)pendingInclusion.isImport, (int)pendingInclusion.isIncludeNext,
@@ -168,7 +168,7 @@ void IncludeCollector::InclusionDirective(SourceLocation HashLoc, const Token &I
     } else {
 #if CLANG_VERSION_MAJOR < 4
         cdvmh_log(TRACE, "Ignored include '%s' angled=%d spell='%s' FileEntry='%s'", PP.getSpelling(IncludeTok).c_str(), (int)IsAngled, FileName.str().c_str(),
-                (File && File->getName() ? File->getName() : ""));
+                (File && File->getName().str() ? File->getName().str() : ""));
 #else
         cdvmh_log(TRACE, "Ignored include '%s' angled=%d spell='%s' FileEntry='%s'", PP.getSpelling(IncludeTok).c_str(), (int)IsAngled, FileName.str().c_str(),
                 (File ? File->getName().data() : ""));

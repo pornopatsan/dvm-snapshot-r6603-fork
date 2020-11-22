@@ -38,7 +38,7 @@ bool cdvmhLog(LogLevel level, const std::string &fileName, int lineNumber, int e
 #else
 #define checkCommonN(expr, level, file, line, errorCode, ...) do { \
     if (!(expr)) { \
-        cdvmhLog(level, file, line, errorCode, MSG(errorCode) , ##__VA_ARGS__); \
+        cdvmhLog(level, std::string(file), line, errorCode, MSG(errorCode) , ##__VA_ARGS__); \
         if (level == INTERNAL) abort(); \
         if (level == ERROR) exit(1); \
     } \

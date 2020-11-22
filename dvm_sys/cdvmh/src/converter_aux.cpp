@@ -82,10 +82,10 @@ std::string convertToString(Stmt *s, CompilerInstance &comp) {
 VarState *fillVarState(const VarDecl *vd, bool CPlusPlus, CompilerInstance &comp, VarState *varState) {
     SourceManager &srcMgr = comp.getSourceManager();
     SourceLocation fileLoc = srcMgr.getFileLoc(vd->getLocation());
-    std::string fileName = srcMgr.getFilename(fileLoc);
+    std::string fileName = srcMgr.getFilename(fileLoc).str();
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
-    std::string varName = vd->getName();
+    std::string varName = vd->getName().str();
     bool hasRestrict = vd->getType().isRestrictQualified();
     const Type *baseType = vd->getType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
     std::vector<MyExpr> sizes;
@@ -146,7 +146,7 @@ VarDecl *MyDeclContext::lookupVar(const std::string &varName) const {
 
 bool MyDeclContext::add(VarDecl *vd) {
     bool res = false;
-    std::string varName = vd->getName();
+    std::string varName = vd->getName().str();
     std::string varFullName = vd->getQualifiedNameAsString();
     if (!varName.empty() && varName == varFullName) {
         std::map<std::string, VarDecl *>::iterator it = vars.find(varName);
@@ -394,7 +394,7 @@ VarDecl *ConverterASTVisitor::seekVarDecl(std::string name, MyDeclContext *conte
 
 bool ConverterASTVisitor::VisitDecl(Decl *d) {
     SourceLocation fileLoc = srcMgr.getFileLoc(d->getLocation());
-    std::string fileName = srcMgr.getFilename(fileLoc);
+    std::string fileName = srcMgr.getFilename(fileLoc).str();
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
     if (!isDeclAllowed() && !(isa<VarDecl>(d) && outerPrivates.find(cast<VarDecl>(d)) != outerPrivates.end()))
@@ -405,10 +405,10 @@ bool ConverterASTVisitor::VisitDecl(Decl *d) {
 
 VarState ConverterASTVisitor::fillVarState(VarDecl *vd) {
     SourceLocation fileLoc = srcMgr.getFileLoc(vd->getLocation());
-    std::string fileName = srcMgr.getFilename(fileLoc);
+    std::string fileName = srcMgr.getFilename(fileLoc).str();
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
-    std::string varName = vd->getName();
+    std::string varName = vd->getName().str();
     checkIntErrN(varStates.find(vd) == varStates.end(), 95, varName.c_str(), fileName.c_str(), line);
     VarState varState;
     cdvmh::fillVarState(vd, fileCtx.getInputFile().CPlusPlus, comp, &varState);
@@ -417,7 +417,7 @@ VarState ConverterASTVisitor::fillVarState(VarDecl *vd) {
 
 bool ConverterASTVisitor::VisitDeclStmt(DeclStmt *ds) {
     SourceLocation fileLoc = srcMgr.getFileLoc(ds->getEndLoc());
-    std::string fileName = srcMgr.getFilename(fileLoc);
+    std::string fileName = srcMgr.getFilename(fileLoc).str();
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
     if (projectCtx.hasInputFile(fileName))

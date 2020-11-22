@@ -16,6 +16,8 @@
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Lex/PreprocessorOptions.h>
 #include <clang/Basic/Version.h>
+#include <clang/Basic/FileManager.h>
+#include <clang/Basic/Builtins.h>
 
 using clang::DiagnosticOptions;
 using clang::TextDiagnosticPrinter;
@@ -230,7 +232,7 @@ void PassContext::setup() {
 #if CLANG_VERSION_MAJOR < 4 && CLANG_VERSION_MINOR < 5
     compiler->getSourceManager().createMainFileID(pFile);
 #else
-    compiler->getSourceManager().setMainFileID(compiler->getSourceManager().createFileID(pFile, clang::SourceLocation(), clang::SrcMgr::C_User));
+    compiler->getSourceManager().setMainFileID(compiler->getSourceManager().createFileID(pFile.get(), clang::SourceLocation(), clang::SrcMgr::C_User));
 #endif
 }
 

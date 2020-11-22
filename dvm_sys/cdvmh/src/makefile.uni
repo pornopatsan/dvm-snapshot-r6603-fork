@@ -18,7 +18,7 @@ endif
 
 #override CXX = g++ -g -Wall
 
-LLVMCOMPONENTS = core option bitreader mcparser transformutils
+LLVMCOMPONENTS = core option bitreader mcparser transformutils frontendopenmp
 
 CXXFLAGS = $(shell $(LLVMCONFIG) --cxxflags) -UNDEBUG -DWITH_ANALYZER=$(WITH_ANALYZER) $(ANALYZER_FLAGS)
 LLVMLDFLAGS = $(shell $(LLVMCONFIG) --libs $(LLVMCOMPONENTS)) $(shell $(LLVMCONFIG) --ldflags)

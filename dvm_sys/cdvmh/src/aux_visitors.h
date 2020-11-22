@@ -11,6 +11,7 @@
 #include <clang/Frontend/CompilerInstance.h>
 #include <clang/Lex/Preprocessor.h>
 #include <clang/Rewrite/Core/Rewriter.h>
+#include <clang/Basic/FileManager.h>
 
 #include "pragmas.h"
 #include "file_ctx.h"
@@ -45,7 +46,7 @@ public:
     explicit MacroCollector(SourceFileContext &aFileCtx): fileCtx(aFileCtx) {}
 public:
     virtual void MacroDefined(const Token &MacroNameTok, const MacroDirective *MD) {
-        fileCtx.seenMacroNames.insert(MacroNameTok.getIdentifierInfo()->getName());
+        fileCtx.seenMacroNames.insert(MacroNameTok.getIdentifierInfo()->getName().str());
     }
 protected:
     SourceFileContext &fileCtx;

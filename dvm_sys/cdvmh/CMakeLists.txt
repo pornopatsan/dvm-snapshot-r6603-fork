@@ -105,8 +105,9 @@ if(LOCAL_LLVM OR DOWNLOAD_LLVM)
   sapfor_patch("${PROJECT_SOURCE_DIR}/patches/clang-${LLVM_PACKAGE_VERSION}.patch" ${CLANG_SOURCE_DIR})  
   set(LLVM_STATUS "Specifying LLVM dependences (include directories, libraries, macros etc.)")
   message(STATUS ${LLVM_STATUS})
-  set(LLVM_COMPONENTS analysis bitreader core support target transformutils
+  set(LLVM_COMPONENTS analysis frontendopenmp bitreader core support target transformutils
     ipa mcparser mc object option)
+
   if(${LLVM_PACKAGE_VERSION} VERSION_LESS "3.5")
     llvm_map_components_to_libraries(LLVM_LIBS ${LLVM_COMPONENTS})
     set(LLVM_INCLUDE_DIRS "${LLVM_SOURCE_DIR}/include;${LLVM_BINARY_DIR}/include")

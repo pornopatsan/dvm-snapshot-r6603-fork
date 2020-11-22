@@ -103,11 +103,11 @@ void ConverterASTVisitor::genAcrossCudaCaseKernel(int dep_number, const KernelDe
     collectNamesVisitor.TraverseStmt(parLoopBodyStmt);
     prohibitedNames = collectNamesVisitor.getNames();
     for (int i = 0; i < (int)outerParams.size(); i++)
-        prohibitedNames.insert(outerParams[i]->getName());
+        prohibitedNames.insert(outerParams[i]->getName().str());
     for (std::set<VarDecl *>::iterator it = outerPrivates.begin(); it != outerPrivates.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
     for (std::set<VarDecl *>::iterator it = reductions.begin(); it != reductions.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
 
     // get unique names
     std::string coords = getUniqueName( "coords", &prohibitedNames );
@@ -1295,11 +1295,11 @@ void ConverterASTVisitor::genAcrossCudaCaseHandler(
     collectNamesVisitor.TraverseStmt(parLoopBodyStmt);
     prohibitedNames = collectNamesVisitor.getNames();
     for (int i = 0; i < (int)outerParams.size(); i++)
-        prohibitedNames.insert(outerParams[i]->getName());
+        prohibitedNames.insert(outerParams[i]->getName().str());
     for (std::set<VarDecl *>::iterator it = outerPrivates.begin(); it != outerPrivates.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
     for (std::set<VarDecl *>::iterator it = reductions.begin(); it != reductions.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
 
     // get unique names
     std::string pLoopRef = getUniqueName( "pLoopRef", &prohibitedNames );
@@ -2800,11 +2800,11 @@ void ConverterASTVisitor::genAcrossCudaHandler(std::string handlerName, const st
     collectNamesVisitor.TraverseStmt(parLoopBodyStmt);
     prohibitedNames = collectNamesVisitor.getNames();
     for (int i = 0; i < (int)outerParams.size(); i++)
-        prohibitedNames.insert(outerParams[i]->getName());
+        prohibitedNames.insert(outerParams[i]->getName().str());
     for (std::set<VarDecl *>::iterator it = outerPrivates.begin(); it != outerPrivates.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
     for (std::set<VarDecl *>::iterator it = reductions.begin(); it != reductions.end(); it++)
-        prohibitedNames.insert((*it)->getName());
+        prohibitedNames.insert((*it)->getName().str());
 
     // get unique names
     std::string pLoopRef = getUniqueName( "pLoopRef", &prohibitedNames );

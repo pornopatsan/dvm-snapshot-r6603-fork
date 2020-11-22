@@ -43,17 +43,17 @@ bool DebugASTVisitor::VisitStmt(Stmt *s) {
         std::set<std::string> loopVarNames;
         VarDecl *vd = getForLoopInitVar(curFor);
         assert(vd); // is consequent of upper part
-        bool uniqueFlag = loopVarNames.insert(vd->getName()).second;
+        bool uniqueFlag = loopVarNames.insert(vd->getName().str()).second;
 
         loopStackInfo = std::pair<Stmt*, std::string>(curFor->getBody(), vd->getName());
         if (uniqueFlag) {
-            cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc), line, "Debug pass: push loop index to stack: %s", vd->getName().data());
+            cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc).str(), line, "Debug pass: push loop index to stack: %s", vd->getName().data());
             loopVarsStack.push_back(loopStackInfo);
         }
 
         if (DvmPragma *gotPragma = fileCtx.getNextDebugPragma(fileID.getHashValue(), line, DvmPragma::pkParallel)) {
             if (gotPragma->kind == DvmPragma::pkParallel) {
-                cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc), line, "Debug pass: enter parallel loop");
+                cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc).str(), line, "Debug pass: enter parallel loop");
                 parallelPragmas.insert(std::make_pair(line, gotPragma));
                 inParallelLoop = true;
             }
@@ -77,7 +77,7 @@ bool DebugASTVisitor::TraverseStmt(Stmt *s) {
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
 
     while (!loopVarsStack.empty() && s == loopVarsStack.back().first) {
-        cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc), line, "Debug pass: pop loop index from stack: %s", loopVarsStack.back().second.c_str());
+        cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc).str(), line, "Debug pass: pop loop index from stack: %s", loopVarsStack.back().second.c_str());
         loopVarsStack.pop_back();
     }
 
@@ -85,7 +85,7 @@ bool DebugASTVisitor::TraverseStmt(Stmt *s) {
         bool isCurrentLoopParallel = forLoopIsParallel(curLoop);
         if (isCurrentLoopParallel) {
             inParallelLoop = false;
-            cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc), line, "Debug pass: leave parallel loop");
+            cdvmhLog(DEBUG, srcMgr.getFilename(fileLoc).str(), line, "Debug pass: leave parallel loop");
 
             if (opts.seqOutput) {
                 // Generate parallel loop debug handlers only in sequential mode,
@@ -322,11 +322,11 @@ bool DebugASTVisitor::HandleExpr(Expr *e) {
 
 VarState DebugASTVisitor::fillVarState(VarDecl *vd) {
     SourceLocation fileLoc = srcMgr.getFileLoc(vd->getLocation());
-    std::string fileName = srcMgr.getFilename(fileLoc);
+    std::string fileName = srcMgr.getFilename(fileLoc).str();
     FileID fileID = srcMgr.getFileID(fileLoc);
     int line = srcMgr.getLineNumber(fileID, srcMgr.getFileOffset(fileLoc));
 
-    std::string varName = vd->getName();
+    std::string varName = vd->getName().str();
     checkIntErrN(varStates.find(vd) == varStates.end(), 95, varName.c_str(), fileName.c_str(), line);
     bool hasRestrict = vd->getType().isRestrictQualified();
     const Type *baseType = vd->getType().getUnqualifiedType().getDesugaredType(comp.getASTContext()).split().Ty;
