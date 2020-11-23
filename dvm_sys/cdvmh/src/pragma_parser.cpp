@@ -71,7 +71,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
         // Distributed array
         PragmaDistribArray *curPragma = new PragmaDistribArray();
         curPragma->copyCommonInfo(this->curPragma);
-        curPragma->dynaTokmicFlag = 0;
+        curPragma->dynamicFlag = 0;
         PP.LexNonComment(Tok);
         if (!Tok.is(tok::eod)) {
             while (Tok.isAnyIdentifier()) {
@@ -893,8 +893,8 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
             curPragma->mode = tokStr;
             PP.LexNonComment(Tok);
 
-            tokStr = .getIdentifierInfo()->getName().str();
-            cdvmhLog(TRACE, fileName, line, "Next Token: %s", tokStr.c_str());
+            auto tokStr = Tok.getIdentifierInfo();//->getName().str();
+//            cdvmhLog(TRACE, fileName, line, "Next Token: %s", tokStr.c_str());
 //            curPragma->nFiles = std::stoi(tokStr);
             PP.LexNonComment(Tok);
         } else {
