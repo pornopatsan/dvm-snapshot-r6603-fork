@@ -244,6 +244,9 @@
 #define MSG_473 "Remote access directives are not allowed in regions (except for host sections)"
 #define MSG_474 "Remote access directives are not allowed in parallel loops"
 #define MSG_475 "Compound statement is required as a remote access inner"
+// Subsection 48 - checkpoint-related
+#define MSG_481 "Syntax error in checkpoint specification. 'save', 'load' or <cp_name> ' expected at column %d."
+#define MSG_482 "Syntax error in checkpoint specification. 'LOCAL', 'LOCAL_ASYNC', 'PARALLEL' or 'PARALLEL_ASYNC' expected at column %d."
 
 // Section 5 - directives-unrelated restrictions violations
 #define MSG_51 "Can not be in an included file"

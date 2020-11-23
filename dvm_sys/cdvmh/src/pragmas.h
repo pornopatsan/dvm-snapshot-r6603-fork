@@ -304,7 +304,7 @@ public:
         pkTemplate, pkDistribArray, pkRedistribute, pkRealign, pkRegion, pkParallel,
         pkGetActual, pkSetActual, pkInherit, pkRemoteAccess, pkHostSection,
         pkInterval, pkEndInterval, pkExitInterval, pkInstantiations, pkShadowAdd,
-        pkLocalize, pkUnlocalize, pkArrayCopy, pkNoKind
+        pkLocalize, pkUnlocalize, pkArrayCopy, pkNoKind, pkCheckpoint
     };
 public:
     explicit DvmPragma(Kind aKind): fileName("unknown"), line(-1), srcFileName("unknown"), srcLine(-1), srcLineSpan(0), kind(aKind) {}
@@ -490,6 +490,51 @@ public:
 public:
     std::string srcName;
     std::string dstName;
+};
+
+class PragmaCheckpoint: public DvmPragma {
+public:
+    enum CPAction {cpDeclare, cpSave, cpLoad};
+public:
+    PragmaCheckpoint(CPAction aAction): DvmPragma(pkCheckpoint), action(aAction) {}
+public:
+    CPAction action;
+    std::string cpName;
+public:
+    std::string getTypeStr() {
+        switch (this->action) {
+            case cpDeclare: return "create_or_bind";
+            case cpSave: return "save";
+            case cpLoad: return "load";
+        }
+    }
+};
+
+class PragmaCheckpointDeclare: public PragmaCheckpoint {
+public:
+    PragmaCheckpointDeclare(): PragmaCheckpoint(cpDeclare) {
+        distribIndents.clear();
+        scalarIndents.clear();
+    }
+public:
+    std::string mode;
+    std::string nFiles;
+    std::vector<std::string> distribIndents;
+    std::vector<std::string> scalarIndents;
+public:
+    static bool isTokenMode(std::string tokStr) {
+        return (tokStr == "LOCAL") | (tokStr == "LOCAL_ASYNC") | (tokStr == "PARALLEL") | (tokStr == "PARALLEL_ASYNC");
+    }
+};
+
+class PragmaCheckpointSave: public PragmaCheckpoint {
+public:
+    PragmaCheckpointSave(): PragmaCheckpoint(cpSave) {}
+};
+
+class PragmaCheckpointLoad: public PragmaCheckpoint {
+public:
+    PragmaCheckpointLoad(): PragmaCheckpoint(cpLoad) {}
 };
 
 }

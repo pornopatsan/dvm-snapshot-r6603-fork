@@ -281,6 +281,21 @@ void ConverterASTVisitor::genArrayCopies(FileID fileID, int line) {
     }
 }
 
+void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
+    while (DvmPragma *gotPragma = fileCtx.getNextPragma(fileID.getHashValue(), line, DvmPragma::pkCheckpoint)) {
+        PragmaCheckpoint *curPragma = (PragmaCheckpoint *)gotPragma;
+        SourceLocation loc(srcMgr.translateLineCol(fileID, curPragma->srcLine + curPragma->srcLineSpan, 1));
+        std::string indent = extractIndent(srcMgr.getCharacterData(srcMgr.translateLineCol(fileID, curPragma->srcLine, 1)));
+        std::string toInsert;
+        if (!opts.lessDvmLines)
+            toInsert += indent + genDvmLine(curPragma) + "\n";
+
+        toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
+        toInsert += "\n";
+        rewr.InsertText(loc, toInsert, false, false);
+    }
+}
+
 void ConverterASTVisitor::genDerivedFuncPair(const DerivedAxisRule &rule, std::string &countingFormalParamsFwd, std::string &countingFormalParams,
         std::string &countingFuncBody, std::string &fillingFormalParamsFwd, std::string &fillingFormalParams, std::string &fillingFuncBody,
         int &passParamsCount, std::string &passParams)

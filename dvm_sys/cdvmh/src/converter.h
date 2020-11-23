@@ -127,6 +127,7 @@ protected:
     void genLocalizes(FileID fileID, int line);
     void genUnlocalizes(FileID fileID, int line);
     void genArrayCopies(FileID fileID, int line);
+    void genCheckpoints(FileID fileID, int line);
     VarDecl *seekVarDecl(std::string name, MyDeclContext *context = 0);
     void genDerivedFuncPair(const DerivedAxisRule &rule, std::string &countingFormalParamsFwd, std::string &countingFormalParams,
             std::string &countingFuncBody, std::string &fillingFormalParamsFwd, std::string &fillingFormalParams, std::string &fillingFuncBody,
