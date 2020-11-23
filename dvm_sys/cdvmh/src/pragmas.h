@@ -518,7 +518,7 @@ public:
     }
 public:
     std::string mode;
-    std::string nFiles;
+    int nFiles;
     std::vector<std::string> distribIndents;
     std::vector<std::string> scalarIndents;
 public:

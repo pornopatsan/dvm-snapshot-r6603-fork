@@ -290,8 +290,16 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
         if (!opts.lessDvmLines)
             toInsert += indent + genDvmLine(curPragma) + "\n";
 
-        toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
-        toInsert += "\n";
+        auto pragmaType = curPragma->getTypeStr();
+        if ((pragmaType == "save") || (pragmaType == "load")) {
+            toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
+            toInsert += "\n";
+        } else {
+            PragmaCheckpointDeclare *curPragmaDecl = (PragmaCheckpointDeclare *)curPragma;
+            toInsert += indent + "dvmh_" + curPragmaDecl->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\", ";
+            toInsert += curPragmaDecl->mode + ", " + std::to_string(curPragmaDecl->nFiles) + ", ";
+            toInsert += ");\n\n";
+        }
         rewr.InsertText(loc, toInsert, false, false);
     }
 }

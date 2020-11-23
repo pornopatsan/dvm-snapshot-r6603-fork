@@ -893,9 +893,14 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
             curPragma->mode = tokStr;
             PP.LexNonComment(Tok);
 
-            auto tokStr = Tok.getIdentifierInfo();//->getName().str();
-//            cdvmhLog(TRACE, fileName, line, "Next Token: %s", tokStr.c_str());
-//            curPragma->nFiles = std::stoi(tokStr);
+            checkDirErrN(Tok.isLiteral(), 483, COLUMN);
+            curPragma->nFiles = std::atoi(Tok.getLiteralData());
+            PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.is(tok::l_square), 484, COLUMN);
+            PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
             PP.LexNonComment(Tok);
         } else {
             checkDirErrN(false, 309, tokStr.c_str());
