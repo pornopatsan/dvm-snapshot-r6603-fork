@@ -1,0 +1,620 @@
+/*********************************************************************/
+/*                  pC++/Sage++  Copyright (C) 1993                  */
+/*  Indiana University  University of Oregon  University of Rennes   */
+/*********************************************************************/
+ 
+/******************* variant tags for bif nodes **********************/
+
+#define GLOBAL			100
+#define PROG_HEDR		101
+#define PROC_HEDR		102
+#define BASIC_BLOCK		103
+#define CONTROL_END		104
+#define IF_NODE			105
+#define LOOP_NODE		106
+#define FOR_NODE		107
+#define FORALL_NODE		108
+#define WHILE_NODE		109
+#define EXIT_NODE		110
+#define ASSIGN_STAT		111
+#define M_ASSIGN_STAT		112
+#define PROC_STAT		113
+#define SUM_ACC			114	/* accumulation statements */
+#define MULT_ACC		115
+#define MAX_ACC			116
+#define MIN_ACC			117
+#define CAT_ACC			118
+#define OR_ACC			119
+#define AND_ACC			120
+#define READ_STAT		121
+#define WRITE_STAT		122
+#define OTHERIO_STAT		123
+#define CDOALL_NODE		124
+#define SDOALL_NODE		125
+#define DOACROSS_NODE		126
+#define CDOACROSS_NODE		127
+#define DVM_INTERVAL_DIR	128  /* DVM-F */
+#define DVM_ENDINTERVAL_DIR	129  /* DVM-F */
+#define FUNC_HEDR		130
+#define WHERE_NODE		131
+#define ALLDO_NODE		132
+#define IDENTIFY		133
+#define FORMAT_STAT		134
+#define STOP_STAT		135
+#define RETURN_STAT		136
+#define ELSEIF_NODE		137
+#define ARITHIF_NODE		138
+#define GOTO_NODE		139
+#define ASSGOTO_NODE		140
+#define COMGOTO_NODE		141
+#define PAUSE_NODE		142
+#define STOP_NODE		143
+#define ASSLAB_STAT		144
+#define LOGIF_NODE		145
+#define DVM_DEBUG_DIR		146  /* DVM-F */
+#define DVM_ENDDEBUG_DIR	147  /* DVM-F */
+#define DVM_TRACEON_DIR		148  /* DVM-F */
+#define DVM_TRACEOFF_DIR	149  /* DVM-F */
+#define BLOB			150
+#define SIZES			151
+#define COMMENT_STAT		152
+#define CONT_STAT		153
+#define VAR_DECL		154
+#define PARAM_DECL		155
+#define COMM_STAT		156
+#define EQUI_STAT		157
+#define IMPL_DECL		158
+#define DATA_DECL		159
+#define SAVE_DECL		160
+#define ENTRY_STAT		162
+#define STMTFN_STAT		163
+#define DIM_STAT		164
+#define BLOCK_DATA		165
+#define EXTERN_STAT		166
+#define INTRIN_STAT		167
+#define ENUM_DECL		168	/* New added for VPC */
+#define CLASS_DECL		169	/* New added for VPC */
+#define UNION_DECL		170	/* New added for VPC */
+#define STRUCT_DECL		171	/* New added for VPC */
+#define DERIVED_CLASS_DECL	172	/* New added for VPC */
+#define EXPR_STMT_NODE		173	/* New added for VPC */
+#define DO_WHILE_NODE		174	/* New added for VPC */
+#define SWITCH_NODE		175	/* New added for VPC */
+#define CASE_NODE		176	/* New added for VPC */
+#define DEFAULT_NODE		177	/* New added for VPC */
+#define BREAK_NODE		178	/* New added for VPC */
+#define CONTINUE_NODE		179	/* New added for VPC */
+#define RETURN_NODE		180	/* New added for VPC */
+#define ASM_NODE		181	/* New added for VPC */
+#define SPAWN_NODE		182	/* New added for CC++ */
+#define PARFOR_NODE		183	/* New added for CC++ */
+#define PAR_NODE		184	/* New added for CC++ */
+#define LABEL_STAT		185	/* New added for VPC */
+#define PROS_COMM		186	/* Fortran M */
+#define ATTR_DECL		187	/* attribute declaration */
+#define NAMELIST_STAT		188
+#define FUTURE_STMT		189	/* NEW added for VPC */
+#define COLLECTION_DECL		190	/* NEW added for PC++ */
+#define TEMPLATE_DECL		191     /* added by dbg for templates */
+#define TEMPLATE_FUNDECL	192     /* added by dbg for template function*/
+#define TECLASS_DECL		193     /* added for pC++ */
+#define ELSEWH_NODE		194     /*F95*/
+#define STATIC_STMT             195     /*F95*/
+#define INCLUDE_LINE            196     /*F95*/
+#define PREPROCESSOR_DIR        197     /*C,C++*/
+#define PRINT_STAT		200
+#define BACKSPACE_STAT		201
+#define REWIND_STAT		202
+#define ENDFILE_STAT		203
+#define INQUIRE_STAT		204
+#define OPEN_STAT		205
+#define CLOSE_STAT		206
+#define EXTERN_C_STAT		207	/* Added by PHB for 'extern "C" {}' */
+#define INCLUDE_STAT		208
+#define TRY_STAT		209     /* added by dbg for C++ exceptions  */
+#define CATCH_STAT		210     /* moreexcpt handling (part of try) */
+#define DVM_PARALLEL_ON_DIR     211  /* DVM-F */
+#define DVM_SHADOW_START_DIR    212  /* DVM-F */
+#define DVM_SHADOW_GROUP_DIR    213  /* DVM-F */
+#define DVM_SHADOW_WAIT_DIR     214  /* DVM-F */
+#define DVM_REDUCTION_START_DIR 215  /* DVM-F */
+#define DVM_REDUCTION_GROUP_DIR 216  /* DVM-F */
+#define DVM_REDUCTION_WAIT_DIR  217  /* DVM-F */
+#define DVM_DYNAMIC_DIR         218  /* DVM-F */
+#define DVM_ALIGN_DIR           219  /* DVM-F */
+#define DVM_REALIGN_DIR         220  /* DVM-F */
+#define DVM_REALIGN_NEW_DIR     221  /* DVM-F */
+#define DVM_REMOTE_ACCESS_DIR   222  /* DVM-F */
+#define HPF_INDEPENDENT_DIR     223  /* HPF */
+#define DVM_SHADOW_DIR          224  /* DVM-F */
+#define PARDO_NODE		225     /* Following added for PCF Fortran */
+#define PARSECTIONS_NODE	226
+#define SECTION_NODE		227
+#define GUARDS_NODE		228
+#define LOCK_NODE		229
+#define UNLOCK_NODE		230
+#define CRITSECTION_NODE	231
+#define POST_NODE		232
+#define WAIT_NODE		233
+#define CLEAR_NODE		234
+#define POSTSEQ_NODE		235
+#define WAITSEQ_NODE		236
+#define SETSEQ_NODE		237
+#define ASSIGN_NODE		238
+#define RELEASE_NODE		239
+#define PRIVATE_NODE		240
+#define SCOMMON_NODE		241
+#define PARREGION_NODE		242
+#define PDO_NODE		243
+#define PSECTIONS_NODE		244
+#define SINGLEPROCESS_NODE	245
+#define SKIPPASTEOF_NODE	246
+#define DVM_NEW_VALUE_DIR	247 /* DVM-F */
+#define DVM_VAR_DECL    	248 /* DVM-F */
+#define DVM_POINTER_DIR    	249 /* DVM-F */
+#define INTENT_STMT             250        /* Added for Fortran 90 */
+#define OPTIONAL_STMT           251
+#define PUBLIC_STMT             252
+#define PRIVATE_STMT            253
+#define ALLOCATABLE_STMT        254
+#define POINTER_STMT            255
+#define TARGET_STMT             256
+#define ALLOCATE_STMT           257
+#define NULLIFY_STMT            258
+#define DEALLOCATE_STMT         259
+#define SEQUENCE_STMT	        260
+#define CYCLE_STMT	        261
+#define EXIT_STMT	        262
+#define CONTAINS_STMT           263
+#define WHERE_BLOCK_STMT 	264
+#define MODULE_STMT	        265
+#define USE_STMT	        266
+#define INTERFACE_STMT	        267
+#define MODULE_PROC_STMT	268
+#define OVERLOADED_ASSIGN_STAT  269
+#define POINTER_ASSIGN_STAT     270
+#define OVERLOADED_PROC_STAT	271
+#define DECOMPOSITION_STMT	275
+#define ALIGN_STMT		276
+#define DVM_DISTRIBUTE_DIR	277  /* DVM-F */ 
+#define REDUCE_STMT		278
+#define PROS_HEDR		279  /* Fortran M */
+#define PROS_STAT		280  /* Fortran M */
+#define PROS_STAT_LCTN		281  /* Fortran M */
+#define PROS_STAT_SUBM		282  /* Fortran M */
+#define PROCESSES_STAT		283  /* Fortran M */
+#define PROCESSES_END		284  /* Fortran M */
+#define PROCESS_DO_STAT         285  /* Fortran M */
+#define PROCESSORS_STAT		286  /* Fortran M */
+#define CHANNEL_STAT		287  /* Fortran M */
+#define MERGER_STAT		288  /* Fortran M */
+#define MOVE_PORT		289  /* Fortran M */
+#define SEND_STAT		290  /* Fortran M */
+#define RECEIVE_STAT		291  /* Fortran M */
+#define ENDCHANNEL_STAT		292  /* Fortran M */
+#define PROBE_STAT		293  /* Fortran M */
+#define INPORT_DECL     	294  /* Fortran M */
+#define OUTPORT_DECL		295  /* Fortran M */
+#define HPF_TEMPLATE_STAT       296  /* HPF */
+#define HPF_ALIGN_STAT          297  /* HPF */    
+#define HPF_PROCESSORS_STAT     298  /* HPF */
+#define DVM_REDISTRIBUTE_DIR    299  /* DVM-F */
+#define DVM_TASK_REGION_DIR 	605	/* DVM-F */
+#define DVM_END_TASK_REGION_DIR	606	/* DVM-F */
+#define DVM_ON_DIR  		607	/* DVM-F */
+#define DVM_END_ON_DIR		608	/* DVM-F */
+#define DVM_TASK_DIR           	609	/* DVM-F */
+#define DVM_MAP_DIR 		610	/* DVM-F */
+#define DVM_PARALLEL_TASK_DIR	611     /* DVM-F */
+#define DVM_INHERIT_DIR		612	/* DVM-F */
+#define DVM_INDIRECT_GROUP_DIR	613	/* DVM-F */
+#define DVM_INDIRECT_ACCESS_DIR	614	/* DVM-F */
+#define DVM_REMOTE_GROUP_DIR	615	/* DVM-F */
+#define DVM_RESET_DIR		616	/* DVM-F */
+#define DVM_PREFETCH_DIR	617	/* DVM-F */
+#define DVM_OWN_DIR		618	/* DVM-F */
+#define DVM_HEAP_DIR		619	/* DVM-F */
+#define DVM_ASYNCID_DIR		620	/* DVM-F */
+#define DVM_ASYNCHRONOUS_DIR	621	/* DVM-F */
+#define DVM_ENDASYNCHRONOUS_DIR	622	/* DVM-F */
+#define DVM_ASYNCWAIT_DIR	623	/* DVM-F */
+#define DVM_F90_DIR		624	/* DVM-F */
+#define DVM_BARRIER_DIR		625	/* DVM-F */
+#define FORALL_STAT		626	/* F95 */
+#define DVM_CONSISTENT_GROUP_DIR 627	/* DVM-F */
+#define DVM_CONSISTENT_START_DIR 628	/* DVM-F */
+#define DVM_CONSISTENT_WAIT_DIR  629	/* DVM-F */
+#define DVM_CONSISTENT_DIR       630	/* DVM-F */
+#define DVM_CHECK_DIR            631	/* DVM-F */
+#define DVM_IO_MODE_DIR          632	/* DVM-F */
+#define DVM_LOCALIZE_DIR         633    /* DVM-F */
+#define DVM_SHADOW_ADD_DIR       634    /* DVM-F */
+#define DVM_CP_CREATE_DIR        635	/* DVM-F */ 
+#define DVM_CP_LOAD_DIR          636	/* DVM-F */
+#define DVM_CP_SAVE_DIR          637	/* DVM-F */
+#define DVM_CP_WAIT_DIR          638	/* DVM-F */
+#define DVM_EXIT_INTERVAL_DIR	 639    /* DVM-F */
+#define DVM_TEMPLATE_CREATE_DIR	 640    /* DVM-F */ 
+#define DVM_TEMPLATE_DELETE_DIR	 641    /* DVM-F */
+    
+/***************** variant tags for low level nodes ********************/
+
+#define INT_VAL			300
+#define FLOAT_VAL		301
+#define DOUBLE_VAL		302
+#define BOOL_VAL		303
+#define CHAR_VAL		304
+#define STRING_VAL		305
+#define CONST_REF		306
+#define VAR_REF			307
+#define ARRAY_REF		308
+#define RECORD_REF		309   /* diff struct between Blaze and VPC++ */
+#define ENUM_REF		310
+#define VAR_LIST		311
+#define EXPR_LIST		312
+#define RANGE_LIST		313
+#define CASE_CHOICE		314
+#define DEF_CHOICE		315
+#define VARIANT_CHOICE		316
+#define COMPLEX_VAL		317
+#define LABEL_REF		318
+#define KEYWORD_VAL		319   /* Strings to be printed with quotes */
+#define DDOT			324
+#define RANGE_OP		325
+#define UPPER_OP		326
+#define LOWER_OP		327
+#define EQ_OP			328
+#define LT_OP			329
+#define GT_OP			330
+#define NOTEQL_OP		331
+#define LTEQL_OP		332
+#define GTEQL_OP		333
+#define ADD_OP			334
+#define SUBT_OP			335
+#define OR_OP			336
+#define MULT_OP			337
+#define DIV_OP			338
+#define MOD_OP			339
+#define AND_OP			340
+#define EXP_OP			341
+#define ARRAY_MULT		342
+#define CONCAT_OP		343	/* cancatenation of strings */
+#define XOR_OP			344	/* .XOR. in fortran */
+#define EQV_OP			345	/* .EQV. in fortran */
+#define NEQV_OP			346	/* .NEQV. in fortran */
+#define MINUS_OP		350	/* unary operations */
+#define NOT_OP			351
+#define ASSGN_OP		352	/* New ADDED For VPC */
+#define DEREF_OP		353	/* New ADDED For VPC */
+#define POINTST_OP		354	/* New ADDED For VPC */	/* ptr->x  */
+#define FUNCTION_OP		355	/* New ADDED For VPC */	/* (*DD)() */
+#define MINUSMINUS_OP		356	/* New ADDED For VPC */
+#define PLUSPLUS_OP		357	/* New ADDED For VPC */
+#define BITAND_OP		358	/* New ADDED For VPC */
+#define BITOR_OP		359	/* New ADDED For VPC */
+#define STAR_RANGE		360	/* operations with no operands 360.. */
+#define PROC_CALL		370
+#define FUNC_CALL		371
+#define CONSTRUCTOR_REF 	380
+#define ACCESS_REF		381
+#define CONS			382
+#define ACCESS			383
+#define IOACCESS		384
+#define CONTROL_LIST		385
+#define SEQ			386
+#define SPEC_PAIR		387
+#define COMM_LIST		388
+#define STMT_STR		389
+#define EQUI_LIST		390
+#define IMPL_TYPE		391
+#define STMTFN_DECL		392
+#define BIT_COMPLEMENT_OP     	393
+#define EXPR_IF			394
+#define EXPR_IF_BODY		395
+#define FUNCTION_REF		396
+#define LSHIFT_OP		397
+#define RSHIFT_OP		398
+#define UNARY_ADD_OP		399
+#define SIZE_OP			400
+#define INTEGER_DIV_OP		401
+#define SUB_OP			402
+#define LE_OP			403	/* New added for VPC */
+#define GE_OP			404	/* New added for VPC */
+#define NE_OP			405	/* New added for VPC */
+#define CLASSINIT_OP		406	/* New added for VPC */
+#define CAST_OP			407	/* New added for VPC */
+#define ADDRESS_OP		408	/* New added for VPC */
+#define POINSTAT_OP		409	/* New added for VPC */    
+#define COPY_NODE		410	/* New added for VPC */    
+#define INIT_LIST		411	/* New added for VPC */    
+#define VECTOR_CONST		412	/* New added for VPC */    
+#define BIT_NUMBER		413	/* New added for VPC */    
+#define ARITH_ASSGN_OP		414	/* New added for VPC */    
+#define ARRAY_OP		415	/* New added for VPC */   
+#define NEW_OP			416	/* New added for VPC */    
+#define DELETE_OP		417	/* New added for VPC */
+#define NAMELIST_LIST		418
+#define THIS_NODE		419	/* New added for VPC */    
+#define SCOPE_OP		420	/* New added for VPC */    
+#define PLUS_ASSGN_OP		421	/* New added for VPC */    
+#define MINUS_ASSGN_OP		422	/* New added for VPC */    
+#define AND_ASSGN_OP		423	/* New added for VPC */    
+#define IOR_ASSGN_OP		424	/* New added for VPC */    
+#define MULT_ASSGN_OP		425	/* New added for VPC */    
+#define DIV_ASSGN_OP		426	/* New added for VPC */    
+#define MOD_ASSGN_OP		427	/* New added for VPC */    
+#define XOR_ASSGN_OP		428	/* New added for VPC */    
+#define LSHIFT_ASSGN_OP 	429	/* New added for VPC */    
+#define RSHIFT_ASSGN_OP 	430	/* New added for VPC */    
+#define ORDERED_OP		431     /* Following added for PCF FORTRAN */
+#define EXTEND_OP		432
+#define MAXPARALLEL_OP		433
+#define SAMETYPE_OP             434
+#define TYPE_REF                450     /* Added for FORTRAN 90 */
+#define STRUCTURE_CONSTRUCTOR   451
+#define ARRAY_CONSTRUCTOR       452
+#define SECTION_REF             453
+#define VECTOR_SUBSCRIPT        454
+#define SECTION_OPERANDS        455
+#define KEYWORD_ARG   	        456
+#define OVERLOADED_CALL	        457
+#define INTERFACE_REF           458
+#define RENAME_NODE	        459
+#define TYPE_NODE	        460
+#define PAREN_OP	        461
+#define PARAMETER_OP	        462
+#define PUBLIC_OP	        463
+#define PRIVATE_OP	        464
+#define ALLOCATABLE_OP	        465
+#define DIMENSION_OP	        466
+#define EXTERNAL_OP	        467
+#define IN_OP	                468
+#define OUT_OP	        	469
+#define INOUT_OP	        470
+#define INTRINSIC_OP	        471
+#define POINTER_OP	        472
+#define OPTIONAL_OP	        473
+#define SAVE_OP	        	474
+#define TARGET_OP	        475
+#define ONLY_NODE        	476
+#define LEN_OP	        	477
+#define TYPE_OP 	        479
+#define DOTSTAR_OP         	480	/* C++ .* operator */
+#define ARROWSTAR_OP		481	/* C++ ->* operator */
+#define FORDECL_OP		482	/* C++ for(int i; needs a new op */
+#define THROW_OP		483	/* C++ throw operator */
+#define PROCESSORS_REF		484	/* Fortran M */
+#define PORT_TYPE_OP		485	/* Fortran M */
+#define INPORT_TYPE_OP		486	/* Fortran M */
+#define OUTPORT_TYPE_OP		487	/* Fortran M */
+#define INPORT_NAME		488	/* Fortran M */
+#define OUTPORT_NAME		489	/* Fortran M */
+#define FROMPORT_NAME		490	/* Fortran M */
+#define TOPORT_NAME		491	/* Fortran M */
+#define IOSTAT_STORE		492	/* Fortran M */
+#define EMPTY_STORE		493	/* Fortran M */
+#define ERR_LABEL		494	/* Fortran M */
+#define END_LABEL		495	/* Fortran M */
+#define PROS_CALL		496	/* Fortran M */
+#define STATIC_OP               497     /* F95*/
+#define LABEL_ARG               498  
+#define DATA_IMPL_DO            700     /* Fortran M */
+#define DATA_ELT                701     /* Fortran M */
+#define DATA_SUBS               702     /* Fortran M */
+#define DATA_RANGE              703     /* Fortran M */
+#define ICON_EXPR               704     /* Fortran M */
+#define BLOCK_OP                705     /* DVM-F */
+#define NEW_SPEC_OP             706     /* DVM-F */
+#define REDUCTION_OP            707     /* DVM-F */
+#define SHADOW_RENEW_OP         708     /* DVM-F */
+#define SHADOW_START_OP         709     /* DVM-F */
+#define SHADOW_WAIT_OP          710     /* DVM-F */
+#define DIAG_OP                 711     /* DVM-F */
+#define REMOTE_ACCESS_OP        712     /* DVM-F */
+#define TEMPLATE_OP             713     /* DVM-F */
+#define PROCESSORS_OP           714     /* DVM-F */
+#define DYNAMIC_OP              715     /* DVM-F */
+#define ALIGN_OP                716     /* DVM-F */
+#define DISTRIBUTE_OP           717     /* DVM-F */
+#define SHADOW_OP               718     /* DVM-F */
+#define INDIRECT_ACCESS_OP      719     /* DVM-F */
+#define ACROSS_OP               720     /* DVM-F */
+#define NEW_VALUE_OP            721     /* DVM-F */
+#define SHADOW_COMP_OP          722     /* DVM-F */
+#define STAGE_OP                723     /* DVM-F */
+#define FORALL_OP               724     /* F95 */	
+#define CONSISTENT_OP           725     /* DVM-F */
+#define INTERFACE_OPERATOR	726     /* F95 */
+#define INTERFACE_ASSIGNMENT	727     /* F95 */
+#define VAR_DECL_90             728     /* F95 */
+#define ASSIGNMENT_OP           729     /* F95 */
+#define OPERATOR_OP             730     /* F95 */
+#define KIND_OP                 731     /* F95 */
+#define LENGTH_OP               732     /* F95 */
+#define RECURSIVE_OP            733     /* F95 */
+#define ELEMENTAL_OP            734     /* F95 */
+#define PURE_OP                 735     /* F95 */
+#define DEFINED_OP	        736     /* F95 */
+#define PARALLEL_OP             737     /*DVM-F */ 
+#define INDIRECT_OP             738     /*DVM-F */
+#define DERIVED_OP              739     /*DVM-F */
+#define DUMMY_REF               740     /*DVM-F */
+#define COMMON_OP               741     /*DVM-F */
+#define SHADOW_NAMES_OP         742     /*DVM-F */
+
+/***************** variant tags for symbol table entries ********************/
+
+#define CONST_NAME		500	/* constant types */
+#define ENUM_NAME		501
+#define FIELD_NAME		502   
+#define VARIABLE_NAME		503 
+#define TYPE_NAME		504
+#define PROGRAM_NAME		505
+#define PROCEDURE_NAME		506
+#define VAR_FIELD		507
+#define LABEL_VAR		508	/* dest of assigned goto stmt */
+#define FUNCTION_NAME		509
+#define MEMBER_FUNC		510	/* new added for VPC */
+#define CLASS_NAME		511	/* new added for VPC */
+#define UNION_NAME		512	/* new added for VPC */
+#define STRUCT_NAME		513	/* new added for VPC */
+#define LABEL_NAME		514	/* new added for VPC */
+#define COLLECTION_NAME		515	/* new added for VPC */
+#define ROUTINE_NAME		516	/*added for external statement*/
+#define CONSTRUCT_NAME          517
+#define INTERFACE_NAME	        518
+#define MODULE_NAME	        519
+#define TEMPLATE_CL_NAME	520
+#define TEMPLATE_FN_NAME	521
+#define TECLASS_NAME		522
+#define SHADOW_GROUP_NAME	523   /*  DVM_F */
+#define REDUCTION_GROUP_NAME	524   /*  DVM_F */
+#define REF_GROUP_NAME	        525   /*  DVM_F */
+#define ASYNC_ID		526   /*  DVM_F */
+#define CONSISTENT_GROUP_NAME   527   /*  DVM_F */
+#define NAMELIST_NAME           528
+#define COMMON_NAME             529 /* name of a common block (add Kataev N.A., 02.04.2014)*/
+
+#define DEFAULT			550
+#define T_INT			551	/* scalar types */
+#define T_FLOAT			552
+#define T_DOUBLE		553
+#define T_CHAR			554
+#define T_BOOL			555
+#define T_STRING		556
+#define T_ENUM			557
+#define T_SUBRANGE		558
+#define T_LIST			559
+#define T_ARRAY			560
+#define T_RECORD		561
+#define T_ENUM_FIELD		562
+#define T_UNKNOWN		563
+#define T_COMPLEX		564
+#define T_VOID			565	/* New one for VPC */
+#define T_DESCRIPT		566	/* New one for VPC */
+#define T_FUNCTION		567	/* New one for VPC */
+#define T_POINTER		568	/* New one for VPC */
+#define T_UNION			569	/* New one for VPC */
+#define T_STRUCT		570	/* New one for VPC */
+#define T_CLASS			571	/* New one for VPC */
+#define T_DERIVED_CLASS 	572	/* New one for VPC */
+#define T_DERIVED_TYPE		573	/* New one for VPC */
+#define T_COLLECTION		574	/* New one for PC++*/
+#define T_DERIVED_COLLECTION	575	/* New one for PC++*/
+#define T_REFERENCE		576	/* New one for PC++*/
+#define T_DERIVED_TEMPLATE      577     /* template type T<A,3,4> */
+#define T_MEMBER_POINTER        578     /* need for C::* (ptr to memb ) */ 
+#define T_TECLASS		579	/* new one for pC++*/
+#define T_GATE			580     /* added for PCF FORTRAN */
+#define T_EVENT			581
+#define T_SEQUENCE		582
+#define T_DCOMPLEX		583
+#define T_LONG			584
+#define BY_USE		        599     /* Fortran 90 */
+#define LOCAL			600	/* variable type */
+#define INPUT			601
+#define OUTPUT			602
+#define IO			603
+#define PROCESS_NAME 		604     /* Fortran M */
+
+#define OMP_PRIVATE                      801     /* OpenMP Fortran */
+#define OMP_SHARED                       802     /* OpenMP Fortran */
+#define OMP_FIRSTPRIVATE                 803     /* OpenMP Fortran */
+#define OMP_LASTPRIVATE                  804     /* OpenMP Fortran */
+#define OMP_THREADPRIVATE                805     /* OpenMP Fortran */
+#define OMP_COPYIN                       806     /* OpenMP Fortran */
+#define OMP_COPYPRIVATE                  807     /* OpenMP Fortran */
+#define OMP_DEFAULT                      808     /* OpenMP Fortran */
+#define OMP_ORDERED                      809     /* OpenMP Fortran */
+#define OMP_SCHEDULE                     810	 /* OpenMP Fortran */
+#define OMP_REDUCTION                    811	 /* OpenMP Fortran */
+#define OMP_IF                           812     /* OpenMP Fortran */
+#define OMP_NUM_THREADS                  813     /* OpenMP Fortran */
+#define OMP_NOWAIT                       814     /* OpenMP Fortran */
+#define OMP_PARALLEL_DIR                 820     /* OpenMP Fortran */
+#define OMP_END_PARALLEL_DIR             821     /* OpenMP Fortran */
+#define OMP_DO_DIR                       822     /* OpenMP Fortran */
+#define OMP_END_DO_DIR                   823     /* OpenMP Fortran */
+#define OMP_SECTIONS_DIR                 824     /* OpenMP Fortran */
+#define OMP_END_SECTIONS_DIR             825     /* OpenMP Fortran */
+#define OMP_SECTION_DIR                  826     /* OpenMP Fortran */
+#define OMP_SINGLE_DIR                   827     /* OpenMP Fortran */ 
+#define OMP_END_SINGLE_DIR               828     /* OpenMP Fortran */ 
+#define OMP_WORKSHARE_DIR                829     /* OpenMP Fortran */ 
+#define OMP_END_WORKSHARE_DIR            830     /* OpenMP Fortran */   
+#define OMP_PARALLEL_DO_DIR              831     /* OpenMP Fortran */    
+#define OMP_END_PARALLEL_DO_DIR          832     /* OpenMP Fortran */   
+#define OMP_PARALLEL_SECTIONS_DIR        833     /* OpenMP Fortran */    
+#define OMP_END_PARALLEL_SECTIONS_DIR    834     /* OpenMP Fortran */   
+#define OMP_PARALLEL_WORKSHARE_DIR       835     /* OpenMP Fortran */   
+#define OMP_END_PARALLEL_WORKSHARE_DIR   836     /* OpenMP Fortran */   
+#define OMP_MASTER_DIR                   837     /* OpenMP Fortran */    
+#define OMP_END_MASTER_DIR               838     /* OpenMP Fortran */    
+#define OMP_CRITICAL_DIR                 839     /* OpenMP Fortran */   
+#define OMP_END_CRITICAL_DIR             840     /* OpenMP Fortran */   
+#define OMP_BARRIER_DIR                  841     /* OpenMP Fortran */   
+#define OMP_ATOMIC_DIR                   842     /* OpenMP Fortran */   
+#define OMP_FLUSH_DIR                    843     /* OpenMP Fortran */   
+#define OMP_ORDERED_DIR                  844     /* OpenMP Fortran */   
+#define OMP_END_ORDERED_DIR              845     /* OpenMP Fortran */   
+#define RECORD_DECL                      846     /* OpenMP Fortran */   
+#define FUNC_STAT                        847     /* OpenMP Fortran */   
+#define OMP_ONETHREAD_DIR                848     /* OpenMP Fortran */
+#define OMP_THREADPRIVATE_DIR            849     /* OpenMP Fortran */   
+#define OMP_DEFAULT_SECTION_DIR          850     /* OpenMP Fortran */
+#define OMP_COLLAPSE                     851     /* OpenMP Fortran */
+
+#define ACC_REGION_DIR        	         900     /* ACC Fortran */
+#define ACC_END_REGION_DIR               901     /* ACC Fortran */
+#define ACC_CALL_STMT                    907     /* ACC Fortran */
+#define ACC_KERNEL_HEDR                  908     /* ACC Fortran */
+#define ACC_GET_ACTUAL_DIR               909     /* ACC Fortran */
+#define ACC_ACTUAL_DIR                   910     /* ACC Fortran */
+#define ACC_CHECKSECTION_DIR             911     /* ACC Fortran */
+#define ACC_END_CHECKSECTION_DIR         912     /* ACC Fortran */
+#define ACC_ROUTINE_DIR                  913     /* ACC Fortran */
+
+#define ACC_TIE_OP                       930     /* ACC Fortran */          
+#define ACC_INLOCAL_OP                   931     /* ACC Fortran */
+#define ACC_INOUT_OP                     932     /* ACC Fortran */
+#define ACC_IN_OP                        933     /* ACC Fortran */
+#define ACC_OUT_OP                       934     /* ACC Fortran */
+#define ACC_LOCAL_OP                     935     /* ACC Fortran */
+#define ACC_PRIVATE_OP                   936     /* ACC Fortran */
+#define ACC_DEVICE_OP                    937     /* ACC Fortran */
+#define ACC_CUDA_OP                      938     /* ACC Fortran */
+#define ACC_HOST_OP                      939     /* ACC Fortran */
+
+#define ACC_GLOBAL_OP                    940     /* ACC Fortran */ 
+#define ACC_ATTRIBUTES_OP                941     /* ACC Fortran */
+#define ACC_VALUE_OP                     942     /* ACC Fortran */
+#define ACC_SHARED_OP                    943     /* ACC Fortran */
+#define ACC_CONSTANT_OP                  944     /* ACC Fortran */
+#define ACC_USES_OP                      945     /* ACC Fortran */
+#define ACC_CALL_OP                      946     /* ACC Fortran */
+#define ACC_CUDA_BLOCK_OP                947     /* ACC Fortran */
+
+#define ACC_TARGETS_OP                   948     /* ACC Fortran */
+#define ACC_ASYNC_OP                     949     /* ACC Fortran */
+
+#define SPF_ANALYSIS_DIR                 950     /* SAPFOR */
+#define SPF_PARALLEL_DIR                 951     /* SAPFOR */
+#define SPF_TRANSFORM_DIR                952     /* SAPFOR */
+#define SPF_NOINLINE_OP                  953     /* SAPFOR */
+#define SPF_PARALLEL_REG_DIR             954     /* SAPFOR */
+#define SPF_END_PARALLEL_REG_DIR         955     /* SAPFOR */
+#define SPF_REGION_NAME                  956     /* SAPFOR */ 
+#define SPF_PRIVATES_EXPANSION_OP        957     /* SAPFOR */
+#define SPF_FISSION_OP                   958     /* SAPFOR */
+#define SPF_SHRINK_OP                    959     /* SAPFOR */
+#define SPF_CHECKPOINT_DIR               960     /* SAPFOR */
+#define SPF_TYPE_OP                      961     /* SAPFOR */
+#define SPF_VARLIST_OP                   962     /* SAPFOR */
+#define SPF_EXCEPT_OP                    963     /* SAPFOR */
+#define SPF_FILES_COUNT_OP               964     /* SAPFOR */
+#define SPF_INTERVAL_OP                  965     /* SAPFOR */
+#define SPF_TIME_OP                      966     /* SAPFOR */
+#define SPF_ITER_OP                      967     /* SAPFOR */
+#define SPF_FLEXIBLE_OP                  968     /* SAPFOR */
+#define SPF_PARAMETER_OP                 969     /* SAPFOR */
+#define SPF_CODE_COVERAGE_OP             970     /* SAPFOR */

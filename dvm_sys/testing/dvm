@@ -1,7 +1,7 @@
 #!/bin/sh
 
 dvmdir='/Users/penek/dvm/dvm_sys'
-export dvmbuild='Version 5.0, revision 6603, platform osx-10.11-clang.karosh, build 13'
+export dvmbuild='Version 5.0, revision 6603, platform osx-10.11-clang.karosh, build 10'
 
 #--------------- One can customize compiler options:
 # export PCC='mpicc -g -O2 -fopenmp' # C compiler

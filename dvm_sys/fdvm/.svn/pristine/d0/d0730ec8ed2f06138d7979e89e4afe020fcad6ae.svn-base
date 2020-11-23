@@ -1,0 +1,35 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/lib/Makefile (phb)
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR=oldsrc newsrc
+
+oldsrc:
+	cd oldsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+
+newsrc:
+	cd newsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+
+all: oldsrc newsrc
+	@echo "****** DONE MAKING SUBDIRECTORIES $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES $(SUBDIR) ******"
+	cd oldsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	cd newsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@echo "****** DONE CLEAN SUBDIRECTORIES $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES $(SUBDIR) ******"
+	cd oldsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall 
+	cd newsrc; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall
+	@echo "****** DONE CLEANALL SUBDIRECTORIES $(SUBDIR) ******"
+
+.PHONY: all clean cleanall oldsrc newsrc

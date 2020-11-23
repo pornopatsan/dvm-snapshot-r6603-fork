@@ -1,0 +1,54 @@
+#ifndef _DEBUG_DEF_
+#define _DEBUG_DEF_
+/*****************/
+
+#define NO_SIZE_CHECK
+/* SIZE check correctness feature (mbodies.c) is disabled because it does not work with loops with steps > 1 */
+#define NO_DOPL_DOPLMB_TRACE
+//#define DOSL_TRACE
+//#define DONT_TRACE_NECESSARY_CHECK
+/* Previous 3 options are for debugging purposes of mbodies.c and not needed any more */
+#define DynControlParNumber  200  /* max. number of dynamic control parameters */
+
+#define MaxSourceFileName    24   /* max. size of source file name */
+#define MaxSourceFileCount   24   /* max. count of source files */
+#define MaxEnvironmentLevel  10   /* maximal nesting level of parallel loops */
+#define MaxOperand           64
+#define MaxPathSize          512  /* Maximum allowed path size */
+#define MaxArrayID           128  /* Maximum allowed length of array ID */
+#define REALLOC_COUNT        5    /* How many arrays structures to allocate in a portion */
+#define REALLOC_ADDLINES     1500 /* How much lines to add if we don't get into right interval */
+#define ARR_TXTID_LENGTH     (MaxOperand + MaxSourceFileName + 12)
+#define DEBUGGER_VERSION     "1.0 (13.06.2009)"
+
+/* if expression is false then something in debugger is incorrect and needs to be fixed */
+#ifndef _UNIX_
+#define DBG_ASSERT(file, line, expr)\
+{\
+    if ( !(expr) )\
+    {\
+        EnableTrace = 0;\
+        /*epprintf(MultiProcErrReg1, file, line, "*** RTS err: Assertion failed\n");\*/\
+        pprintf(3, "*** RTS err: Assertion failed: File %s, Line %d\n", file, line);\
+        /*_asm{int 3}*/\
+        fflush(Trace.DoplMBFileHandle);\
+        SYSTEM(fclose, (Trace.DoplMBFileHandle))\
+       /* exit( -1 );*/\
+    }\
+}
+#define SLEEP(k) Sleep(k*1000)
+#else
+#define DBG_ASSERT(file, line, expr)\
+{\
+    if ( !(expr) )\
+    {\
+        EnableTrace = 0;\
+        /*epprintf(MultiProcErrReg1, file, line, "*** RTS err: Assertion failed\n");\*/\
+        pprintf(3, "*** RTS err: Assertion failed: File %s, Line %d\n", file, line);\
+        exit( -1 );\
+    }\
+}
+#define SLEEP(k) sleep(k)
+#endif
+
+#endif  /* _DEBUG_DEF_ */

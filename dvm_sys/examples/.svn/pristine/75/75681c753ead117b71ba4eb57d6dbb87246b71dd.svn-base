@@ -1,0 +1,53 @@
+       PROGRAM REDBH
+       PARAMETER (N1 = 20,N2 = 10)
+       REAL  A(N1,N2),W
+       INTEGER  ITMAX
+!HPF$  DISTRIBUTE  (BLOCK,BLOCK) :: A
+       ITMAX = 20
+       W = 0.5
+!HPF$  INDEPENDENT 
+       DO 1 J = 1,N2
+!HPF$     INDEPENDENT
+          DO 1 I = 1,N1
+             IF (I.EQ.J) THEN 
+                A(I,J) = N1+2
+               ELSE
+                A(I,J) = (-(1.))
+             ENDIF
+1       CONTINUE
+       DO 2 IT = 1,ITMAX
+!HPF$  INDEPENDENT  
+       DO 21 J = 1,N2/2-1
+!HPF$     INDEPENDENT
+          DO 21 I = 1,N1/2-1
+             A(2*I+1,2*J+1) = W/4*(A(2*I,2*J+1)+A(2*I+2,2*J+1)+ 
+     +       A(2*I+1,2*J)+A(2*I+1,2*J+2))+(1-W)*A(2*I+1,2*J+1)
+21        CONTINUE
+!HPF$  INDEPENDENT  
+       DO 22 J = 1, N2/2-1
+!HPF$     INDEPENDENT
+          DO 22 I = 1,N1/2-1
+             A(2*I,2*J) = W/4*(A(2*I-1,2*J)+A(2*I+1,2*J)+A(2*I,2*J-1)+ 
+     +       A(2*I,2*J+1))+(1-W)*A(2*I,2*J)
+22        CONTINUE
+!HPF$  INDEPENDENT 
+       DO 23 J = 1,N2/2-1
+!HPF$     INDEPENDENT
+          DO 23 I = 1,N1/2-1
+             A(2*I,2*J+1) = W/4*(A(2*I-1,2*J+1)+A(2*I+1,2*J+1)+
+     +       A(2*I,2*J)+A(2*I,2*J+2))+(1-W)*A(2*I,2*J+1)
+23        CONTINUE
+!HPF$  INDEPENDENT 
+       DO 24 J = 1,N2/2-1
+!HPF$     INDEPENDENT
+          DO 24 I = 1,N1/2-1
+             A(2*I+1,2*J) = W/4*(A(2*I,2*J)+A(2*I+2,2*J)+A(2*I+1,2*J-1)+
+     +       A(2*I+1,2*J+1))+(1-W)*A(2*I+1,2*J)
+24        CONTINUE
+       PRINT *,'IT= ',IT
+2      CONTINUE
+       OPEN (3, FILE='REDBH.DAT', FORM='FORMATTED',STATUS='UNKNOWN')
+       WRITE (3,*)   A
+       CLOSE (3)
+       END
+

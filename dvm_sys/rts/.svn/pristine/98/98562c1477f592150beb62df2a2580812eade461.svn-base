@@ -1,0 +1,21 @@
+#ifndef _PARAM_VAR_
+#define _PARAM_VAR_
+/*****************/    /*E0000*/
+
+/**************************************************\
+* Some parameters not specified in parameter files *
+\**************************************************/    /*E0001*/ 
+
+#ifdef _INIT_INFO_
+  byte CodeCheckSumPrint=0; /* flag to print checksum of code memory at startup */    /*E0002*/
+  byte RouterNewTaskPrint=1;/* flag to print numbers of created subtasks
+                               during the work with ROUTER */    /*E0003*/  
+#else
+  byte CodeCheckSumPrint=0; /* flag to print checksum of the command memory at the beginning of execution */    /*E0004*/
+  byte RouterNewTaskPrint=0;/* flag to print numbers of created subtasks
+                               during the work with ROUTER */    /*E0005*/  
+#endif
+
+
+#endif   /* _PARAM_VAR_ */    /*E0006*/
+

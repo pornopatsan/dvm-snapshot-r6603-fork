@@ -1,0 +1,16 @@
+#For GNU compilers
+# for DVM tools
+ CC="gcc -g -O2"
+ CXX="g++ -g -O2"
+ LINKER="g++ -g"
+# LLVMCONFIG="llvm-config"
+# for parallel programs
+ PCC="gcc -g -O2 -fopenmp"
+ PCXX="g++ -g -O2 -fopenmp"
+ PFORT="gfortran -g -O2 -fopenmp"
+ PLINKER="g++ -g -fopenmp"
+ PFLINKER="gfortran -g -fopenmp"
+ WITHOUT_MPI=1
+# CUDA_PATH="/usr/local/cuda"
+# launch settings
+ dvmrun="runplain"

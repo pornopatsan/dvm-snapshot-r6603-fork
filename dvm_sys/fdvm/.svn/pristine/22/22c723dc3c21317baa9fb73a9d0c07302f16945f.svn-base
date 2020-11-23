@@ -1,0 +1,1060 @@
+/*********************************************************************/
+/*                  pC++/Sage++  Copyright (C) 1993                  */
+/*  Indiana University  University of Oregon  University of Rennes   */
+/*********************************************************************/
+
+/*****************************************************************************/
+/*****************************************************************************/
+/*****                                                                   *****/
+/*****    UNPARSE.DEF:   Gregory HOGDAL / Eric MARCHAND    July 1992     *****/
+/*****                   Bodin Francois August 1992                      *****/
+/*****                                                                   *****/
+/*****************************************************************************/
+/*****************************************************************************/
+
+/* 
+   The following types exist: BIFNODE, LLNODE, SYMBNODE and TYPENODE
+
+   Any erroneous construct is parsed into a node of this type.
+   This type of node is accepted without complaint in all contexts
+   by later parsing activities, to avoid multiple error messages
+   for one error.
+   No fields in these nodes are used except the NODE_CODE.  
+*/
+
+/* exemple 
+DEFNODECODE (ERROR_MARK, "error_mark", "x", 0, LLNODE)
+*/
+
+/***** List of commands for BIF NODES *****/
+       /* %ERROR      : Error ; syntax : %ERROR'message' */
+       /* %CMNT	      : the comment attached to a bif node */
+       /* %NL         : NewLine */
+       /* %%          : '%' (Percent Sign) */
+       /* %TAB        : Tab */
+       /* %IF         : If ; syntax : %IF (condition) then_bloc [%ELSE else_bloc] %ENDIF */
+       /* %ELSE       : Else */
+       /* %ENDIF      : End of If */
+       /* %SYMBID     : Symbol identifier */
+       /* %LL1        : Low Level Node 1 */
+       /* %LL2        : Low Level Node 2 */
+       /* %LL3        : Low Level Node 3 */
+       /* %L2L2       : Low Level Node 2 of Low Level Node 2 */
+       /* %BLOB1      : All Blob 1 */
+       /* %BLOB2      : All Blob 2 */
+       /* %STATENO    : Statement number */
+       /* %L1SYMBID   : pbf->entry.Template.ll_ptr1->entry.Template.symbol->ident; */
+       /* %INWRITEON  : In_Write_Statement Flag ON */
+       /* %INWRITEOFF : In_Write_Statement Flag OFF */
+       /* %INPARAMON  : In_Param_Statement Flag ON */
+       /* %INPARAMOFF : In_Param_Statement Flag OFF */
+       /* %INIMPLION  : In_Impli_Statement Flag ON */
+       /* %INIMPLIOFF : In_Impli_Statement Flag OFF */
+       /* SYMBTYPE    : Type of Symbol */
+       /* %VARLIST    : list of variables / parameters */
+/******************************************/
+
+/***** List of commands for evaluation in IF THEN ELSE ENDIF statements for BIF NODE *****/
+       /* %RECURSBIT  : int constant RECURSIVE_BIT (integer) */
+       /* %EXPR_LIST  : int constant EXPR_LIST code for Low Level Node (integer) */
+       /* %SPEC_PAIR  : int constant SPEC_PAIR code for Low Level Node (integer) */
+       /* %IOACCESS   : int constant IOACCESS code for Low Level Node (integer) */
+       /* %SATTR      : Symbol Attribut (integer) */
+       /* %STRCST     : String Constant in '' */
+       /* %SYMBID     : Symbol Identifier (string) */
+       /* %SYMBOL     : Symbol node (integer) */
+       /* ==          : Equal (operation) */
+       /* !=          : Different (operation) */
+       /* %NULL       : 0, Integer Constant (or false boolean) */
+       /* %LL1        : Low Level Node 1 (integer) */
+       /* %LL2        : Low Level Node 2 (integer) */
+       /* %LL3        : Low Level Node 3 (integer) */
+       /* %LABUSE     : Label ptr (do end) (integer) */
+       /* %L1CODE     : Code (variant) of Low Level Node 1 (integer) */
+       /* %L2CODE     : Code (variant) of Low Level Node 2 (integer) */
+       /* %L1L2L1CODE : Code (variant) of Low Level Node 1 of Low Level Node 2 of Low Level Node 1 (integer) */
+	/* %L1L2*L1CODE : Code (variant) of Low Level Node 1 of (Low Level Node 2)* of Low Level Node 1 (integer) follow L2*/
+       /* %L2L1STR    : String (string_val) of Low Level Node 1 of Low Level Node 2 (string) */
+/*****************************************************************************************/
+
+/*
+DEFNODECODE(GLOBAL,             "%CMNT%SETFLAG(QUOTE)%INCTAB%BLOB1%DECTAB%UNSETFLAG(QUOTE)",
+'s',0,BIFNODE)
+*/
+DEFNODECODE(GLOBAL,             "%CMNT%SETFLAG(QUOTE)%BLOB1%UNSETFLAG(QUOTE)",
+'s',0,BIFNODE)
+
+DEFNODECODE(PROG_HEDR,          "%CMNT%IF(%SYMBID != %STRCST'_MAIN')%PUTTABprogram %SYMBID%NL%ENDIF%BLOB1",
+'s',0,BIFNODE)
+DEFNODECODE(PROC_HEDR,          "%CMNT%PUTTAB%IF(%LL3 != %NULL)%LL3 %ENDIFsubroutine %SYMBID (%VARLIST)%NL%BLOB1",
+'s',0,BIFNODE)
+DEFNODECODE(PROS_HEDR,          "%CMNT%PUTTAB%IF(%LL3 != %NULL)%LL3 %ENDIFsubroutine %SYMBID (%LL1)%NL%BLOB1",
+'s',0,BIFNODE)
+/*DEFNODECODE(PROS_HEDR,          "%CMNT%PUTTABprocess %SYMBID (%VARLIST)%NL%BLOB1",
+'s',0,BIFNODE) */
+DEFNODECODE(BASIC_BLOCK,        "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(PROCESSES_STAT,     "%CMNT%PUTTABprocesses%NL%INCTAB%BLOB1",
+'s',0,BIFNODE)
+DEFNODECODE(INPORT_DECL,        "%CMNT%PUTTABinport (%LL2) %LL1%NL",
+'s',2,BIFNODE)
+DEFNODECODE(OUTPORT_DECL,       "%CMNT%PUTTABoutport (%LL2) %LL1%NL",
+'s',2,BIFNODE)
+DEFNODECODE(CHANNEL_STAT,       "%CMNT%PUTTABchannel(%LL1)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(MERGER_STAT,         "%CMNT%PUTTABmerger(%LL1)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(MOVE_PORT,          "%CMNT%PUTTABmoveport(%LL1)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(SEND_STAT,          "%CMNT%PUTTABsend%SETFLAG(PORT)(%LL1)%UNSETFLAG(PORT) %IF ( %LL2 != %NULL )%LL2%NL",
+'s',2,BIFNODE)
+DEFNODECODE(RECEIVE_STAT,       "%CMNT%PUTTABreceive%SETFLAG(PORT)(%LL1)%UNSETFLAG(PORT) %IF ( %LL2 != %NULL )%LL2%NL",
+'s',2,BIFNODE)
+DEFNODECODE(ENDCHANNEL_STAT,    "%CMNT%PUTTABendchannel%SETFLAG(PORT)(%LL1)%UNSETFLAG(PORT)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(PROBE_STAT,          "%CMNT%PUTTABprobe%SETFLAG(PORT)(%LL1)%UNSETFLAG(PORT)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(INTENT_STMT,        "%CMNT%PUTTAB%LL2 %LL1%NL",
+'s',2,BIFNODE)
+DEFNODECODE(ALLOCATE_STMT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABallocate(%LL1%IF(%LL2 != %NULL), %LL2%ENDIF)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(DEALLOCATE_STMT,    "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABdeallocate(%LL1%IF(%LL2 != %NULL), %LL2%ENDIF)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(NULLIFY_STMT,       "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABnullify(%LL1)%NL",
+'s',0,BIFNODE)
+
+/* 107 is value for FOR_NODE 
+DEFNODECODE(CONTROL_END,        "%CMNT%IF ( %VALINT107  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABenddo  %SYMBID%INCTAB%NL%ENDIF%IF ( %VALINT102  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%NL%NL%ENDIF%IF ( %VALINT101  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%NL%ENDIF%IF ( %VALINT130  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%NL%NL%ENDIF%IF ( %VALINT124  == %BIFCP)%DECTAB%PUTTABenddo%INCTAB%NL%ENDIF",
+'s',0,BIFNODE) */
+
+DEFNODECODE(CONTROL_END,        "%CMNT%IF ( %VALINT107  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABenddo  %SYMBID%INCTAB%NL%ENDIF%IF ( %VALINT102  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%IF ( %VALINT100  != %CPBIF) subroutine  %SYMBID%ELSE%NL%ENDIF%NL%ENDIF%IF ( %VALINT101  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%NL%NL%ENDIF%IF ( %VALINT130  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABend%IF ( %VALINT100  != %CPBIF) function  %SYMBID%ELSE%NL%ENDIF%NL%ENDIF%IF ( %VALINT124  == %BIFCP)%DECTAB%PUTTABenddo%INCTAB%NL%ENDIF%IF ( %VALINT109  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABenddo  %SYMBID%INCTAB%NL%ENDIF%IF ( %VALINT285  == %BIFCP)%DECTAB%PUTTABendprocessdo%INCTAB%NL%ENDIF%IF ( %VALINT279  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABend subroutine%NL%NL%NL%ENDIF%IF ( %VALINT175  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABend select  %SYMBID%INCTAB%NL%ENDIF%IF ( %VALINT108  == %BIFCP)%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABend forall  %SYMBID%INCTAB%NL%ENDIF%IF (%VALINT105 == %BIFCP)%SAVENAME%ENDIF%IF (%VALINT137 == %BIFCP)%SAVENAME%ENDIF%IF (%VALINT194 == %BIFCP)%SAVENAME%ENDIF%IF (%VALINT264 == %BIFCP)%SAVENAME%ENDIF",
+  's',0,BIFNODE)
+DEFNODECODE(PROCESSES_END,      "%CMNT%DECTAB%PUTTABendprocesses%NL",
+  's',0,BIFNODE)
+DEFNODECODE(IF_NODE,            "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%IF(%LL3 != %NULL)%LL3: %ENDIFif (%LL1) then%NL%INCTAB%BLOB1%DECTAB%IF (%BLOB2 != %NULL)%IF (%ELSIFBLOB2 == %NULL)%PUTTABelse  %CNTRNAME%NL%INCTAB%BLOB2%DECTAB%LABELENDIF%PUTTABendif  %CNTRNAME%NL%ELSE%BLOB2%ENDIF%ELSE%LABELENDIF%PUTTABendif  %CNTRNAME%NL%ENDIF",
+'s',0,BIFNODE)
+DEFNODECODE(WHERE_BLOCK_STMT,   "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%IF(%LL3 != %NULL)%LL3: %ENDIFwhere (%LL1)%NL%INCTAB%BLOB1%DECTAB%IF (%BLOB2 != %NULL)%IF (%ELSWHBLOB2 == %NULL)%PUTTABelsewhere  %CNTRNAME%NL%INCTAB%BLOB2%DECTAB%LABELENDIF%PUTTABendwhere  %CNTRNAME%NL%ELSE%BLOB2%ENDIF%ELSE%LABELENDIF%PUTTABendwhere  %CNTRNAME%NL%ENDIF",
+'s',0,BIFNODE)
+DEFNODECODE(ARITHIF_NODE,       "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABif (%LL1) %LL2%NL",
+'s',0,BIFNODE)
+DEFNODECODE(LOGIF_NODE,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABif (%LL1)  %TABOFF%BLOB1%TABON",
+'s',0,BIFNODE)
+DEFNODECODE(FORALL_STAT,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABforall (%LL1%IF(%LL2 != %NULL), %LL2%ENDIF)  %TABOFF%BLOB1%TABON",
+'s',0,BIFNODE)
+DEFNODECODE(LOOP_NODE,          "%ERROR", 
+'s',0,BIFNODE) 
+DEFNODECODE(FOR_NODE,           "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3: %ENDIF%INIMPLIOFF%INWRITEOFF%SETFLAG(LOOP)do %IF (%LABUSE != %NULL)%STATENO%ENDIF %SYMBID = %LL1%IF (%LL2 != %NULL),%LL2%ENDIF%INCTAB%NL%UNSETFLAG(LOOP)%BLOB1%DECTAB",
+'s',0,BIFNODE)    
+                                                                              
+  /* previously : for %SYMBID = %LL1 %NL %INCTAB%BLOB1%DECTAB enddo%NL",*/
+DEFNODECODE(PROCESS_DO_STAT,    "%CMNT%IF(%LABEL !=%NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 !=%NULL)%LL3: %ENDIF%INIMPLIOFF%INWRITEOFF%SETFLAG(LOOP)processdo %IF (%LABUSE !=%NULL)%STATENO%ENDIF %SYMBID = %LL1%IF (%LL2 !=%NULL),%LL2%ENDIF%INCTAB%NL%UNSETFLAG(LOOP)%BLOB1%DECTAB",  
+'s',2,BIFNODE)
+
+/* wrong
+DEFNODECODE(WHILE_NODE,         "%CMNT%IF(%LABEL !=%NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3:%ENDIFdo %IF (%LABUSE !=%NULL)%STATENO%ENDIF while (%LL1)%NL", 's',0,BIFNODE) 
+*/
+DEFNODECODE(WHILE_NODE,         "%CMNT%IF(%LABEL !=%NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3: %ENDIFdo %IF (%LABUSE !=%NULL)%STATENO %ENDIF%IF(%LL1 != %NULL)while (%LL1)%ENDIF%NL%INCTAB%BLOB1%DECTAB",   
+'s',0,BIFNODE)
+DEFNODECODE(FORALL_NODE,        "%CMNT%IF(%LABEL !=%NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3: %ENDIFforall (%LL1%IF(%LL2 != %NULL), %LL2%ENDIF)%NL%INCTAB%BLOB1%DECTAB",
+'s',0,BIFNODE)
+
+/* DEFNODECODE(CDOALL_NODE,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcdoall %IF (%LABUSE != %NULL)%STATENO%ENDIF%SYMBID = %LL1, %LL2%IF (%LL2 != %NULL) , %LL2%ENDIF%NL",
+'s',0,BIFNODE) */
+
+DEFNODECODE(CDOALL_NODE,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3:%ENDIF%INIMPLIOFF%INWRITEOFF%SETFLAG(LOOP)cdoall %IF (%LABUSE != %NULL)%STATENO%ENDIF %SYMBID = %LL1%IF (%LL2 != %NULL),%LL2%ENDIF%INCTAB%NL%UNSETFLAG(LOOP)%BLOB1%DECTAB",
+'s',0,BIFNODE) 
+
+DEFNODECODE(SDOALL_NODE,        "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(DOACROSS_NODE,      "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(CDOACROSS_NODE,     "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(EXIT_STMT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABexit %SYMBID%NL",
+'s',0,BIFNODE)
+DEFNODECODE(CYCLE_STMT,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcycle %SYMBID%NL",
+'s',0,BIFNODE)
+DEFNODECODE(GOTO_NODE,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABgoto %LL3%NL",
+'s',0,BIFNODE)
+DEFNODECODE(ASSGOTO_NODE,       "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABgoto %SYMBID %IF (%LL1 != %NULL)(%LL1)%ENDIF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(COMGOTO_NODE,       "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABgoto (%LL1), %LL2%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PAUSE_NODE,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABpause%NL",
+'s',0,BIFNODE)
+DEFNODECODE(CONTAINS_STMT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcontains%NL%NL",
+'s',0,BIFNODE)
+DEFNODECODE(STOP_NODE,          "%ERROR",
+'s',0,BIFNODE)
+
+DEFNODECODE(ASSIGN_STAT,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%LL1 = %LL2%NL",
+'s',0,BIFNODE)
+DEFNODECODE(POINTER_ASSIGN_STAT, "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%LL1 => %LL2%NL",
+'s',0,BIFNODE)
+DEFNODECODE(M_ASSIGN_STAT,      "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(PROC_STAT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcall %SYMBID(%LL1)%NL",
+'s',0,BIFNODE)
+/*ACC*/
+DEFNODECODE(ACC_CALL_STMT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcall %SYMBID<<<%LL2>>>(%LL1)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PROS_STAT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABprocess call %SYMBID(%LL1)%NL",
+'s',1,BIFNODE)
+DEFNODECODE(PROS_STAT_LCTN,     "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABprocess call %SYMBID(%LL1) location%LL2%NL",
+'s',2,BIFNODE)
+DEFNODECODE(PROS_STAT_SUBM,     "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABprocess call %SYMBID(%LL1) submachine%LL2%NL",
+'s',2,BIFNODE)
+DEFNODECODE(ASSLAB_STAT,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABassign %LL1 to %SYMBID%NL",
+'s',0,BIFNODE)
+DEFNODECODE(SUM_ACC,            "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(MULT_ACC,           "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(MAX_ACC,            "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(MIN_ACC,            "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(CAT_ACC,            "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(OR_ACC,             "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(AND_ACC,            "%ERROR",
+'s',0,BIFNODE)
+
+/*DEFNODECODE(READ_STAT,          "%CMNTread %IF (%L2CODE == %EXPR_LIST)(%LL2) %ELSE%IF (%L2CODE == %SPEC_PAIR)%IF (%L2L1STR == %STRCST 'fmt')(%LL2) %ELSE%L2L2%IF (%LL1 != %NULL), %ENDIF%ENDIF%ELSE%L2L2%IF (%LL1 != %NULL), %ENDIF%ENDIF%ENDIF%LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(READ_STAT,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIFread %IF (%L2CODE == %EXPR_LIST)(%LL2)%ELSE%IF (%L2L1STR == %STRCST 'fmt')(unit = *, %LL2)%ELSE(fmt = *, %LL2)%ENDIF%ENDIF%INWRITEON%IF (%L1L2*L1CODE == %IOACCESS)(%ENDIF%LL1%IF (%L1L2*L1CODE == %IOACCESS))%ENDIF%INWRITEOFF%NL",
+'s',0,BIFNODE) */
+
+/* this is OK but WRITE NODE differ for what reason????????, Should be the same*/
+DEFNODECODE(READ_STAT,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABread %IF (%L2CODE == %EXPR_LIST)(%LL2)%ELSE%IF (%L2L1STR == %STRCST 'fmt')(unit = *, %LL2)%ELSE%IF (%LL2 != %NULL)(%LL2)%ELSE(fmt = *, %LL2)%ENDIF%ENDIF%ENDIF%INWRITEON %LL1%INWRITEOFF%NL",
+'s',0,BIFNODE)
+
+/*
+DEFNODECODE(WRITE_STAT,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABwrite %IF (%L2CODE == %EXPR_LIST)(%LL2)%ELSE%IF (%L2L1STR == %STRCST 'fmt')(unit = *, %LL2)%ELSE(fmt = *, %LL2)%ENDIF%ENDIF%INWRITEON%IF (%L1L2*L1CODE == %IOACCESS)(%ENDIF%LL1%IF (%L1L2*L1CODE == %IOACCESS))%ENDIF%INWRITEOFF%NL",
+'s',0,BIFNODE) */
+
+
+DEFNODECODE(WRITE_STAT,         "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABwrite %IF (%L2CODE == %EXPR_LIST)(%LL2)%ELSE%IF (%L2L1STR == %STRCST 'fmt')(unit = *, %LL2)%ELSE%IF (%LL2 != %NULL)(%LL2)%ELSE(fmt = *, %LL2)%ENDIF%ENDIF%ENDIF%INWRITEON %LL1%INWRITEOFF%NL",
+'s',0,BIFNODE)
+
+DEFNODECODE(PRINT_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABprint %IF (%LL2 != %NULL)%SETFLAG(PRINT)%LL2%UNSETFLAG(PRINT)%IF (%LL1!= %NULL),%ENDIF%ENDIF%INWRITEON %LL1%INWRITEOFF%NL",
+'s',0,BIFNODE)
+
+
+
+DEFNODECODE(OTHERIO_STAT,       "%CMNT%PUTTAB%LL1%NL",
+'s',0,BIFNODE)
+
+DEFNODECODE(BLOB,               "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(SIZES,              "%ERROR",
+'s',0,BIFNODE)
+
+
+/*
+DEFNODECODE(FUNC_HEDR,          "%CMNT%PUTTAB%IF(%SATTR == %RECURSBIT)recursive %ENDIF%SYMBTYPE function %SYMBID (%VARLIST) %NL%BLOB1",
+*/
+DEFNODECODE(FUNC_HEDR,          "%CMNT%PUTTAB%IF(%LL3 != %NULL)%LL3 %ENDIF%IF(%LL2 != %NULL)%LL2 %ENDIFfunction %SYMBID (%VARLIST)%IF(%LL1 != %NULL) result(%LL1)%ENDIF %NL%BLOB1",
+'s',0,BIFNODE)
+DEFNODECODE(WHERE_NODE,         "%CMNT%IF (%LABEL != %NULL)%LABEL%ENDIF%PUTTABwhere (%LL1) %LL2 = %LL3%NL",
+'s',0,BIFNODE)
+DEFNODECODE(ALLDO_NODE,         "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(IDENTIFY,           "%CMNT%PUTTABidentify %LL1 %LL2%NL",
+'s',0,BIFNODE)
+DEFNODECODE(FORMAT_STAT,        "%CMNT%IF (%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%LL1%NL", 
+'s',0,BIFNODE)
+DEFNODECODE(STOP_STAT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABstop%IF (%LL1 != %NULL)%LL1%ENDIF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(RETURN_STAT,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABreturn %LL1%NL",
+'s',0,BIFNODE)
+/*
+DEFNODECODE(ELSEIF_NODE,        " (%LL1) then%NL%INCTAB%BLOB1%DECTAB %IF (%BLOB2 != %NULL) %IF (%ELSIFBLOB2 == %NULL)%PUTTABelse%NL%ELSE%PUTTABelse if%ENDIF%BLOB2%IF (%BLOB2 != %NULL)%NL%ENDIF%ELSE%NL%ENDIF",
+'s',0,BIFNODE)
+*/
+DEFNODECODE(ELSEIF_NODE,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABelse if (%LL1) then  %SYMBID%NL%INCTAB%BLOB1%DECTAB%IF (%BLOB2 != %NULL)%IF (%ELSIFBLOB2 == %NULL)%PUTTABelse  %CNTRNAME%NL%INCTAB%BLOB2%DECTAB%LABELENDIF%PUTTABendif  %CNTRNAME%NL%ELSE%BLOB2%ENDIF%ELSE%LABELENDIF%PUTTABendif  %CNTRNAME%NL%ENDIF",
+'s',0,BIFNODE)
+DEFNODECODE(ELSEWH_NODE,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABelsewhere (%LL1)  %SYMBID%NL%INCTAB%BLOB1%DECTAB%IF (%BLOB2 != %NULL)%IF (%ELSWHBLOB2 == %NULL)%PUTTABelsewhere  %CNTRNAME%NL%INCTAB%BLOB2%DECTAB%LABELENDIF%PUTTABendwhere  %CNTRNAME%NL%ELSE%BLOB2%ENDIF%ELSE%LABELENDIF%PUTTABendwhere  %CNTRNAME%NL%ENDIF",
+'s',0,BIFNODE)
+
+/*NO_OPnodes*/
+DEFNODECODE(COMMENT_STAT,       "%CMNT%NL",
+'s',0,BIFNODE)
+/*
+DEFNODECODE(CONT_STAT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABcontinue%NL",
+'s',0,BIFNODE)
+*/
+DEFNODECODE(CONT_STAT,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABcontinue%NL",
+'s',0,BIFNODE)
+DEFNODECODE(VAR_DECL,           "%CMNT%PUTTAB%SETFLAG(VARLEN)%TYPEDECLON%LL2%IF (%LL3 != %NULL),%LL3:: %SETFLAG(VARDECL)%SETFLAG(PARAM)%LL1%UNSETFLAG(VARDECL)%UNSETFLAG(PARAM)%ELSE%SETFLAG(VARDECL) %LL1%UNSETFLAG(VARDECL)%ENDIF%IF (%CHECKFLAG(VARLEN) != %NULL)%UNSETFLAG(VARLEN)%ENDIF%TYPEDECLOF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(VAR_DECL_90,        "%CMNT%PUTTAB%SETFLAG(VARLEN)%TYPEDECLON%LL2%IF (%LL3 != %NULL),%LL3:: %SETFLAG(VARDECL)%SETFLAG(PARAM)%LL1%UNSETFLAG(VARDECL)%UNSETFLAG(PARAM)%ELSE:: %SETFLAG(VARDECL) %LL1%UNSETFLAG(VARDECL)%ENDIF%IF (%CHECKFLAG(VARLEN) != %NULL)%UNSETFLAG(VARLEN)%ENDIF%TYPEDECLOF%NL",
+'s',0,BIFNODE)
+/*
+ALLOCATABLE_STMT,       ALLOCATE_STMT,           CONTAINS_STMT,           CYCLE_STMT,              DEALLOCATE_STMT,
+ EXIT_STMT,              INTENT_STMT,             INTERFACE_STMT,          MODULE_PROC_STMT,        MODULE_STMT,
+ NULLIFY_STMT,           OPTIONAL_STMT,           POINTER_STMT,            PRIVATE_STMT,            PUBLIC_STMT,
+ SEQUENCE_STMT,          TARGET_STMT,             USE_STMT, 
+*/
+DEFNODECODE(PARAM_DECL,         "%CMNT%PUTTABparameter (%INPARAMON%SETFLAG(PARAM)%LL1%UNSETFLAG(PARAM)%INPARAMOFF)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(COMM_STAT,          "%CMNT%PUTTABcommon %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PROS_COMM,           "%CMNT%PUTTABprocess common %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(EQUI_STAT,          "%CMNT%PUTTABequivalence %LL1%NL",
+'s',0,BIFNODE)
+/*
+DEFNODECODE(IMPL_DECL,          "%CMNT%PUTTABimplicit %IF (%LL1 != %NULL)%IF (%LL2 != %NULL)%ERROR'IMPLICIT Error'%ELSE%INIMPLION%LL1%INIMPLIOFF%ENDIF%ELSE%INIMPLION%LL2%INIMPLIOFF%ENDIF%NL",
+'s',0,BIFNODE)
+*/
+
+DEFNODECODE(IMPL_DECL,          "%CMNT%PUTTABimplicit %IF (%LL1 != %NULL)%SETFLAG(RANGEPRINT)%INIMPLION%LL1%INIMPLIOFF%UNSETFLAG(RANGEPRINT)%ELSEnone%ENDIF%NL",
+'s',0,BIFNODE)
+
+
+DEFNODECODE(DATA_DECL,          "%CMNT%PUTTAB%LL1%NL",
+'s',0,BIFNODE)
+/* DEFNODECODE(SAVE_DECL,          "%CMNT%PUTTABsave %IF (%LL1 != %NULL)%LL1%ELSEall%ENDIF%NL",
+'s',0,BIFNODE) */
+DEFNODECODE(SAVE_DECL,          "%CMNT%PUTTABsave %IF (%LL1 != %NULL)%LL1%ENDIF%NL",
+'s',0,BIFNODE) 
+DEFNODECODE(STMTFN_STAT,        "%CMNT%PUTTAB%LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(DIM_STAT,           "%CMNT%PUTTABdimension %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PROCESSORS_STAT,    "%CMNT%PUTTABprocessors %LL1%NL",
+'s',1,BIFNODE)
+DEFNODECODE(ALLOCATABLE_STMT,   "%CMNT%PUTTABallocatable:: %LL1%NL",
+'s',1,BIFNODE)
+DEFNODECODE(OPTIONAL_STMT,      "%CMNT%PUTTABoptional:: %LL1%NL",
+'s',1,BIFNODE)
+DEFNODECODE(EXTERN_STAT,        "%CMNT%PUTTABexternal %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INTRIN_STAT,        "%CMNT%PUTTABintrinsic %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PRIVATE_STMT,       "%CMNT%PUTTABprivate %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(PUBLIC_STMT,        "%CMNT%PUTTABpublic %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(POINTER_STMT,       "%CMNT%PUTTABpointer:: %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(TARGET_STMT,        "%CMNT%PUTTABtarget:: %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(STATIC_STMT,        "%CMNT%PUTTABstatic:: %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(SEQUENCE_STMT,      "%CMNT%PUTTABsequence%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INTERFACE_STMT,     "%CMNT%PUTTABinterface %SYMBID%NL%INCTAB%BLOB1%DECTAB%PUTTABend interface%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INTERFACE_ASSIGNMENT, "%CMNT%PUTTABinterface assignment (=)%NL%INCTAB%BLOB1%DECTAB%PUTTABend interface%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INTERFACE_OPERATOR, "%CMNT%PUTTABinterface operator (%SYMBID)%NL%INCTAB%BLOB1%DECTAB%PUTTABend interface%NL",
+'s',0,BIFNODE)
+
+DEFNODECODE(ENUM_DECL,          "%ERROR",
+'d',0,BIFNODE)
+DEFNODECODE(CLASS_DECL,         "%ERROR",
+'d',0,BIFNODE)
+DEFNODECODE(UNION_DECL,         "%ERROR",
+'d',0,BIFNODE)
+DEFNODECODE(STRUCT_DECL,        "%CMNT%PUTTABtype %IF (%LL1 != %NULL),%LL1:: %ENDIF%SYMBID%NL%INCTAB%BLOB1%DECTAB%PUTTABend type%NL",
+'d',0,BIFNODE)
+DEFNODECODE(DERIVED_CLASS_DECL, "%ERROR",
+'d',0,BIFNODE)
+DEFNODECODE(EXPR_STMT_NODE,     "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(DO_WHILE_NODE,      "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(CASE_NODE,          "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABcase (%LL1) %SYMBID%INCTAB%NL",
+'s',0,BIFNODE)
+DEFNODECODE(SWITCH_NODE,        "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTAB%IF (%LL3 != %NULL)%LL3: %ENDIFselect case (%LL1)%NL%INCTAB%BLOB1%DECTAB",
+'s',0,BIFNODE)
+DEFNODECODE(DEFAULT_NODE,       "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%DECTAB%PUTTABcase default %SYMBID%INCTAB%NL",
+'s',0,BIFNODE)
+DEFNODECODE(BREAK_NODE,         "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(CONTINUE_NODE,      "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(RETURN_NODE,        "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(ASM_NODE,           "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(LABEL_STAT,         "%ERROR",
+'s',0,BIFNODE)
+/*
+DEFNODECODE(PROC_COM,           "%ERROR",
+'s',0,BIFNODE)
+*/
+DEFNODECODE(ATTR_DECL,          "%ERROR",
+'s',0,BIFNODE)
+DEFNODECODE(NAMELIST_STAT,      "%CMNT%PUTTABnamelist %LL1%NL",
+'s',0,BIFNODE)
+DEFNODECODE(OPEN_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABopen (%LL2)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(CLOSE_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABclose (%LL2)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(ENDFILE_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABendfile (%LL2)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(BACKSPACE_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABbackspace (%LL2)%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INQUIRE_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABinquire (%LL2)%IF(%LL1 != %NULL) %LL1%ENDIF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(REWIND_STAT,      "%CMNT%IF(%LABEL != %NULL)%LABEL%ENDIF%PUTTABrewind (%LL2)%NL",
+'s',0,BIFNODE)
+/* DEFNODECODE(ENTRY_STAT,      "%CMNT%PUTTABentry %SYMBID(%VARLIST)%NL",
+'s',0,BIFNODE) */
+DEFNODECODE(ENTRY_STAT,      "%CMNT%PUTTABentry %SYMBID%IF(%LL1 != %NULL)(%LL1)%ENDIF%IF(%LL2 != %NULL) result(%LL2)%ENDIF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(MODULE_PROC_STMT,      "%CMNT%PUTTABmodule procedure %LL1%NL",
+'s',0,BIFNODE) 
+
+DEFNODECODE(BLOCK_DATA,      "%CMNT%PUTTABblock data%IF(%SYMBID != %STRCST'_BLOCK') %SYMBID%ENDIF%NL%BLOB1%NL%PUTTABend%NL",
+'s',0,BIFNODE)
+/*DEFNODECODE(BLOCK_DATA,      "%CMNT%PUTTABblock data %SYMBID%NL%BLOB1%NL%PUTTABend%NL",
+'s',0,BIFNODE)
+*/
+DEFNODECODE(MODULE_STMT,      "%CMNT%PUTTABmodule %SYMBID%NL%BLOB1%PUTTABend module %NL%NL",
+'s',0,BIFNODE)
+DEFNODECODE(USE_STMT,        "%CMNT%PUTTABuse %SYMBID%IF(%LL1 != %NULL), %LL1%ENDIF%NL",
+'s',0,BIFNODE)
+DEFNODECODE(INCLUDE_LINE,        "%CMNT%PUTTABinclude %LL1%NL",
+'s',0,BIFNODE)
+
+/*****************variant tags for low level nodes********************/
+
+/***** List of commands for LOW LEVEL NODES *****/
+       /* %ERROR      : Error ; syntax : %ERROR'message' */
+       /* %NL         : NewLine */
+       /* %%          : '%' (Percent Sign) */
+       /* %TAB        : Tab */
+       /* %IF         : If ; syntax : %IF (condition) then_bloc [%ELSE else_bloc] %ENDIF */
+       /* %ELSE       : Else */
+       /* %ENDIF      : End of If */
+       /* %LL1        : Low Level Node 1 */
+       /* %LL2        : Low Level Node 2 */
+       /* %SYMBID     : Symbol identifier */
+       /* %TYPE       : Type */
+       /* %L1SYMBCST  : Constant Value of Low Level Node Symbol */
+       /* %INTVAL     : Integer Value */
+       /* %STATENO    : Statement Number */
+       /* %STRVAL     : String Value */
+       /* %BOOLVAL    : Boolean Value */
+       /* %CHARVAL    : Char Value */
+       /* %ORBPL1     : Openning Round Brackets on Precedence of Low Level Node 1 */
+       /* %CRBPL1     : Closing Round Brackets on Precedence of Low Level Node 1 */
+       /* %ORBPL2     : Openning Round Brackets on Precedence of Low Level Node 2 */
+       /* %CRBPL2     : Closing Round Brackets on Precedence of Low Level Node 2 */
+/***********************************************/
+
+/***** List of commands for evaluation in IF THEN ELSE ENDIF statements for LOW LEVEL NODE *****/
+       /* %STRCST     : String Constant in '' */
+       /* %SYMBID     : Symbol Identifier (string) */
+       /* %SYMBOL     : Symbol node (integer) */
+       /* ==          : Equal (operation) */
+       /* !=          : Different (operation) */
+       /* %NULL       : 0, Integer Constant (or false boolean) */
+       /* %LL1        : Low Level Node 1 (integer) */
+       /* %LL2        : Low Level Node 2 (integer) */
+       /* %LABUSE     : Label ptr (do end) (integer) */
+       /* %L1CODE     : Code (variant) of Low Level Node 1 (integer) */
+       /* %L2CODE     : Code (variant) of Low Level Node 2 (integer) */
+       /* %INWRITE    : In_Write_Statement (integer / boolean flag) */
+       /* %INPARAM    : In_Param_Statement (integer / boolean flag) */
+       /* %INIMPLI    : In_Impli_Statement (integer / boolean flag) */
+/************************************************************************************************/
+
+
+DEFNODECODE(LEN_OP,            "%IF (%LL1 != %NULL)%IF(%LL2 != %NULL)*(%LL1)%ELSE*%LL1%ENDIF%IF (%CHECKFLAG(STYPE) != %NULL)%UNSETFLAG(VARLEN)%ENDIF%ENDIF",'e',0,LLNODE)
+DEFNODECODE(INT_VAL,            "%INTKIND",
+'c',0,LLNODE)
+DEFNODECODE(FLOAT_VAL,          "%STRVAL%KIND",
+'c',0,LLNODE)
+DEFNODECODE(DOUBLE_VAL,         "%STRVAL%KIND",
+'c',0,LLNODE)
+DEFNODECODE(BOOL_VAL,           "%BOOLVAL%KIND",
+'c',0,LLNODE)
+DEFNODECODE(CHAR_VAL,           "%IF (%INIMPLI == %NULL)\\%ENDIF%CHARVAL%IF (%INIMPLI == %NULL)\\%ENDIF",
+'c',0,LLNODE)
+/*
+DEFNODECODE(STRING_VAL,         "%IF (%CHECKFLAG(QUOTE) != %NULL)'%STRVAL'%ELSE\\%STRVAL\\%ENDIF",
+'c',0,LLNODE)
+*/
+DEFNODECODE(STRING_VAL,         "%STRKIND%SYMQUOTE%STRVAL%SYMQUOTE",
+'c',0,LLNODE)
+DEFNODECODE(KEYWORD_VAL,        "%STRVAL",
+'c',0,LLNODE)
+DEFNODECODE(COMPLEX_VAL,        "%SETFLAG(CMPLXCONST)(%LL1, %LL2)%UNSETFLAG(CMPLXCONST)",
+'c',0,LLNODE)
+
+DEFNODECODE(CONST_REF,          "%SYMBID",
+'r',2,LLNODE)
+/*
+DEFNODECODE(VAR_REF,            "%SYMBID%IF (%CHECKFLAG(VARDECL) != %NULL)%IF (%CHECKFLAG(VARLEN) != %NULL)%STRINGLEN%ENDIF%ENDIF",
+'r',0,LLNODE)
+*/
+DEFNODECODE(VAR_REF,            "%SYMBID%IF (%CHECKFLAG(VARDECL) != %NULL)%IF (%TYPEDECL != %NULL)%IF (%TYPEDECL != %TYPEBASE)%STRINGLEN%ENDIF%ENDIF",
+'r',0,LLNODE)
+/*
+DEFNODECODE(ARRAY_REF,          "%SYMBID%IF (%LL1 != %NULL)%PUSHFLAG(VARDECL)%SETFLAG(ARRAYOP)(%LL1)%POPFLAG(VARDECL)%UNSETFLAG(ARRAYOP)%ENDIF%IF (%CHECKFLAG(VARDECL) != %NULL)%IF (%CHECKFLAG(VARLEN) != %NULL)%STRINGLEN%ENDIF%ENDIF",
+'r',1,LLNODE)
+*/
+DEFNODECODE(ARRAY_REF,          "%SYMBID%IF (%LL1 != %NULL)%PUSHFLAG(VARDECL)%PUSHFLAG(PARAM)%SETFLAG(ARRAYOP)(%LL1)%POPFLAG(VARDECL)%POPFLAG(PARAM)%UNSETFLAG(ARRAYOP)%ENDIF%IF (%CHECKFLAG(VARDECL) != %NULL)%IF (%TYPEDECL != %NULL)%IF (%TYPEDECL != %TYPEBASE)%STRINGLEN%ENDIF%ENDIF%ENDIF",
+'r',1,LLNODE)
+DEFNODECODE(PROCESSORS_REF,     "%IF (%LL1 != %NULL)%PUSHFLAG(VARDECL)%IF(%CHECKFLAG(NOARRAY) == %NULL)(%LL1)%ENDIF%POPFLAG(VARDECL)%ENDIF%IF (%CHECKFLAG(VARDECL) != %NULL)%STRINGLEN%ENDIF",
+'r',1,LLNODE)
+DEFNODECODE(RECORD_REF,         "%LL1%%%LL2",
+'r',2,LLNODE)
+DEFNODECODE(STRUCTURE_CONSTRUCTOR,  "%SYMBID(%LL1)",
+'r',1,LLNODE)
+DEFNODECODE(CONSTRUCTOR_REF,    "(/%LL1/)",
+'r',2,LLNODE)
+DEFNODECODE(TYPE_REF,           "%SYMBID",
+'r',2,LLNODE)
+
+DEFNODECODE(ENUM_REF,           "%SYMBID",
+'r',2,LLNODE)
+
+DEFNODECODE(LABEL_REF,          "%STATENO",
+'r',0,LLNODE)
+DEFNODECODE(TYPE_OP,            "%TYPE",
+'e',1,LLNODE)
+DEFNODECODE(DIMENSION_OP,       "dimension(%LL1)",
+'e',1,LLNODE)
+DEFNODECODE(ALLOCATABLE_OP,     "allocatable",
+'e',1,LLNODE)
+DEFNODECODE(PARAMETER_OP,       "parameter",
+'e',1,LLNODE)
+DEFNODECODE(TARGET_OP,          "target",
+'e',1,LLNODE)
+DEFNODECODE(STATIC_OP,          "static",
+'e',1,LLNODE)
+DEFNODECODE(SAVE_OP,            "save",
+'e',1,LLNODE)
+DEFNODECODE(POINTER_OP,         "pointer",
+'e',1,LLNODE)
+DEFNODECODE(INTRINSIC_OP,       "intrinsic",
+'e',1,LLNODE)
+DEFNODECODE(OPTIONAL_OP,        "optional",
+'e',1,LLNODE)
+DEFNODECODE(EXTERNAL_OP,        "external",
+'e',1,LLNODE)
+DEFNODECODE(PRIVATE_OP,         "private",
+'e',1,LLNODE)
+DEFNODECODE(PUBLIC_OP,          "public",
+'e',1,LLNODE)
+DEFNODECODE(IN_OP,              "intent(in)",
+'e',1,LLNODE)
+DEFNODECODE(OUT_OP,             "intent(out)",
+'e',1,LLNODE)
+DEFNODECODE(INOUT_OP,           "intent(inout)",
+'e',1,LLNODE)
+DEFNODECODE(OPERATOR_OP,        "operator(%SYMBID)",
+'e',1,LLNODE)
+DEFNODECODE(ASSIGNMENT_OP,      "assignment(=)",
+'e',1,LLNODE)
+DEFNODECODE(KIND_OP,            "kind=%LL1",
+'e',1,LLNODE)
+DEFNODECODE(LENGTH_OP,          "len=%LL1",
+'e',1,LLNODE)
+DEFNODECODE(RECURSIVE_OP,       "recursive",
+'e',0,LLNODE)
+DEFNODECODE(ELEMENTAL_OP,       "elemental",
+'e',0,LLNODE)
+DEFNODECODE(PURE_OP,	        "pure",
+'e',0,LLNODE)
+
+DEFNODECODE(ACC_DEVICE_OP,	        "device",
+'e',0,LLNODE)
+DEFNODECODE(ACC_VALUE_OP,	        "value",
+'e',0,LLNODE)
+DEFNODECODE(ACC_SHARED_OP,	        "shared",
+'e',0,LLNODE)
+DEFNODECODE(ACC_CONSTANT_OP,	        "constant",
+'e',0,LLNODE)
+DEFNODECODE(ACC_HOST_OP,	        "host",
+'e',0,LLNODE)
+DEFNODECODE(ACC_GLOBAL_OP,	        "global",
+'e',0,LLNODE)
+DEFNODECODE(ACC_ATTRIBUTES_OP,	        "attributes(%LL1)",
+'e',1,LLNODE)
+
+
+DEFNODECODE(VAR_LIST,           "%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(PORT_TYPE_OP,       "%TYPE%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(INPORT_TYPE_OP,       "inport ( %TYPE%SETFLAG(RECPORT)%LL1%IF (%LL2 != %NULL), %LL2%ENDIF%IF(%CHECKFLAG(RECPORT) != %NULL))%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(OUTPORT_TYPE_OP,       "outport( %TYPE%SETFLAG(RECPORT)%LL1%IF (%LL2 != %NULL), %LL2%ENDIF%IF(%CHECKFLAG(RECPORT) != %NULL))%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(INPORT_NAME,        "%IF(%CHECKFLAG(PORT) != %NULL)PORT=%ELSEIN=%ENDIF%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(OUTPORT_NAME,       "%IF(%CHECKFLAG(PORT) != %NULL)PORT=%ELSEOUT=%ENDIF%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(FROMPORT_NAME,      "FROM=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(TOPORT_NAME,        "TO=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(IOSTAT_STORE,       "IOSTAT=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(EMPTY_STORE,        "EMPTY=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(ERR_LABEL,          "ERR=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(END_LABEL,          "END=%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(DATA_IMPL_DO,       "(%LL1, %SYMBID=%LL2)", 
+'e',2,LLNODE)
+
+DEFNODECODE(DATA_ELT,           "%IF (%SYMBOL == %NULL)%LL1%ELSE%SYMBID%LL1%ENDIF%IF (%LL2 != %NULL),%LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(DATA_SUBS,          "(%LL1)%IF (%LL2 != %NULL)%LL2%ENDIF",
+'e',2,LLNODE)
+
+DEFNODECODE(DATA_RANGE,         "(%IF (%LL1 != %NULL)%LL1%ENDIF:%IF (%LL2 != %NULL)%LL2%ENDIF)",
+'e',2,LLNODE)
+
+DEFNODECODE(ICON_EXPR,          "%LL1%IF (%LL2 != %NULL),%LL2%ENDIF",
+'e',2,LLNODE)
+
+/* Probablement faux BODIN
+DEFNODECODE(EXPR_LIST,          "%LL1%IF (%INPARAM != %NULL) = %L1SYMBCST%ENDIF%IF (%LL2 != %NULL),%LL2%ENDIF",
+'e',2,LLNODE) */
+
+DEFNODECODE(EXPR_LIST,          "%LL1%IF (%CHECKFLAG(PARAM) != %NULL)%IF (%VALUE != %NULL) = %PUSHFLAG(PARAM)%PUSHFLAG(VARDECL)%L1SYMBCST%POPFLAG(PARAM)%POPFLAG(VARDECL)%ENDIF%ENDIF%ENDIF%IF (%LL2 != %NULL),%LL2%ENDIF",
+'e',2,LLNODE) 
+ 
+DEFNODECODE(RANGE_LIST,         "%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(CASE_CHOICE,        "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(DEF_CHOICE,         "%LL1%IF (%LL2 != %NULL):%LL2",
+'e',2,LLNODE)
+DEFNODECODE(VARIANT_CHOICE,     "%ERROR",
+'e',2,LLNODE)
+/*
+DEFNODECODE(DDOT,               "%LL1%IF (%INWRITE != %NULL),%ELSE%IF (%INIMPLI != %NULL)-%ELSE%IF (%CHECKFLAG(LOOP) != %NULL),%ELSE:%ENDIF%ENDIF%ENDIF%LL2",
+*/
+DEFNODECODE(DDOT,               "%LL1%IF (%CHECKFLAG(ARRAYOP) != %NULL):%ELSE%IF (%INWRITE != %NULL),%ELSE%IF (%INIMPLI != %NULL)-%ELSE%IF (%CHECKFLAG(LOOP) != %NULL),%ELSE:%ENDIF%ENDIF%ENDIF%ENDIF%LL2",
+'e',2,LLNODE)
+DEFNODECODE(RANGE_OP,           "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FORALL_OP,           "%SYMBID=%LL1",
+'e',2,LLNODE)
+DEFNODECODE(UPPER_OP,           "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(LOWER_OP,           "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(EQ_OP,              "%ORBPL1%LL1%CRBPL1 .eq. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(LT_OP,              "%ORBPL1%LL1%CRBPL1 .lt. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(GT_OP,              "%ORBPL1%LL1%CRBPL1 .gt. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(NOTEQL_OP,          "%ORBPL1%LL1%CRBPL1 .ne. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(LTEQL_OP,           "%ORBPL1%LL1%CRBPL1 .le. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(GTEQL_OP,           "%ORBPL1%LL1%CRBPL1 .ge. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+
+DEFNODECODE(ADD_OP,             "%ORBPL1%LL1%CRBPL1 + %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(SUBT_OP,            "%ORBPL1%LL1%CRBPL1 - %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(OR_OP,              "%ORBPL1%LL1%CRBPL1 .or. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+
+DEFNODECODE(MULT_OP,            "%ORBPL1%LL1%CRBPL1 * %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(DIV_OP,             "%ORBPL1%LL1%CRBPL1 / %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(MOD_OP,             "%ORBPL1%LL1%CRBPL1%% %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(AND_OP,             "%ORBPL1%LL1%CRBPL1 .and. %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+
+DEFNODECODE(EXP_OP,             "%ORBPL1%LL1%CRBPL1** %ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(ARRAY_MULT,         "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(CONCAT_OP,          "%ORBPL1%LL1%CRBPL1//%ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(XOR_OP,             "%ORBPL1%LL1%CRBPL1.xor.%ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(EQV_OP,             "%ORBPL1%LL1%CRBPL1.eqv.%ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(NEQV_OP,            "%ORBPL1%LL1%CRBPL1.neqv.%ORBPL2%LL2%CRBPL2",
+'e',2,LLNODE)
+DEFNODECODE(MINUS_OP,           "%IF (%CHECKFLAG(CMPLXCONST) != %NULL)-%LL1%ELSE(-(%LL1))%ENDIF",
+'e',1,LLNODE)
+DEFNODECODE(NOT_OP,             ".not.(%LL1)",
+'e',2,LLNODE)
+DEFNODECODE(ASSGN_OP,           "%LL1=%PUSHFLAG(VARDECL)%PUSHFLAG(PARAM)%LL2%POPFLAG(VARDECL)%POPFLAG(PARAM)",
+'e',2,LLNODE)
+DEFNODECODE(RENAME_NODE,        "%LL1%IF(%LL2 != %NULL)=>%LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(KEYWORD_ARG,        "%LL1=%LL2",
+'e',2,LLNODE)
+DEFNODECODE(LABEL_ARG,          "*%LL1",
+'e',1,LLNODE)
+DEFNODECODE(ONLY_NODE,          "only: %LL1",
+'e',1,LLNODE)
+DEFNODECODE(DEREF_OP,           "%LL1",
+'e',1,LLNODE)
+DEFNODECODE(POINTST_OP,         "%LL1=>%LL2",
+'e',2,LLNODE)
+DEFNODECODE(FUNCTION_OP,        "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(MINUSMINUS_OP,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(PLUSPLUS_OP,        "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BITAND_OP,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BITOR_OP,           "%ERROR",
+'e',2,LLNODE)
+
+
+
+DEFNODECODE(STAR_RANGE,         "*",
+'e',2,LLNODE)
+
+DEFNODECODE(PROC_CALL,          "%SYMBID (%LL1)",
+'e',2,LLNODE)
+DEFNODECODE(PROS_CALL,          "%SYMBID (%LL1)",
+'e',1,LLNODE)
+DEFNODECODE(FUNC_CALL,          "%SYMBID (%LL1)",
+'e',1,LLNODE)
+DEFNODECODE(OVERLOADED_CALL,    "%LL1",
+'e',1,LLNODE)
+
+
+DEFNODECODE(ACCESS_REF,         "%LL1%IF (%LL2 != %NULL) (%LL2)%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(CONS,               "%LL1, %LL2",
+'e',2,LLNODE)
+DEFNODECODE(ACCESS,             "%LL1, FORALL = (%SYMBID = %LL2)",
+'e',2,LLNODE)
+DEFNODECODE(IOACCESS,           "%IF (%LL1 != %NULL)(%LL1, %ENDIF%SYMBID = %LL2%IF (%LL1 != %NULL))%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(CONTROL_LIST,       "%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(SEQ,                "%LL1%IF (%LL2 != %NULL),%LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(SPEC_PAIR,          "%IF (%CHECKFLAG(PRINT) != %NULL)%LL2%ELSE%LL1 = %LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(COMM_LIST,          "%IF (%SYMBOL != %NULL)/%SYMBID/%ENDIF%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)                   
+DEFNODECODE(STMT_STR,           "%STMTSTR",
+'e',2,LLNODE)
+DEFNODECODE(EQUI_LIST,          "(%LL1)%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(IMPL_TYPE,          "%TYPE %IF (%LL1 != %NULL)(%LL1)",
+'e',2,LLNODE)
+DEFNODECODE(STMTFN_DECL,        "%SYMBID (%VARLIST) = %LL1",
+'e',2,LLNODE)
+DEFNODECODE(DEFINED_OP,         "%IF(%LL2 != %NULL)(%LL1 %SYMBID %LL2)%ELSE%SYMBID(%LL1)%ENDIF",
+'e',2,LLNODE)
+
+
+DEFNODECODE(BIT_COMPLEMENT_OP,  "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(EXPR_IF,            "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(EXPR_IF_BODY,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FUNCTION_REF,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(LSHIFT_OP,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(RSHIFT_OP,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(UNARY_ADD_OP,       "%IF (%CHECKFLAG(CMPLXCONST) != %NULL)+%LL1%ELSE(+(%LL1))%ENDIF",
+'e',2,LLNODE)
+DEFNODECODE(SIZE_OP,            "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(INTEGER_DIV_OP,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(SUB_OP,             "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(LE_OP,              "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(GE_OP,              "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(NE_OP,              "%ERROR",
+'e',2,LLNODE)
+
+DEFNODECODE(CLASSINIT_OP,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(CAST_OP,            "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ADDRESS_OP,         "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(POINSTAT_OP,        "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(COPY_NODE,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(INIT_LIST,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(VECTOR_CONST,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BIT_NUMBER,         "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ARITH_ASSGN_OP,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ARRAY_OP,           "%LL1%SETFLAG(ARRAYOP)(%LL2)%UNSETFLAG(ARRAYOP)",
+'e',2,LLNODE)
+DEFNODECODE(NEW_OP,             "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(DELETE_OP,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(NAMELIST_LIST,      "%IF (%SYMBOL != %NULL)/%SYMBID/%ENDIF%LL1%IF (%LL2 != %NULL), %LL2%ENDIF",
+'e',2,LLNODE)
+
+/* new tag for some expression */
+
+DEFNODECODE(CEIL_DIV_EXPR,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(MAX_OP,             "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BIF_SAVE_EXPR,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(MIN_OP,             "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BIF_ADDR_EXPR,      "%ERROR",
+'e',1,LLNODE)
+DEFNODECODE(BIF_NOP_EXPR,       "%ERROR",
+'e',1,LLNODE)
+DEFNODECODE(BIF_RTL_EXPR,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUNC_MOD_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUNC_DIV_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FLOOR_DIV_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FLOOR_MOD_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(CEIL_MOD_EXPR,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ROUND_DIV_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ROUND_MOD_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(RDIV_EXPR,          "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(EXACT_DIV_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(CONVERT_EXPR,       "%ERROR",
+'e',1,LLNODE)
+DEFNODECODE(CONST_DECL,         "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(ABS_EXPR,           "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUTH_ANDIF_EXPR,   "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUTH_AND_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUTH_NOT_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUTH_ORIF_EXPR,    "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(PREINCREMENT_EXPR,  "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(PREDECREMENT_EXPR,  "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(COMPOUND_EXPR,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FLOAT_EXPR,         "%ERROR",
+'e',1,LLNODE)
+DEFNODECODE(BIT_IOR_EXPR,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BIT_XOR_EXPR,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(BIT_ANDTC_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(TRUTH_OR_EXPR,      "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FIX_TRUNC_EXPR,     "%ERROR",
+'e',1,LLNODE)
+DEFNODECODE(RROTATE_EXPR,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(LROTATE_EXPR,       "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(RANGE_EXPR,         "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(POSTDECREMENT_EXPR, "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(REFERENCE_TYPE,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FIX_FLOOR_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FIX_ROUND_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FIX_CEIL_EXPR ,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(FUNCTION_DECL ,     "%ERROR",
+'d',2,LLNODE)
+DEFNODECODE(MODIFY_EXPR,        "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(REFERENCE_EXPR,     "%ERROR",
+'e',2,LLNODE)
+DEFNODECODE(RESULT_DECL,        "%ERROR",
+'d',2,LLNODE)
+DEFNODECODE(PARM_DECL,          "%ERROR",
+'d',2,LLNODE)
+
+
+/*****************variant tags for symbol table entries********************/
+
+DEFNODECODE(BIF_PARM_DECL,      "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(CONST_NAME,         "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(ENUM_NAME,          "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(FIELD_NAME,         "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(VARIABLE_NAME,      "%SYMBID",
+'r',0,SYMBNODE)
+DEFNODECODE(TYPE_NAME,          "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(PROGRAM_NAME,       "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(PROCEDURE_NAME,     "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(PROCESS_NAME,       "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(VAR_FIELD,          "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(LABEL_VAR,          "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(FUNCTION_NAME,      "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(MEMBER_FUNC,        "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(CLASS_NAME,         "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(UNION_NAME,         "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(STRUCT_NAME,        "%ERROR",
+'r',0,SYMBNODE)
+DEFNODECODE(LABEL_NAME,         "%ERROR",
+'r',0,SYMBNODE)
+
+/*****************variant tags for type nodes********************/
+
+/***** List of commands for TYPE NODES *****/
+       /* %ERROR      : Error ; syntax : %ERROR'message' */
+       /* %NL         : NewLine */
+       /* %%          : '%' (Percent Sign) */
+       /* %TAB        : Tab */
+       /* %IF         : If ; syntax : %IF (condition) then_bloc [%ELSE else_bloc] %ENDIF */
+       /* %ELSE       : Else */
+       /* %ENDIF      : End of If */
+       /* %BASETYPE   : Base Type Name Identifier */
+       /* %NAMEID     : Name Identifier */
+       /* %TABNAME    : Self Name from Table */
+       /* %RANGES     : Ranges */
+       /* %RANGLL1    : Low Level Node 1 of Ranges */
+/*******************************************/
+
+/***** List of commands for evaluation in IF THEN ELSE ENDIF statements for TYPE NODE *****/
+       /* %STRCST     : String Constant in '' */
+       /* ==          : Equal (operation) */
+       /* !=          : Different (operation) */
+       /* %NULL       : 0, Integer Constant (or false boolean) */
+       /* %INIMPLI    : In_Impli_Statement (integer / boolean flag) */
+/******************************************************************************************/
+
+/* CODES AYANT DISPARU :
+ T_SEQUENCE,             T_EVENT,                 T_GATE,
+*/
+
+DEFNODECODE(DEFAULT,            "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_INT,              "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_FLOAT,            "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_DOUBLE,           "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_CHAR,             "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_BOOL,             "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_STRING,           "%TABNAME%SETFLAG(STYPE)%SETFLAG(TSRIN)%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF%UNSETFLAG(TSRIN)%UNSETFLAG(STYPE) ",
+'t',0,TYPENODE)
+DEFNODECODE(T_COMPLEX,          "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+DEFNODECODE(T_DCOMPLEX,         "%TABNAME%IF (%INIMPLI == %NULL)%RANGES%ELSE%IF(%CHECKFLAG(RANGEPRINT) !=%NULL)%RANGES%ENDIF%ENDIF ",
+'t',0,TYPENODE)
+
+
+
+DEFNODECODE(T_ENUM,             "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_SUBRANGE,         "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_LIST,             "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_ARRAY,            "%BASETYPE %RANGES",
+'t',0,TYPENODE)
+DEFNODECODE(T_RECORD,           "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_ENUM_FIELD,       "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_UNKNOWN,          "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_VOID,             "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_DESCRIPT,         "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_FUNCTION,         "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_POINTER,          "%BASETYPE",
+'t',0,TYPENODE)
+DEFNODECODE(T_UNION,            "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_STRUCT,           "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_CLASS,            "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_DERIVED_CLASS,    "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(T_DERIVED_TYPE,     "type (%NAMEID)",
+'t',0,TYPENODE)
+
+
+DEFNODECODE(LOCAL,              "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(INPUT,              "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(OUTPUT,             "%ERROR",
+'t',0,TYPENODE)
+DEFNODECODE(IO,                 "%ERROR",
+'t',0,TYPENODE)
+
+
+
+
+
+
+
+

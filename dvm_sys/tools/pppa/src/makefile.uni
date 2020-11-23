@@ -12,12 +12,6 @@ OBJS=\
 	statread.o  \
 	treeinter.o \
 	statprintf.o \
-    statlist.o \
-    statinter.o \
-    interface.o \
-    stat.o \
-    integration.o \
-    integration.dll \
 
 $(BINDIR)/$(EXECUTABLES): $(OBJS)
 	$(LINKER) -o $@ $(OBJS) -L$(ZLIBDIR) -l$(ZLIB)
@@ -42,15 +36,3 @@ treeinter.o:
 	$(CXX) $(COPT) treeinter.cpp
 statprintf.o:
 	$(CXX) $(COPT) statprintf.cpp
-statinter.o:
-	$(CXX) $(COPT) statinter.cpp
-statlist.o:
-	$(CXX) $(COPT) statlist.cpp
-interface.o:
-	$(CXX) $(COPT) interface.cpp -fdeclspec
-stat.o:
-	$(CXX) $(COPT) stat.cpp
-integration.o:
-	$(CXX) $(COPT) -std=c++11 integration.cpp -fdeclspec
-integration.dll:
-	clang++ -shared -o integration.dll *.o ../../Zlib/*.o

@@ -1,0 +1,29 @@
+#For K10 (k10.kiam.ru) PLATFORM (Intel compilers with OpenMP)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="/home/admdvm/CLANG/bin/llvm-config"
+# for parallel programs
+ MPIR_HOME="/common/mvse-net-fPIC/skif-mpi"
+ MPIRUN_CMD="/common/runmvs/bin/run-skif-mpi"
+ PCC="$MPIR_HOME/bin/mpicc -g -O2 -fopenmp -no-scalar-rep"
+ PCXX="$MPIR_HOME/bin/mpicxx -g -O2 -fopenmp -no-scalar-rep"
+ PFORT="$MPIR_HOME/bin/mpif90 -g -O2 -fopenmp -no-scalar-rep"
+ PLINKER="$MPIR_HOME/bin/mpicxx -g -fopenmp"
+ PFLINKER="$MPIR_HOME/bin/mpif90 -g -fopenmp"
+ CUDA_PATH="/common/cuda-8.0/"
+ NVCC="$CUDA_PATH/bin/nvcc -arch=sm_20 -O2 -DCUDA_FERMI_ARCH -D__NVCC__"
+# launch settings
+ dvmcopy=1
+ dvmrun="suppz.run"
+ maxtime=30
+ restart=0
+ quantum=0
+# DVMH options for default preset
+ DVMH_PPN=16
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=16
+ CUDAS_PER_NODE=3

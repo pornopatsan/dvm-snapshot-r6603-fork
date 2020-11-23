@@ -1,0 +1,123 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Исходные файлы">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Файлы заголовков">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Исходные файлы\pppa">
+      <UniqueIdentifier>{53f9375c-8c47-45fe-b189-8fba76eb91b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы заголовков\pppa">
+      <UniqueIdentifier>{53f30301-90df-4d39-ad4f-c3587eb4450f}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Исходные файлы\Zlib">
+      <UniqueIdentifier>{e95620dc-95c6-438c-a5f7-2322880aa280}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\inter.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\potensyn.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\statfile.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\statprintf.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\statread.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\treeinter.cpp">
+      <Filter>Исходные файлы\pppa</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\adler32.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\compress.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\crc32.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\deflate.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\gzio.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\infblock.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\infcodes.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\inffast.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\inflate.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\inftrees.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\infutil.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\trees.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\uncompr.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\..\..\Zlib\src\zutil.c">
+      <Filter>Исходные файлы\Zlib</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\bool.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\dvmh_stat.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\inter.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\potensyn.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\statist.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\statprintf.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\statread.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\strall.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\sysstat.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\treeinter.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\ver.h">
+      <Filter>Файлы заголовков\pppa</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

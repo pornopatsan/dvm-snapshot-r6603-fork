@@ -1,0 +1,16 @@
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+include_directories(${SAGE_DIRS})
+add_definitions(-DSYS5 -DYYDEBUG)
+if(MSVC_IDE)
+  file(GLOB_RECURSE HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.h)
+  set(HEADERS ${HEADERS} head tag tokens)
+  source_group("Header Files" FILES ${HEADERS})
+  file(GLOB_RECURSE GRAMMERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.gram *.y)
+  source_group("Grammer Files" FILES ${GRAMMERS})
+endif()
+add_executable(parser
+  cftn.c errors.c gram1.tab.c hash.c init.c lexfdvm.c lists.c low_hpf.c misc.c
+  stat.c sym.c types.c unparse_hpf.c ${HEADERS} ${GRAMMERS})
+target_link_libraries(parser libDB libSage libSage++)
+set_target_properties(parser PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${MAIN_BINDIR})    
+install(TARGETS parser RUNTIME DESTINATION bin)

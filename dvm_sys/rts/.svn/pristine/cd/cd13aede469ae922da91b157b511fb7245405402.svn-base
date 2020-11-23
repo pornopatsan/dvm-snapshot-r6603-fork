@@ -1,0 +1,20 @@
+#ifndef _DYNLIMIT_EXT_
+#define _DYNLIMIT_EXT_
+/********************/
+
+/* Maximum allowed memory usage */
+
+extern UDvmType DynDebugMemoryLimit;
+
+/* Maximum allowed program execution time */
+
+extern UDvmType DynDebugExecutionTimeLimit;
+
+/* Print usage statistics */
+
+extern byte DynDebugPrintStatistics;
+
+extern UDvmType DynDebugAllocatedMemory;
+extern UDvmType DynDebugMaxAllocatedMemory;
+
+#endif  /* _DYNLIMIT_EXT_ */

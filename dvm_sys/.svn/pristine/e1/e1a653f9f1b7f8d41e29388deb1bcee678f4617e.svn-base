@@ -1,0 +1,80 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# dvm/makefile.uni
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR= rts cdvm cdvmh fdvm driver zlib predictor pppa
+HOST_LINKER=$(LINKER)
+
+rts-incs: Zlib-incs
+	cd rts; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "CXX=$(PCXX)" "FC=$(PFORT)" "FORT=$(PFORT)" "LINKER=$(PLINKER)" "ar=$(Par)" "ld=$(Pld)" "objcopy=$(Pobjcopy)" Incs
+
+rts-dvm:
+	cd rts; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "CXX=$(PCXX)" "FC=$(PFORT)" "FORT=$(PFORT)" "LINKER=$(PLINKER)" "ar=$(Par)" "ld=$(Pld)" "objcopy=$(Pobjcopy)" libdvm
+
+rts-tasks:
+	cd rts; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "CXX=$(PCXX)" "FC=$(PFORT)" "FORT=$(PFORT)" "LINKER=$(PLINKER)" "ar=$(Par)" "ld=$(Pld)" "objcopy=$(Pobjcopy)" map_tasks
+
+rts-dvmh: rts-incs driver
+	cd rts/dvmh; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "CXX=$(PCXX)" "LINKER=$(PLINKER)" "ar=$(Par)" "ld=$(Pld)" "objcopy=$(Pobjcopy)" all
+
+cdvm:
+	cd cdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" all
+
+cdvmh:
+	cd cdvmh; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" all
+
+fdvm:
+	cd fdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" all
+
+driver:
+	cd driver; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" all
+
+Zlib-incs:
+	cd tools/Zlib; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" Incs
+
+Zlib: Zlib-incs
+	cd tools/Zlib; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" libzlib
+
+predictor: Zlib
+	cd tools/predictor; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" release
+
+pppa: Zlib
+	cd tools/pppa; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" all
+
+all: rts-dvm rts-tasks rts-dvmh cdvm cdvmh fdvm driver Zlib predictor pppa
+	@echo "****** DONE MAKING dvm/: $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY   CLEAN SUBDIRECTORIES dvm/: $(SUBDIR) ******"
+	cd rts; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "FC=$(PFORT)" "FORT=$(PFORT)" "LINKER=$(PLINKER)" clean
+	cd rts/dvmh; $(MAKE) "MAKE=$(MAKE)" "CC=$(PCC)" "FC=$(PFORT)" "FORT=$(PFORT)" "LINKER=$(PLINKER)" clean
+	cd cdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" clean
+	cd cdvmh; $(MAKE) "MAKE=$(MAKE)" clean
+	cd fdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)"  clean
+	cd driver; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" clean
+	cd tools/Zlib; $(MAKE) "MAKE=$(MAKE)" clean
+	cd tools/predictor; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)"  clean1
+	cd tools/pppa; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" clean
+	@echo "****** DONE  CLEAN dvm/: $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY   CLEAN SUBDIRECTORIES dvm/: $(SUBDIR) ******"
+	cd rts; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "FC=$(PFORT)" "FORT=$(FORT)" "LINKER=$(HOST_LINKER)" cleanall
+	cd rts/dvmh; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "FC=$(PFORT)" "FORT=$(FORT)" "LINKER=$(HOST_LINKER)" cleanall
+	cd cdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" cleanall
+	cd cdvmh; $(MAKE) "MAKE=$(MAKE)" cleanall
+	cd fdvm; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)"  cleanall
+	cd driver; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(HOST_LINKER)" cleanall
+	cd tools/Zlib; $(MAKE) "MAKE=$(MAKE)" cleanall
+	cd tools/predictor;  $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)"  clean1
+	cd tools/pppa; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" cleanall
+	@echo "****** DONE  CLEANALL dvm/: $(SUBDIR) ******"
+
+.PHONY: all clean cleanall rts-incs rts-dvm rts-tasks rts-dvmh cdvm cdvmh fdvm driver Zlib Zlib-incs predictor pppa

@@ -1,0 +1,31 @@
+#!/bin/sh
+
+# Uses variables: Pred_sys, dvmdir, Pred_vis, Pred_vis_blk
+
+adddir=
+argpred=
+if [ "$1" = "" ]; then
+    echo "!!! error <dvm pred>: must be dvm pred [options] prog !!!"
+    exit 1
+fi
+while [ $# -ge 2 ]; do
+    argpred="$argpred $1"
+    adddir="${adddir}_$1"
+    shift
+done
+
+prg="$1"
+
+if [ "$Pred_sys" = "" ]; then
+    Pred_sys="$dvmdir/par/Predictor.par"
+fi
+rm -f dvm.err
+predictor "$Pred_sys" "$prg.ptr" "$prg$adddir.html" $argpred
+if [ $? != 0 ]; then
+    echo "!!! error predictor !!!" >dvm.err
+    echo "!!! error predictor !!!"
+elif [ "$Pred_vis" != "" ];  then
+    if [ "$Pred_vis_blk" != "on" ]; then
+        $Pred_vis "$prg$adddir.html"
+    fi
+fi

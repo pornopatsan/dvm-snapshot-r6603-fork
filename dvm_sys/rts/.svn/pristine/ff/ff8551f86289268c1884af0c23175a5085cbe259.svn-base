@@ -1,0 +1,14 @@
+#ifndef _PARAM_EXT_
+#define _PARAM_EXT_
+/*****************/    /*E0000*/
+
+/**************************************************\
+* Some parameters not specified in parameter files *
+\**************************************************/    /*E0001*/ 
+
+extern byte CodeCheckSumPrint; /* flag to print checksum at startup */    /*E0002*/
+extern byte RouterNewTaskPrint;/* flag to print spawn subtasks numbers
+                                  while working with ROUTER */    /*E0003*/  
+
+#endif   /* _PARAM_EXT_ */    /*E0004*/
+

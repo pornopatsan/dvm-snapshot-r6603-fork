@@ -1,0 +1,9 @@
+#ifndef _TRACER_DVMDBG_DEF_
+#define _TRACER_DVMDBG_DEF_
+/*************************/    /*E0000*/
+
+#define CallDbgCond      EnableTrace && dvm_OneProcSign   /* 1 */    /*E0001*/
+#define tracer_CollTag   -666    /* tag for collective op */    /*E0002*/
+
+
+#endif  /* _TRACER_DVMDBG_DEF_ */    /*E0003*/

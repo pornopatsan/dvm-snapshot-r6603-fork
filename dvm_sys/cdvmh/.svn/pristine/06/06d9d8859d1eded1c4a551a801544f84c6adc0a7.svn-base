@@ -1,0 +1,45 @@
+### makefile for cdvmh (converter + includes)
+# requires variables:
+# optional variables: MAKE LLVMCONFIG CLANG_VER CXX LINKER
+
+BINDIR = ../bin
+INCDIR = ../include
+
+ifdef LLVMCONFIG
+
+ifeq ($(word 2, $(CLANG_VER) ), 7)
+WITH_ANALYZER = $(shell find . -name analyzer | wc -l)
+else
+WITH_ANALYZER = 0
+endif
+
+all:
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES dvm/cdvmh: src ******"
+ifeq ($(WITH_ANALYZER), 1)
+	cd analyzer/src; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+endif
+	cd src; $(MAKE) "MAKE=$(MAKE)" "LLVMCONFIG=$(LLVMCONFIG)" "CLANG_VER=$(CLANG_VER)" "CXX=$(CXX)" "LINKER=$(LINKER)" "WITH_ANALYZER=$(WITH_ANALYZER)" all
+	cp -f include/cdvmh_helpers.h include/cdvmh_debug_helpers.h $(INCDIR)/
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/cdvmh: src ******"
+
+else
+
+all:
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES dvm/cdvmh ******"
+	@echo "****** LLVMCONFIG variable is not defined, so using binary distribution of cdvmh converter ******"
+	test ! -f bin/c_dvmh || cp -f bin/c_dvmh $(BINDIR)/c_dvmh
+	cp -f include/cdvmh_helpers.h include/cdvmh_debug_helpers.h $(INCDIR)/
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/cdvmh ******"
+
+endif
+
+clean:
+	test ! -d analyzer || ( cd analyzer/src && $(MAKE) "MAKE=$(MAKE)" clean )
+	cd src && $(MAKE) "MAKE=$(MAKE)" clean
+
+cleanall:
+	test ! -d analyzer || ( cd analyzer/src && $(MAKE) "MAKE=$(MAKE)" cleanall )
+	cd src && $(MAKE) "MAKE=$(MAKE)" cleanall
+	rm -f $(BINDIR)/c_dvmh $(INCDIR)/cdvmh_helpers.h  $(INCDIR)/cdvmh_debug_helpers.h
+
+.PHONY: all clean cleanall

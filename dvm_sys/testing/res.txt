@@ -1,0 +1,79 @@
+Processor system=2*1*1
+Statistics has been accumulated on DVM-system version 5.0, platform osx-10.11-clang.karosh
+Analyzer is executing on DVM-system version 5.0, platform osx-10.11-clang.karosh
+-------------------------------------------------------------------------
+INTERVAL ( NLINE=20 SOURCE=jac2d.c ) LEVEL=0  EXE_COUNT=1
+--- The main characteristics --- 
+Parallelization efficiency      0.3988 
+Execution time                  0.7100 
+Processors                           2
+Threads amount                       4
+Total time                      1.4199
+Productive time                 0.5663 ( CPU= 0.5634 Sys= 0.0028 I/O= 0.0000 )
+Lost  time                      0.8536 
+   Insufficient parallelism     0.5643 ( User= 0.5614 Sys= 0.0028 )
+   Communication                0.0006 ( Real_sync= 0.0000 Starts= 0.0000 )
+   Idle time                    0.2887
+Load imbalance                  0.1445
+Synchronization                 0.0001
+Time variation                  0.0000
+Overlap                         0.0000
+                  Nop   Communic    Synchro  Variation    Overlap 
+Reduction          13     0.0005     0.0000     0.0000     0.0000 
+Shadow             13     0.0002     0.0001     0.0000     0.0000 
+--- The comparative characteristics --- 
+                              Tmin N proc      Tmax N proc      Tmid
+Lost time                   0.3546     1     0.4991     2     0.4268 
+User insufficient par.      0.2085     2     0.3530     1     0.2807 
+Sys.insufficient par.       0.0014     2     0.0014     1     0.0014 
+Idle time                   0.0000     1     0.2887     2     0.1444 
+Communication               0.0002     1     0.0004     2     0.0003 
+Synchronization             0.0000     1     0.0000     2     0.0000 
+Variation                   0.0000     1     0.0000     2     0.0000 
+Overlap                     0.0000     1     0.0000     2     0.0000 
+Load imbalance              0.0000     1     0.1445     2     0.0722 
+Execution time              0.4212     2     0.7100     1     0.5656 
+User CPU time               0.2095     2     0.3539     1     0.2817 
+Sys. CPU time               0.0014     2     0.0014     1     0.0014 
+Processors                       2     1          2     2          2 
+                      Communic          Synchro        Variation          Overlap  
+Reduction       Tmin    0.0001     1     0.0000     1     0.0000     1     0.0000     2 
+Reduction       Tmax    0.0003     2     0.0000     2     0.0000     2     0.0000     1 
+Reduction       Tmid    0.0002           0.0000           0.0000           0.0000       
+Shadow          Tmin    0.0001     1     0.0000     1     0.0000     1     0.0000     1 
+Shadow          Tmax    0.0001     2     0.0000     2     0.0000     2     0.0000     2 
+Shadow          Tmid    0.0001           0.0000           0.0000           0.0000       
+--- The execution characteristics --- 
+                                1          2 
+Lost time                  0.3546     0.4991 
+User insufficient par.     0.3530     0.2085 
+Sys.insufficient par.      0.0014     0.0014 
+Idle time                  0.0000     0.2887 
+Communication              0.0002     0.0004 
+Synchronization            0.0000     0.0000 
+Variation                  0.0000     0.0000 
+Overlap                    0.0000     0.0000 
+Load imbalance             0.0000     0.1445 
+Execution time             0.7100     0.4212 
+User CPU time              0.3539     0.2095 
+Sys. CPU time              0.0014     0.0014 
+Processors                      2          2 
+           Communication          
+Reduction                  0.0001     0.0003 
+Shadow                     0.0001     0.0001 
+           Synchronization        
+Reduction                  0.0000     0.0000 
+Shadow                     0.0000     0.0000 
+           Variation              
+Reduction                  0.0000     0.0000 
+Shadow                     0.0000     0.0000 
+           Overlap                
+Reduction                  0.0000     0.0000 
+Shadow                     0.0000     0.0000 
+
+
+-------------------------------------------------------------------------
+Name (number) and performance time of processors
+MacBook-Penek.local(1) 0.901404
+MacBook-Penek.local(2) 0.902398
+min - MacBook-Penek.local(1) 0.901404; max - MacBook-Penek.local(2) 0.902398; mid - 0.901901

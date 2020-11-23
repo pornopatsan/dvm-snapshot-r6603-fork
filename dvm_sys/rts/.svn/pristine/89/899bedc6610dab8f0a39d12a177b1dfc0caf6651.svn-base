@@ -1,0 +1,83 @@
+#ifndef _SYSDEBUG_EXT_
+#define _SYSDEBUG_EXT_
+/********************/    /*E0000*/
+
+/****************************************\
+* Parameters of built-in debugging tools *
+\****************************************/    /*E0001*/
+
+extern byte TstObject;     /* flag to check that the object is
+                              DVM-object */    /*E0002*/
+extern byte DisArrayFill;  /* flag of filling in of distributed arrays
+                              during their distribution and redistribution */    /*E0003*/
+extern byte FillCode[18];  /* sequence of bytes for filling  
+                              initialized elements of distributed arrays */    /*E0004*/
+extern DvmType WaitDelay;     /* value of delay of rtl_Waitrequest 
+                              function execution */    /*E0005*/
+extern DvmType RecvDelay;     /* value of delay of rtl_Recvnowait 
+                              function execution*/    /*E0006*/
+extern DvmType SendDelay;     /* value of delay of rtl_Sendnowait 
+                              function execution*/    /*E0007*/
+                                             
+/* Global variables to check memory allocation and clearing requests */    /*E0008*/
+
+extern DVMUSERVAR
+byte SaveAllocMem;         /* flag to keep requests in structure array */    /*E0009*/
+extern byte CheckFreeMem;  /* flag to check structure array each time when memory is freed */    /*E0010*/
+
+extern int AllocBufSize;   /* size of structure array to keep memory allocation requests */    /*E0011*/
+extern byte BoundSize; /* length of left and right bounds of 
+                          allocated memory in bytes */    /*E0012*/
+extern byte BoundCode; /* filling code for left and right bounds */    /*E0013*/
+
+extern byte CheckPtr;  /* flag on control pointer values
+                          while allocate and free memory */    /*E0014*/
+extern uLLng MinPtr;    /* min. value of pointer when checking memory allocation requests */    /*E0015*/
+extern uLLng MaxPtr;    /* max. value of pointer when checking memory allocation requests */    /*E0016*/
+
+/* */    /*E0017*/
+
+extern int MPI_MsgTest;   /* */    /*E0018*/
+
+extern int MPI_TestCount; /* */    /*E0019*/
+extern int MPI_TestSize;  /* */    /*E0020*/
+
+/* */    /*E0021*/
+
+extern DVMUSERVAR
+int MPI_TraceRoutine; /* */    /*E0022*/
+extern DVMUSERVAR
+int DVM_TraceOff;   /* */    /*E0023*/
+extern DVMUSERVAR
+int MPI_TraceLevel; /* */    /*E0024*/
+extern DVMUSERVAR
+int MPI_TraceReg;   /* */    /*E0025*/
+extern DVMUSERVAR
+byte MPI_SlashOut;  /* */    /*E0026*/
+extern DVMUSERVAR
+byte MPI_TraceAll;  /* */    /*E0027*/
+extern DVMUSERVAR
+byte MPI_TraceTime; /* */    /*E0028*/
+extern DVMUSERVAR
+byte MPI_TraceTimeReg; /* */    /*E0029*/
+extern DVMUSERVAR
+byte MPI_TraceFileLine; /* */    /*E0030*/
+extern DVMUSERVAR
+byte MPI_TraceMsgChecksum; /* */    /*E0031*/
+extern DVMUSERVAR
+int MPI_DynAnalyzer;/* */    /*E0032*/
+extern DVMUSERVAR
+int MPI_TestTraceCount; /* */    /*E0033*/
+extern DVMUSERVAR
+DvmType MPI_TraceBufSize;  /* */    /*E0034*/
+extern DVMUSERVAR
+DvmType MPI_TraceFileSize; /* */    /*E0035*/
+extern DVMUSERVAR
+DvmType MPI_TotalTraceFileSize; /* */    /*E0036*/
+extern DVMUSERVAR
+byte MPI_DebugMsgChecksum; /* */    /*E0037*/
+extern DVMUSERVAR
+byte MPI_DebugBufChecksum; /* */    /*E0038*/
+
+
+#endif  /* _SYSDEBUG_EXT_ */    /*E0039*/

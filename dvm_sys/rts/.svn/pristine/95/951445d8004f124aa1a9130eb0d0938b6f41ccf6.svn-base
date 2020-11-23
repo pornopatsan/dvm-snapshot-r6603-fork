@@ -1,0 +1,254 @@
+
+#ifndef _CMPTRACE_VAR_
+#define _CMPTRACE_VAR_
+/********************/
+
+/********************************\
+* Parameters of trace comparison
+* and code coverage
+\********************************/
+
+DVMUSERFUN
+byte EnableTrace = 0; /* is calculation tracing allowed or denied */
+byte EnableCodeCoverage = 0; /* defines if code coverage gathering is turned on or off */
+byte DelUsrTrace = 0; /* delete old files  with trace */
+char TraceOptionsTraceFile[MaxPathSize + 1]=""; /* name of standard file
+                                                   with user program trace */
+byte ManualReductCalc = 0;   /* mode of manual reduction calculation */
+
+struct
+{
+    char    FileLoopInfo[MaxParFileName+1]; /* loop description file */
+    char    ErrorFile[MaxParFileName+1];    /* file for diagnostics output */
+    char    TracePath[MaxPathSize + 1];     /* directory for trace files */
+    char    InputTracePrefix[MaxParFileName+1];  /* input trace prefix */
+    char    OutputTracePrefix[MaxParFileName+1]; /* output trace prefix */
+    char    Ext[4];                         /* extensions for processor trace files */
+    double  Exp;                            /* accuracy of floating point number comparison */
+    double  RelCompareMin;                  /* parameter which limits relative copmparison of small numbers */
+    byte    ExpIsAbsolute;                  /* flag, which defines the type of accuracy to use
+                                               1 - absolute, 0 - relative accuracy */
+    byte    StrictCompare;                  /* flag, defines how the values are gonna be compared
+                                               1 - use Exp as threshold, 0 - no threshold */
+    int     TraceMode;                      /* trace mode */
+    int     TraceLevel;                     /* trace nesting level */
+    int     SpaceIndent;                    /* indent size for next level */
+    byte    ErrorToScreen;                  /* flag of screen output of diagnostics */
+    /* now this parameter is not used */
+    int     WrtHeaderProc;                  /* processor writing information about loops */
+
+    int     TableTraceSize;                 /* sizes of tables for trace */
+
+    int     HashIterIndex;
+    int     HashIterSize;
+
+    int     ReductHashIndexSize;            /* size of HASH-table index for reduction variable table */
+    int     ReductHashTableSize;            /* structure array size for HASH-table of reduction variable table */
+
+    int     ReductVarTableSize;             /* structure array size for reduction variable table */
+
+    byte    SaveThroughExec;                /* trace writing during execution */
+    byte    WriteEmptyIter;                 /* empty iteration tracing */
+    byte    AppendErrorFile;                /* add messages to existing file */
+    int     MaxErrors;                      /* maximal number of detected errors */
+    byte    MultidimensionalArrays;         /* use multidimensional limits for arrays */
+    byte    drarr;
+    int     DefaultArrayStep;               /* default array step */
+    int     DefaultIterStep;                /* default iteration step */
+    byte    ChecksumMode;                   /* defines the coverage of arrays for calculating checksums */
+    byte    CalcChecksums;                  /* defines if in addition to usual level checksums will be calculated */
+    byte    ChecksumBinary;                 /* defines if checksums are calculated by binary addition */
+    byte    SeqLdivParContextOnly;          /* defines if seq. loops will be divided in blocks
+                                               only if they are nested in parallel loop or always */
+    byte    ChecksumDisarrOnly;             /* defines if checksums are calculated for disarrays only */
+    byte    TrapArraysAnyway;               /* defines whether to trap access to arrays if header read or not */
+    char    StartPoint[MAX_NUMBER_LENGTH];  /* dynamic point from which to start the trace */
+    char    FinishPoint[MAX_NUMBER_LENGTH]; /* dynamic point from which to finish the trace */
+    char    SaveArrayFilename[MaxParFileName+1];/* file to contain array elements when saved */
+    char    SaveArrayID[MaxArrayID+1];      /* ID of an array to be saved */
+    int     Ig_left, Ig_right;              /* number of global first and last parallel loops iterations */
+    int     Iloc_left, Iloc_right;          /* number of local first and last parallel loops iterations */
+    int     Irep_left, Irep_right;          /* number of first and last sequential loops iterations */
+    byte    SubstRedResults;                /* substitute reduction results with the results from the trace */
+    byte    SubstAllResults;                /* substitute all write operations results with the results from the trace */
+    byte    AllowErrorsSubst;               /* substitute operation results even when they counts as errors */
+    byte    DisableRedArrays;               /* disable reduction array's debugging */
+    byte    SRCLocCompareMode;              /* comparison mode for code locations */
+    int     LocIterWidth;                   /* number of local first and last parallel loops iterations */
+    int     GlobIterWidth;                  /* number of global first and last parallel loops iterations */
+    int     RepIterWidth;                   /* number of first and last sequential loops iterations */
+    int     IterTraceMode;                  /* disables VTR control in programs compiled with VTR */
+    byte    SetCoreSizeMax;                 /* set core file size to maximum allowed (Unix only) */
+    byte    EnableNANChecks;                /* indicates if runtime checks for NotANumber values are performed */
+    byte    MrgTracePrint;                  /* mode of printing merged trace */
+}
+
+TraceOptions =
+{
+    "loops",      /* FileLoopInfo */
+    "err.trd",    /* ErrorFile */
+    "",           /* TracePath */
+    "",           /* InputTracePrefix */
+    "",           /* OutputTracePrefix */
+    "trd",        /* Ext */
+    0.0001,       /* Exp */
+    1.0E-10,      /* RelCompareMin */
+    1,            /* ExpIsAbsolute */
+    0,            /* StrictCompare */
+    1,            /* TraceMode */
+    3,            /* TraceLevel */
+    2,            /* SpaceIndent */
+    0,            /* ErrorToScreen */
+    0,            /* WrtHeaderProc */
+    2048,         /* TableTraceSize */
+    65534,        /* HashIterIndex */
+    65535,        /* HashIterSize */
+    32,           /* ReductHashIndexSize */
+    32,           /* ReductHashTableSize */
+    32,           /* ReductVarTableSize */
+    0,            /* SaveThroughExec */
+    0,            /* WriteEmptyIter */
+    0,            /* AppendErrorFile */
+    1000,         /* MaxErrors */
+    1,            /* MultidimensionalArrays */
+    0,            /* drarr */
+    1,            /* DefaultArrayStep */
+    1,            /* DefaultIterStep */
+    1,            /* ChecksumMode */
+    0,            /* CalcChecksums */
+    0,            /* ChecksumBinary */
+    0,            /* SeqLdivParContextOnly */
+    1,            /* ChecksumDisarrOnly */
+    0,            /* TrapArraysAnyway */
+    "",           /* StartPoint */
+    "",           /* FinishPoint */
+    "",           /* SaveArrayFilename */
+    "",           /* SaveArrayID */
+    -1, -1,       /* Ig_left, Ig_right */
+    -1, -1,       /* Iloc_left, Iloc_right */
+    -1, -1,       /* Irep_left, Irep_right */
+    0,            /* SubstRedResults */
+    0,            /* SubstAllResults */
+    0,            /* AllowErrorsSubst */
+    0,            /* DisableRedArrays */
+    0,            /* SRCLocCompareMode */
+    1,            /* LocIterWidth */
+    1,            /* GlobIterWidth */
+    1,            /* RepIterWidth */
+    -1,           /* IterTraceMode */
+    1,            /* SetCoreSizeMax */
+    1,            /* EnableNANChecks */
+    0,            /* MrgTracePrint */
+};
+
+/* auxiliary table for trace reduction after parallel loop completion */
+TABLE DelayTrace;
+
+/* variable table for reduction variable tracing */
+VAR_TABLE ReductVarTable;
+
+TRACE Trace;
+byte TraceInit = 0;
+byte TraceHeaderRead = 0;
+
+char error_message [1024] = "Error message is not saved. Please report.";
+char trc_rdwrt_buff[1024];
+char trc_filebuff[MaxPathSize + 1];
+char trc_filebuff1[MaxPathSize + 1];
+
+char *KeyWords[] =
+{
+    "FULL",            /* N_FULL         */
+    "MODIFY",          /* N_MODIFY       */
+    "MINIMAL",         /* N_MINIMAL      */
+    "NONE",            /* N_NONE         */
+    "MODE",            /* N_MODE         */
+    "EMPTYITER",       /* N_EMPTYITER    */
+    "SL",              /* N_SLOOP        */
+    "PL",              /* N_PLOOP        */
+    "TR",              /* N_TASKREGION   */
+    "IT",              /* N_ITERATION    */
+    "BW",              /* N_PRE_WRITE    */
+    "AW",              /* N_POST_WRITE   */
+    "RV_BW",           /* N_R_PRE_WRITE  */
+    "RV_AW",           /* N_R_POST_WRITE */
+    "RV_RD",           /* N_R_READ       */
+    "RV",              /* N_REDUCT       */
+    "RD",              /* N_READ         */
+    "SKP",             /* N_SKIP         */
+    "EL",              /* N_END_LOOP     */
+    "END_HEADER",      /* N_END_HEADER   */
+    "ARR",             /* N_ARRAY        */
+    "MULTIDIMARR",     /* N_MULTIDIM_ARRAY */
+    "DEFARRSTEP",      /* N_DEF_ARR_STEP */
+    "DEFITERSTEP",     /* N_DEF_ITER_STEP */
+    "CHECKSUM",        /* N_CHECKSUM     */
+    "STARTPOINT",      /* N_STARTPOINT   */
+    "FINISHPOINT",     /* N_FINISHPOINT  */
+    "IG_LEFT",         /* N_IG_LEFT */
+    "IG_RIGHT",        /* N_IG_RIGHT*/
+    "ILOC_LEFT",       /* N_ILOC_LEFT */
+    "ILOC_RIGHT",      /* N_ILOC_RIGHT */
+    "IREP_LEFT",       /* N_IREP_LEFT */
+    "IREP_RIGHT",      /* N_IREP_RIGHT */
+    "LOCITERWIDTH",    /* N_LOCITERWIDTH */
+    "REPITERWIDTH",    /* N_REPITERWIDTH */
+    "CPU_COUNT",       /* N_CPUCOUNT */
+    "TRACE_TIME",      /* N_TIME */
+    "CHUNK",           /* N_CHUNK */
+    "CALC_CHECKSUM",   /* N_CALC_CHECKSUM */
+    "FILE",            /* N_FILE */
+    "DEB_VERSION",     /* N_DEB_VERSION */
+    "TASK_NAME",       /* N_TASK_NAME */
+    "WORK_DIR",        /* N_WORK_DIR  */
+    "USER_HOST",       /* N_USER_HOST */
+    "ARCHITECTURE",    /* N_ARCH */
+    "OS",              /* N_OS   */
+    "END_TRACE",       /* N_END_TRACE */
+    "",                /* N_EMPTY */
+};
+
+char *TraceDescriptions[] =
+{
+    "# Trace size = %lu bytes\n",                         /* DSC_FULLSIZE */
+    "# String count = %lu\n",                             /* DSC_STRINGCOUNT */
+    "# Count of traced iterations = %lu\n",               /* DSC_ITERCOUNT */
+    "# Begin trace header. Don't modify these records\n", /* DSC_BEGIN_HEADER */
+    "# End trace header\n\n",                             /* DSC_END_HEADER */
+    "# Used memory = %lu bytes\n",                        /* DSC_MEMORY */
+    "# Read access = %lu times\n",                        /* DSC_READ */
+    "# Write access = %lu times\n"                        /* DSC_WRITE */
+};
+
+#ifndef _DVM_IOPROC_
+
+TRACE_VTABLE cmpTable =
+{
+    trc_cmp_beginstruct,
+    trc_cmp_endstruct,
+    trc_cmp_iteration,
+    trc_cmp_variable,
+    trc_cmp_skip
+};
+
+TRACE_VTABLE putTable =
+{
+    trc_put_beginstruct,
+    trc_put_endstruct,
+    trc_put_iteration,
+    trc_put_variable,
+    trc_put_skip
+};
+
+PFN_ARRAY_CAN_TRACE trc_ArrayCanTrace = trc_ArrayCanTraceMD;
+PFN_COMPARE_VALUE   trc_CompareValue = trc_CompareValueAbsolute;
+PFN_DIVIDE_FUNC     divide_set = NULL;
+
+#endif
+
+TRACE_VTABLE* pCmpOperations = NULL;
+DvmType CurrCmpTraceFileSize = 0;
+
+int  PackedCPUSetSize = 0;
+
+#endif /* _CMPTRACE_VAR_ */

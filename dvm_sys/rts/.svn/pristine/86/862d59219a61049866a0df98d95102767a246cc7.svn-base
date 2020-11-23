@@ -1,0 +1,83 @@
+DVMOPT=-D_ALL_TRACE_ -D_F_TIME_ -D_LLIO_ -DWIN32
+!IF "$(MACHINE)" == "x64"
+DVMOPT=$(DVMOPT) -DDVM_TYPE_LL
+!ENDIF
+
+OUTDIR=..\obj
+LIBDIR=..\..\lib
+
+CXXFLAGS= /EHsc /O2 /W3 /D "NDEBUG" /D "_WINDOWS" /D "_CRT_SECURE_NO_WARNINGS"\
+ /Fp"$(OUTDIR)\rtl.pch" /Fo"$(OUTDIR)\\" /Fd"$(OUTDIR)\\" /c
+
+.cpp{$(OUTDIR)/}.obj:
+	$(CXX) $(CXXFLAGS) $(DVMOPT) $(MPSOPT) $(MS_F) -I..\..\tools\Zlib\src -I..\..\tools\Zlib\include -I..\include -I "$(MPI_INC)" $<
+
+F90_OPT=$(FFLAGS) /include:"$(OUTDIR)\\" /Zl -c /nologo \
+	/module:"$(OUTDIR)/" /Fo"$(OUTDIR)/"
+
+.f{$(OUTDIR)/}.obj:
+	$(FORT) $(F90_OPT) $< -o $@
+
+LIB32=link.exe -lib
+
+!IF "$(MACHINE)" == "x64"
+LIB32_FLAGS=/nologo /MACHINE:x64 /out:"$(LIBDIR)/dvm.lib"
+!ELSE
+LIB32_FLAGS=/nologo /MACHINE:x86 /out:"$(LIBDIR)/dvm.lib"
+!ENDIF
+
+MPI_OBJ=$(OUTDIR)\mpi_init.obj $(OUTDIR)\mpi_mps.obj
+
+GNS_OBJ=$(OUTDIR)\gns_init.obj $(OUTDIR)\gns_mps.obj
+
+PVM_OBJ=$(OUTDIR)\pvm_init.obj $(OUTDIR)\pvm_mps.obj
+
+EMP_OBJ=$(OUTDIR)\emp_init.obj $(OUTDIR)\emp_mps.obj
+
+MPS_OBJ=$(MPI_OBJ)
+
+FORT_LIB_OBJ=$(OUTDIR)\getarg.obj $(OUTDIR)\nargs.obj $(OUTDIR)\clfdvm.obj
+
+OBJ=\
+	$(OUTDIR)\1.obj \
+	$(OUTDIR)\2.obj \
+	$(OUTDIR)\3.obj \
+	$(OUTDIR)\4.obj \
+	$(OUTDIR)\5.obj \
+	$(OUTDIR)\6.obj \
+	$(OUTDIR)\7.obj \
+	$(OUTDIR)\8.obj \
+	$(OUTDIR)\9.obj \
+	$(OUTDIR)\_adler32.obj \
+	$(OUTDIR)\_compress.obj \
+	$(OUTDIR)\_crc32.obj \
+	$(OUTDIR)\_gzio.obj \
+	$(OUTDIR)\_uncompr.obj \
+	$(OUTDIR)\_deflate.obj \
+	$(OUTDIR)\_trees.obj \
+	$(OUTDIR)\_zutil.obj \
+	$(OUTDIR)\_inflate.obj \
+	$(OUTDIR)\_infblock.obj \
+	$(OUTDIR)\_inftrees.obj \
+	$(OUTDIR)\_infcodes.obj \
+	$(OUTDIR)\_infutil.obj \
+	$(OUTDIR)\_inffast.obj \
+	$(OUTDIR)\linitstd.obj
+
+!ifndef	MS_F
+FORT_LIB_OBJ=
+!endif
+
+$(LIBDIR)/dvm.lib: $(OBJ) $(FORT_LIB_OBJ)
+	$(LIB32) @<<
+	$(LIB32_FLAGS) $(OBJ) $(FORT_LIB_OBJ) $(MPI_LIB)
+<<
+
+all: $(LIBDIR)/dvm.lib
+	@echo "*** COMPILING libdvm DIRECTORY DONE"
+
+clean:
+
+cleanall:
+
+.PHONY: all clean cleanall

@@ -1,0 +1,53 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+npp="$1"
+shift
+taskname="$1"
+
+list_nodes=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | wc -w )
+if [ $list_nodes -gt 1 ]; then
+    echo "Error: DVMH_PPN list is too long. Maximum length is 1 (ProcPerNode)."
+    exit 1
+fi
+host_procs=$npp
+if [ $list_nodes -gt 0 ]; then
+    host_procs=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $1;}' )
+fi
+ngpus=""
+gpus=$( printf '%s\n' "$DVMH_NUM_CUDAS" | tr "," " " | wc -w )
+if [ $gpus -gt 1 ]; then
+    echo "Error: DVMH_NUM_CUDAS list is too long. Maximum length is 1."
+    exit 1
+fi
+if [ $gpus -gt 0 ]; then
+    ngpus=$( printf ':ngpus=%s\n' "$DVMH_NUM_CUDAS" | tr "," " " | awk '{print $1;}' )
+fi
+ncpus=12
+if [ "$queuemode" = "SMP_G7_q" ]; then
+    ncpus=80
+fi
+if [ "$queuemode" = "g6_q" ]; then
+    ncpus=8
+fi
+nnodes=$(( ($npp+$host_procs-1)/$host_procs ))
+task_file="$taskname.task"
+mkdir "$taskname.1"
+echo "#!/bin/bash">$task_file
+echo "#PBS -V">>$task_file
+echo "#PBS -r n">>$task_file
+echo "#PBS -q ${queuemode}">>$task_file
+echo "#PBS -l select=${nnodes}:ncpus=${ncpus}${ngpus}:mpiprocs=${host_procs},walltime=${maxtime}">>$task_file
+echo "#PBS -N ${taskname}">>$task_file
+#echo "#PBS -j oe">>$task_file
+echo "#PBS -e ${taskname}.1/error">>$task_file
+echo "#PBS -o ${taskname}.1/output">>$task_file
+echo "date">>$task_file
+echo "cd \$PBS_O_WORKDIR">>$task_file
+echo "pwd">>$task_file
+#echo "MPD_CON_EXT=`date`">>$task_file
+echo "cat \$PBS_NODEFILE">>$task_file
+echo "mpirun -r ssh  -genv I_MPI_FABRICS shm:ofa -n ${npp} $@">>$task_file
+echo "date">>$task_file
+do_cmd qsub "$taskname.task"

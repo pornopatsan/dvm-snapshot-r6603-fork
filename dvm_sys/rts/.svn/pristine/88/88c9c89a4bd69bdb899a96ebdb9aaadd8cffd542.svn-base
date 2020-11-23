@@ -1,0 +1,409 @@
+### makefile.uni for rts
+
+LIBDIR=../../lib
+BINDIR=../../bin
+
+### for unix
+#DVMOPT   = -D_ALL_TRACE_ -D_UNIX_ -D_F_TIME_ -D_DATA_ALIGN_ACCESS_
+# -DVERS=\"$(DVMVERS)\" -DPLATFORM=\"$(PLATFORM)\"
+#MPSOPT   = -D_DVM_MPI_
+CCOPT    = -fPIC
+
+ZLIB_src = ../../tools/Zlib/src
+ZLIB_inc = ../../tools/Zlib/include
+CFLAGS   = $(DVMOPT) $(CCOPT) -I$(ZLIB_src) -I$(ZLIB_inc) -I../include
+
+#FORT_OBJ = getarg.o nargs.o
+#MPI_OBJ = mpi_init.o mpi_mps.o
+#GNS_OBJ = gns_init.o gns_mps.o
+#PVM_OBJ= pvm_init.o pvm_mps.o
+#EMP_OBJ= emp_init.o emp_mps.o
+
+#MPS_OBJ = $(MPI_OBJ)
+1.o: 1.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysvar.inc checksum.var \
+ param.var syspar.var sysdebug.var systrace.var trcevent.var statist.var \
+ global1.var global2.var dynlimit.var dyncntrl.var cmptrace.var \
+ cntrlerr.var auxilfun.c crtdelda.c distrib.c mapdistr.c align.c \
+ mapalign.c prgblock.c reduct.c rgaccess.c idaccess.c
+2.o: 2.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext initexit.c stdio.c disio.c lowio.c
+3.o: 3.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext mps.inc mpi_init.c mpi_mps.c objequ.c msgpas.c rtl_fun.c \
+ genv.c v_turch.c bounds.c parloop.c subtasks.c
+4.o: 4.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext ams.c pss.c space.c collect.c elmcopy.c aelmcopy.c
+5.o: 5.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext getpar.c debpar.c inputpar.c
+6.o: 6.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext allocmem.c trace.c events.c statevnt.c strall.h omp_dbg.c omp_dbg.h  dvmh_stat.h \
+ ../include/dvmh_stat.h groups.c intergrp.c statist.c statist.h \
+ ../include/interval.h ../include/dvmvers.h interval.c dvmh_rts_stat.c \
+ ../include/dvmh_rts_stat.h ../include/dvmh_events.def \
+ ../include/dvmh_stat.h dvmh_stat.c mpitds.c
+7.o: 7.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext archksum.c mbodies.c dynlimit.c dbgdec.c cmptrace.c \
+ dyncntrl.c hash.c trc_put.c trc_wrt.c trc_read.c trc_merge.c trc_cmp.c \
+ trcreduc.c table.c vartable.c cntrlerr.c tracer_dvmdbg.c
+8.o: 8.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext dacopy.c adacopy.c daconsis.c
+9.o: 9.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext ioproc.c
+linitstd.o: linitstd.c dvmlib.inc ../include/common.inc \
+ ../include/mpsusr.inc ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ dynlimit.mac dyncntrl.mac sysfun.dec dynlimit.dec dyncntrl.dec \
+ cmptrace.dec cntrlerr.dec tracer_dvmdbg.dec sysext.inc checksum.ext \
+ param.ext syspar.ext sysdebug.ext systrace.ext trcevent.ext statist.ext \
+ global1.ext global2.ext dynlimit.ext dyncntrl.ext cmptrace.ext \
+ cntrlerr.ext
+clfdvm.o: clfdvm.f
+	$(FORT) -fPIC -c -o clfdvm.o clfdvm.f
+_adler32.o: _adler32.c ../include/compile.def \
+ $(ZLIB_src)/adler32.c $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+_crc32.o: _crc32.c ../include/compile.def $(ZLIB_src)/crc32.c \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h
+_gzio.o: _gzio.c ../include/compile.def $(ZLIB_src)/gzio.c \
+ $(ZLIB_inc)/zutil.h $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+_infcodes.o: _infcodes.c ../include/compile.def \
+ $(ZLIB_src)/infcodes.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/inftrees.h $(ZLIB_inc)/infblock.h \
+ $(ZLIB_inc)/infcodes.h $(ZLIB_inc)/infutil.h \
+ $(ZLIB_inc)/inffast.h
+_inflate.o: _inflate.c ../include/compile.def \
+ $(ZLIB_src)/inflate.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/infblock.h
+_infutil.o: _infutil.c ../include/compile.def \
+ $(ZLIB_src)/infutil.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/infblock.h $(ZLIB_inc)/inftrees.h \
+ $(ZLIB_inc)/infcodes.h $(ZLIB_inc)/infutil.h
+_uncompr.o: _uncompr.c ../include/compile.def \
+ $(ZLIB_src)/uncompr.c $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+_compress.o: _compress.c ../include/compile.def \
+ $(ZLIB_src)/compress.c $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+_deflate.o: _deflate.c ../include/compile.def \
+ $(ZLIB_src)/deflate.c $(ZLIB_inc)/deflate.h \
+ $(ZLIB_inc)/zutil.h $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+_infblock.o: _infblock.c ../include/compile.def \
+ $(ZLIB_src)/infblock.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/infblock.h $(ZLIB_inc)/inftrees.h \
+ $(ZLIB_inc)/infcodes.h $(ZLIB_inc)/infutil.h
+_inffast.o: _inffast.c ../include/compile.def \
+ $(ZLIB_src)/inffast.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/inftrees.h $(ZLIB_inc)/infblock.h \
+ $(ZLIB_inc)/infcodes.h $(ZLIB_inc)/infutil.h \
+ $(ZLIB_inc)/inffast.h
+_inftrees.o: _inftrees.c ../include/compile.def \
+ $(ZLIB_src)/inftrees.c $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/inftrees.h $(ZLIB_inc)/inffixed.h
+_trees.o: _trees.c ../include/compile.def $(ZLIB_src)/trees.c \
+ $(ZLIB_inc)/deflate.h $(ZLIB_inc)/zutil.h \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ $(ZLIB_inc)/trees.h
+_zutil.o: _zutil.c ../include/compile.def $(ZLIB_src)/zutil.c \
+ $(ZLIB_inc)/zutil.h $(ZLIB_inc)/zlib.h \
+ $(ZLIB_inc)/zconf.h
+
+OBJ_ZLIB = \
+	_adler32.o \
+	_compress.o \
+	_crc32.o \
+	_gzio.o \
+	_uncompr.o \
+	_deflate.o \
+	_trees.o \
+	_zutil.o \
+	_inflate.o \
+	_infblock.o \
+	_inftrees.o \
+	_infcodes.o \
+	_infutil.o \
+	_inffast.o
+
+OBJ_C = \
+	1.o \
+	2.o \
+	3.o \
+	4.o \
+	5.o \
+	6.o \
+	7.o \
+	8.o \
+	9.o \
+	$(OBJ_ZLIB)
+
+OBJ_FTN = linitstd.o \
+	clfdvm.o
+
+io1.o: 1.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysvar.inc checksum.var param.var syspar.var sysdebug.var \
+ systrace.var trcevent.var statist.var global1.var global2.var \
+ dynlimit.var dyncntrl.var cmptrace.var cntrlerr.var auxilfun.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io1.o 1.c
+io2.o: 2.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext initexit.c stdio.c \
+ disio.c lowio.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io2.o 2.c
+io3.o: 3.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext mps.inc mpi_init.c \
+ mpi_mps.c objequ.c msgpas.c rtl_fun.c genv.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io3.o 3.c
+io4.o: 4.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext ams.c pss.c space.c \
+ collect.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io4.o 4.c
+io5.o: 5.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext getpar.c debpar.c \
+ inputpar.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io5.o 5.c
+io6.o: 6.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext allocmem.c trace.c \
+ events.c statevnt.c strall.h dvmh_stat.h omp_dbg.c omp_dbg.h ../include/dvmh_stat.h groups.c \
+ intergrp.c statist.c statist.h ../include/interval.h \
+ ../include/dvmvers.h interval.c dvmh_rts_stat.c \
+ ../include/dvmh_rts_stat.h ../include/dvmh_events.def \
+ ../include/dvmh_stat.h dvmh_stat.c mpitds.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io6.o 6.c
+io7.o: 7.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io7.o 7.c
+io8.o: 8.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io8.o 8.c
+io9.o: 9.c dvmlib.inc ../include/common.inc ../include/mpsusr.inc \
+ ../include/dvmvers.h ../include/compile.def \
+ $(ZLIB_inc)/zlib.h $(ZLIB_inc)/zconf.h \
+ ../include/user.def ../include/user.typ ../include/common.mac \
+ ../include/trace.mac ../include/user.mac ../include/usrfun.dec \
+ ../include/usrdebug.dec system.def groups_dvmh.def config.def debug.def \
+ events.def ../include/dvmh_events.def tracer_dvmdbg.def system.typ \
+ dyncntrl.typ cmptrace.typ cntrlerr.typ system.mac inputpar.mac \
+ sysfun.dec sysext.inc checksum.ext param.ext syspar.ext sysdebug.ext \
+ systrace.ext trcevent.ext statist.ext global1.ext global2.ext \
+ dynlimit.ext dyncntrl.ext cmptrace.ext cntrlerr.ext ioproc.c
+	$(CC) $(CFLAGS) -D_DVM_IOPROC_ -c -o io9.o 9.c
+
+OBJ_IO = \
+	io1.o \
+	io2.o \
+	io3.o \
+	io4.o \
+	io5.o \
+	io6.o \
+	io7.o \
+	io8.o \
+	io9.o \
+	$(OBJ_ZLIB)
+
+$(LIBDIR)/dvm.a: $(OBJ_C) $(OBJ_FTN)
+#	cp $(MPI_LIB) $@
+	$(ar) crs $@ $^
+
+$(LIBDIR)/libdvm.so: $(OBJ_C)
+	$(LINKER) -shared -o $@ $^
+
+$(LIBDIR)/libdvm-f.so: $(OBJ_FTN)
+	$(LINKER) -shared -o $@ $^
+
+$(BINDIR)/io: $(OBJ_IO) io_server.c
+	$(CC) $(CFLAGS) -c io_server.c
+	$(LINKER) -o $@ io_server.o $(OBJ_IO) -lm
+
+ifdef IS_OSX
+all: $(LIBDIR)/dvm.a $(BINDIR)/io
+else ifdef IS_WIN
+all: $(LIBDIR)/dvm.a $(BINDIR)/io
+	cp $(LIBDIR)/dvm.a $(LIBDIR)/dvm.lib
+else
+all: $(LIBDIR)/dvm.a $(LIBDIR)/libdvm.so $(LIBDIR)/libdvm-f.so $(BINDIR)/io
+endif
+	@echo "*** COMPILING libdvm DIRECTORY DONE"
+
+clean:
+	rm -f *.o
+
+cleanall: clean
+
+.PHONY: all clean cleanall

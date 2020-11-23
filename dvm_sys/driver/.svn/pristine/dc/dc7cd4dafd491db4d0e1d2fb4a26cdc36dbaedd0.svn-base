@@ -1,0 +1,14 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+npp="$1"
+shift
+
+if [ -n "$dvmvarlist" ]; then
+    genv="-genvlist $dvmvarlist"
+else
+    genv=
+fi
+
+do_cmd mpiexec -n $npp $genv "$@"

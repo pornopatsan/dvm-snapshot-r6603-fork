@@ -1,0 +1,59 @@
+.KEEP_STATE:
+#############################################################################
+#                                                                           #
+#                                   RATER                                   #
+#                                                                           #
+#############################################################################
+
+LIB	    = librater.a
+
+INC_DIR = -I../Include -I../../Presage/Include
+# -I../../STLport/stlport
+ 
+#ROUTDIR  = ../Release
+ROUTDIR  = ../Debug
+
+##################### for GNU ####################
+
+COPT    = -O -w $(INC_DIR)
+AR	= ar r 
+
+release : $(ROUTDIR)/$(LIB)
+
+debug   : $(ROUTDIR)/$(LIB)
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+.cpp.o:
+	$(CXX) -c $(COPT) $*.cpp
+	
+
+MODULES   = \
+	AMView.o	DimBound.o	RedGroup.o \
+	AlignAxis.o	DistAxis.o	RedVar.o \
+	BGroup.o	Space.o \
+	Block.o		LS.o		VM.o \
+	CommCost.o	ParLoop.o 	DArray.o \
+	Protocol.o
+
+#$(ROUTDIR)/%.o:%.cpp
+#	$(CXX) -c $(COPT) -o $(ROUTDIR)/$*.o $*.cpp
+ 	
+
+
+################################## RATER ##################################
+
+$(ROUTDIR)/$(LIB): $(MODULES)
+	mkdir -p ../Debug
+	$(AR) $(ROUTDIR)/$(LIB) $(MODULES)
+
+############################################################################
+	
+clean1:
+#	rm -f $(MODULES) $(ROUTDIR)/$(LIB)
+	rm -r -f $(MODULES) $(ROUTDIR)
+tags:
+	rm -f tags
+	ectags -f tags $(SRCFILES)   
+
+################################## END #####################################

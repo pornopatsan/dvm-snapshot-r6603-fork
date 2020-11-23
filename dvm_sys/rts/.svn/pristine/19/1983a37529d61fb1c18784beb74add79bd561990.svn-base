@@ -1,0 +1,258 @@
+#ifndef _SYSTEM_DEF_
+#define _SYSTEM_DEF_
+
+#include "groups_dvmh.def"
+
+/******************/    /*E0000*/
+
+#define sht_NULL	     0
+#define sht_DisArray	     1
+#define sht_AMS		     2
+#define sht_AMView           3
+#define sht_VMS		     4
+#define sht_VProc	     5
+#define sht_ParLoop	     6
+#define sht_BoundsGroup      7
+#define sht_BoundsBuffer     8
+#define sht_RedVar           9
+#define sht_RedGroup        10
+#define sht_ArrayMap        11
+#define sht_AMViewMap       12
+#define sht_RegBufGroup     13
+#define sht_DAConsistGroup  14
+#define sht_IdBufGroup      15
+
+#define NoParentEnv   -1
+
+/*************\
+*  distrib.c  *
+\*************/    /*E0001*/
+
+#define map_BLOCK       1
+#define map_COLLAPSE    2
+#define map_REPLICATE   3
+#define map_NORMVMAXIS  4
+#define map_CONSTANT    5
+
+/*************\
+*   align.c   *
+\*************/    /*E0002*/
+
+#define align_NORMAL      0
+#define align_REPLICATE   1
+#define align_COLLAPSE    2
+#define align_CONSTANT    3
+#define align_BOUNDREPL   4   /* Additional align styles */    /*E0003*/
+#define align_NORMTAXIS   5   /* Normal template's axis */    /*E0004*/
+
+
+/*************\
+*  parloop.c  *
+\*************/    /*E0005*/
+
+#define ITER_NORMAL         0
+#define ITER_BOUNDS_FIRST   1
+#define ITER_BOUNDS_LAST    2
+
+/* Positive (corresponding to error) return codes 
+        of dyn_GetLocalBlock function             */    /*E0006*/
+
+#define  AMViewEqu_Err           1
+#define  HasLocal_Err            2
+#define  align_NORMTAXIS_Err     3
+#define  distrib_NORMTAXIS_Err   4
+
+
+/*************\
+*  collect.c  *
+\*************/    /*E0007*/
+
+#define MaxCollCount ( INT_MAX / sizeof(void *) )
+
+#define EnvCount           10
+#define VMSCount           30
+#define VMSVMSCount        30 
+#define VMSAMVCount        30
+#define VMSAMSCount        30
+#define PrgBlockCount      20
+#define AMSAMVCount        30
+#define AMVCount           30
+#define AMVAMSCount        30
+#define AMVArrCount        30
+#define AMVMapCount        30
+#define DisArrCount        30
+#define ArrGrpCount        10
+#define ArrMapCount        30
+#define BoundGrpCount      30
+#define BGArrCount         10
+#define RedGrpCount        30
+#define StrtRedGrpCount    30
+#define RedVarCount       100
+#define RedVarGrpCount    100
+#define RegBufGrpCount     30
+#define ConsistDAGrpCount  30
+#define IdBufGrpCount      30
+
+#ifdef _WIN_MPI_
+   #define SendReqCount 16
+#else
+   #define SendReqCount 200
+#endif
+ 
+
+/***********\
+*  disio.c  * 
+\***********/    /*E0008*/
+
+#define FA_ERROR 0
+#define FA_ALL   1
+#define FA_PLANE 2
+
+
+/* Initial message tags */    /*E0009*/
+
+#define TagCount               100
+
+#define msg_common             0
+#define msg_SynchroSendRecv    msg_common           + TagCount
+#define msg_gettar_            msg_SynchroSendRecv  + TagCount
+#define msg_BroadCast          msg_gettar_          + TagCount
+#define msg_BoundsBuffer       msg_BroadCast        + TagCount
+#define msg_DACopy             msg_BoundsBuffer     + TagCount
+#define msg_RedVar             msg_DACopy           + TagCount
+#define msg_IdAccess           msg_RedVar           + TagCount
+#define msg_across             msg_IdAccess         + TagCount
+#define msg_ProcPowerMeasure   msg_across           + TagCount
+#define msg_IOProcess          msg_ProcPowerMeasure + TagCount
+#define msg_IOInit             msg_IOProcess        + TagCount
+                             
+
+/*****************************\
+ *  Performance analysis     * 
+\*****************************/    /*E0010*/
+
+#define StatGrpCount   28  /* number of operation groups */    /*E0011*/
+#define StatGrpCountM1 27  /* */    /*E0012*/
+
+#define UserGrp       0  /* execution of user program */    /*E0013*/
+#define MsgPasGrp     1  /* operation group of message exchange */    /*E0014*/
+#define StartRedGrp   2  /* start reduction */    /*E0015*/
+#define WaitRedGrp    3  /* waiting for the end of reduction */    /*E0016*/
+#define RedGrp        4  /* other reduction operations */    /*E0017*/
+#define StartShdGrp   5  /* start edges exchange */    /*E0018*/
+#define WaitShdGrp    6  /* waiting for the end of edges exchange */    /*E0019*/
+#define ShdGrp        7  /* other operations of edges exchange */    /*E0020*/
+#define DistrGrp      8  /* data distribution */    /*E0021*/
+#define ReDistrGrp    9  /* data redistribution */    /*E0022*/
+#define MapPLGrp     10  /* parallel loop distribution operations */    /*E0023*/
+#define DoPLGrp      11  /* function dopl_ */    /*E0024*/
+#define ProgBlockGrp 12  /* program block operations */    /*E0025*/
+#define IOGrp        13  /* input/output operations */    /*E0026*/
+#define RemAccessGrp 14  /* remote access operations */    /*E0027*/
+#define UserDebGrp   15  /* dynamic control operations
+                            and operations for user program trace */    /*E0028*/
+#define StatistGrp   16  /* user program interval operations 
+                            for performance analysis */    /*E0029*/
+#define SystemGrp    27  /* system work */    /*E0030*/
+
+
+
+/********************************************************\
+* Operation codes for asynchronous copying continuation *
+\********************************************************/    /*E0031*/
+
+#define   send_AGetElm             1
+#define   recv_AGetElm             2
+#define   send_AIOGetElm           3
+#define   recv_AIOGetElm           4
+#define   send_AIOPutElm           5
+#define   recv_AIOPutElm           6
+#define   send_AIOPutElmRepl       7
+#define   recv_AIOPutElmRepl       8
+#define   sendrecv_ACopyElm        9
+#define   sendrecv_AGetBlock      10
+#define   send_AIOGetBlock        11
+#define   recv_AIOGetBlock        12
+#define   send_AIOPutBlock        13
+#define   recv_AIOPutBlock        14
+#define   send_AIOPutBlockRepl    15
+#define   recv_AIOPutBlockRepl    16
+#define   sendrecv_ACopyBlock     17
+#define   sendrecv_ACopyBlock1    18
+
+
+/**********\
+*  ACROSS  *
+\**********/    /*E0032*/
+
+#ifdef  _WIN_MPI_
+   #define TimeMesLen 32000   /* number of double elements
+                                 in the message for meguaring time Tm */    /*E0033*/
+#else
+   #define TimeMesLen 256000
+#endif
+
+#define   TcNumber  100 /* number of parallel loops for which 
+                          the time of one iteration execution can be measured */    /*E0034*/
+#define   ShgNumber 100 /* */    /*E0035*/
+#define   RgNumber  100 /* */    /*E0036*/
+#define   RvNumber  100 /* */    /*E0037*/
+
+
+/* */    /*E0038*/
+
+#define  s_DA_Mem         1  /* */    /*E0039*/
+#define  s_DA_IOMem       2  /* */    /*E0040*/
+#define  s_IOMem_DA       3  /* */    /*E0041*/
+#define  s_IOMem_DARepl   4  /* */    /*E0042*/
+#define  s_DA_EQ_DA       5  /* */    /*E0043*/
+#define  s_DA_NE_DA       6  /* */    /*E0044*/
+#define  s_DA_EX_DA       7  /* */    /*E0045*/
+#define  s_DA1_EQ_DA1     8  /* */    /*E0046*/
+#define  s_DA1_NE_DA1     9  /* */    /*E0047*/
+#define  s_DA1_EX_DA1    10  /* */    /*E0048*/
+#define  s_DA_Axis_DA    11  /* */    /*E0049*/
+#define  s_DA1_Axis_DA1  12  /* */    /*E0050*/
+
+
+#define  a_DA_Mem        21  /* */    /*E0051*/
+#define  a_DA_IOMem      22  /* */    /*E0052*/
+#define  a_IOMem_DA      23  /* */    /*E0053*/
+#define  a_IOMem_DARepl  24  /* */    /*E0054*/
+#define  a_DA_EQ_DA      25  /* */    /*E0055*/
+#define  a_DA_NE_DA      26  /* */    /*E0056*/
+#define  a_DA_EX_DA      27  /* */    /*E0057*/
+#define  a_DA1_EQ_DA1    28  /* */    /*E0058*/
+#define  a_DA1_NE_DA1    29  /* */    /*E0059*/
+#define  a_DA1_EX_DA1    30  /* */    /*E0060*/
+#define  a_DA_Axis_DA    31  /* */    /*E0061*/
+#define  a_DA1_Axis_DA1  32  /* */    /*E0062*/
+
+
+#define  s_Elm_Mem       41  /* */    /*E0063*/
+#define  s_Elm_IOMem     42  /* */    /*E0064*/
+#define  s_IOMem_Elm     43  /* */    /*E0065*/
+#define  s_IOMem_ElmRepl 44  /* */    /*E0066*/
+#define  s_Elm_Elm       45  /* */    /*E0067*/
+
+
+#define  a_Elm_Mem       61  /* */    /*E0068*/
+#define  a_Elm_IOMem     62  /* */    /*E0069*/
+#define  a_IOMem_Elm     63  /* */    /*E0070*/
+#define  a_IOMem_ElmRepl 64  /* */    /*E0071*/
+#define  a_Elm_Elm       65  /* */    /*E0072*/
+
+
+#define  RedNonCentral   -1  /* */    /*E0073*/
+#define  RedCentral      -2  /* */    /*E0074*/
+#define  BCastSend       -3  /* */    /*E0075*/
+#define  gettar_Send     -4  /* */    /*E0076*/
+#define  MESend          -5  /* */    /*E0077*/
+#define  IDSend          -6  /* */    /*E0078*/
+#define  AcrossOut       -7  /* */    /*E0079*/
+#define  AcrossIn        -8  /* */    /*E0080*/
+#define  ShdSend         -9  /* */    /*E0081*/
+#define  InSend         -10  /* */    /*E0082*/
+
+
+#endif /* _SYSTEM_DEF_ */    /*E0083*/

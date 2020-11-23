@@ -1,0 +1,129 @@
+
+#ifndef _CMPTRACE_DEC_
+#define _CMPTRACE_DEC_
+/********************/
+
+void cmptrace_Init(void);
+void cmptrace_ReInit(void);
+void cmptrace_Done(void);
+void cmptrace_Read(void);
+void cmptrace_Write(TRACE_WRITE_REASON reason);
+
+STRUCT_INFO* trc_InfoNew(STRUCT_INFO* pParent);
+void trc_InfoDone(STRUCT_INFO *pInfo);
+int trc_InfoCanTrace(STRUCT_INFO *pInfo, int nRecType);
+void trc_ArrayRegister(byte bRank, DvmType* pSize, DvmType lType, char* szFile, UDvmType ulLine, char* szOperand, void* pArrBase, byte bIsDistr);
+void trc_ArrayRegisterRemoteBuffer(SysHandle* pSrcHandle, void* pBuffAddr, void* pBuffBaseAddr, DvmType* pIndex);
+void trc_ArrayReRegister(SysHandle* pOldHandle, SysHandle* pNewHandle);
+int trc_ArrayCanTraceSD(void* pAddr, void* pArrBase, enum_TraceType iType);
+int trc_ArrayCanTraceMD(void* pAddr, void* pArrBase, enum_TraceType iType);
+dvm_ARRAY_INFO* trc_ArrayInfoNew(char* szFile, char* szOperand, UDvmType ulLine, void* pArrBase, byte bIsDistr, DvmType lType, byte bRank, DvmType* plNo);
+void trc_InfoSetup(STRUCT_INFO *pInfo, DvmType *Init, DvmType *Last, DvmType *Step);
+STRUCT_INFO* trc_InfoFindForCurrentLevel(DvmType No, byte Type, byte Rank, char *File, UDvmType Line);
+void trc_StoreValue( VALUE *pValue, void *pMem, DvmType Type );
+int trc_CompareValueRelative( VALUE *pValue, void *pMem, DvmType Type, int difType );
+int trc_CompareValueAbsolute( VALUE *pValue, void *pMem, DvmType Type, int difType );
+int trc_CompareValueExact( VALUE *pValue, void *pMem, DvmType Type, int difType );
+void trc_DelayTraceDestruct( DELAY_TRACE *trc );
+DvmType trc_CalcLI(void);
+void trc_CalcSI(DvmType lIndex, byte bRank, DvmType rgSize[], DvmType *pSIndex);
+void trc_CalcPrimarySI(DvmType lIndex, s_BLOCK* pLocalBlock, DvmType *pSIndex);
+void trc_CalcRemoteSI(DvmType lIndex, byte bRank, DvmType rgSize[], DvmType rgIndexMap[], DvmType *pSIndex);
+DvmType trc_CalcArrayLI(byte bRank, DvmType* pSize, DvmType* pSIndex);
+void trc_SubstituteRedVar(void *Value, VARIABLE *Var, DvmType vType);
+void trc_SubstituteCommonVar(void *Value, VARIABLE *Var, DvmType vType);
+
+void trcreduct_Insert( s_REDVAR *RVar );
+REDUCT_INFO *trcreduct_Find( void *addr );
+void trcreduct_Remove( s_REDVAR *RVar );
+int trcreduct_IsReduct( void *addr );
+void trcreduct_VarDestructor( VarInfo *Var );
+void trcreduct_StoreInitial(s_REDVAR* RVar);
+void trcreduct_Calculate(void);
+void trcreduct_CalculateVar( VarInfo *Var );
+void trcreduct_Complete( void *addr, DvmType Type );
+void trcreduct_CopyResult( s_COLLECTION *RedVars );
+
+UDvmType trc_rd_header( DVMFILE *hf, char* szFileName );
+void trc_rd_trace( DVMFILE *hf, char* szFileName, UDvmType StrBase );
+UDvmType trc_rd_gets( DVMFILE *hf );
+short trc_rd_search_key(char *str);
+char *trc_rd_split( char *Str, char *Format, ... );
+
+UDvmType trc_mrg_header( DVMFILE *hf, char* szFileName );
+void trc_mrg_trace( DVMFILE *hf, char* szFileName, UDvmType StrBase );
+
+DvmType trc_wrt_header(TABLE* pStructs, int Level, FILE *hf, int nWriteInfo );
+void trc_wrt_codecoverage(FILE *hf);
+void trc_wrt_trace( FILE *hf, TRACE_WRITE_REASON reason );
+size_t trc_wrt_beginstruct(FILE *hf, STRUCT_BEGIN* pStruct);
+size_t trc_wrt_endstruct( FILE *hf, STRUCT_END* pStruct);
+size_t trc_wrt_iter( FILE *hf, ITERATION *Iter );
+size_t trc_wrt_readvar( FILE *hf, VARIABLE *Var );
+size_t trc_wrt_prewritevar( FILE *hf, VARIABLE *Var );
+size_t trc_wrt_postwritevar( FILE *hf, VARIABLE *Var );
+size_t trc_wrt_reductvar( FILE *hf, VARIABLE *Var );
+size_t trc_wrt_variable( FILE *hf, VARIABLE *Var, int iType );
+size_t trc_wrt_skip( FILE *hf, SKIP *Skip );
+size_t trc_wrt_chunk(FILE *hf, CHUNK *pChunk);
+size_t trc_wrt_indent( FILE *hf, int Level );
+void trc_wrt_calctraceinfo(void);
+void trc_wrt_calcinfo(STRUCT_INFO* pInfo);
+void trc_wrt_end( FILE *hf );
+
+void trc_cmp_beginstruct(char *File, UDvmType Line, DvmType No, byte Type, byte Rank, DvmType *Init, DvmType *Last, DvmType *Step);
+void trc_cmp_endstruct(char *File, UDvmType Line, DvmType No, UDvmType BegLine);
+void trc_cmp_iteration(DvmType* index);
+void trc_cmp_variable(char *File, UDvmType Line, char *Operand, enum_TraceType iType, DvmType vType, void *Value, byte Reduct, void* pArrBase);
+void trc_cmp_skip(char *File, UDvmType Line);
+
+byte trc_cmp_iteration_flash(void);
+DvmType trc_cmp_forward(DvmType CurTraceRecord, enum_TraceType iType);
+
+void trc_put_beginstruct(char *File, UDvmType Line, DvmType No, byte Type, byte Rank, DvmType *Init, DvmType *Last, DvmType *Step);
+void trc_put_endstruct(char *File, UDvmType Line, DvmType No, UDvmType BegLine);
+void trc_put_iteration(DvmType* index);
+void trc_put_variable(char *File, UDvmType Line, char *Operand, enum_TraceType iType, DvmType Type, void *Value, byte Reduct, void* pArrBase);
+void trc_put_skip(char *File, UDvmType Line);
+void trc_put_chunk(s_PARLOOP *PL);
+void cs_compute(CHECKSUM  *arrays, int  count);
+
+void trc_put_iteration_flash_par(byte Rank, DvmType *Index, DvmType LI);
+void trc_put_iteration_flash(void);
+
+void SaveCoverageInfo(void);
+void coverage_Done(void);
+byte block_Compare(s_BLOCK *A, s_BLOCK *B);
+byte iters_Compare(ITERBLOCK *A, ITERBLOCK *B);
+byte chunksets_Compare(CHUNKSET *A, CHUNKSET *B);
+byte iters_intersect_correct(ITERBLOCK *A, ITERBLOCK *B, byte* corrected);
+byte it_bl_intersect_res(ITERBLOCK *Res, ITERBLOCK *A, s_BLOCK *B);
+byte iters_intersect_test(ITERBLOCK *A, ITERBLOCK *B);
+void dont_trace_necessary_check(int i, DvmType *index, s_PARLOOP *PL);
+DvmType Calc_LI(DvmType *index);
+
+#ifdef WIN32
+int __cdecl sortpair_compare(const void *a, const void *b);
+int __cdecl errinfo_compare(const void *a, const void *b);
+#else
+int sortpair_compare(const void *a, const void *b);
+int errinfo_compare(const void *a, const void *b);
+#endif
+
+int errtime_compare(const void *a, const void *b);
+
+int strFileCmp(char *s1, char *s2);
+int strnFileCmp(char *s1, char *s2, size_t n);
+
+void mkStack(stack *s, int n);
+int isEmpty(stack *s);
+int isFull(stack *s);
+void pushStack(stack *s, DvmType No, int VTR, byte context, unsigned int Line);
+LOOP_INFO *stackLast(stack *s);
+int stackRemoveLast(stack *s);
+void stack_destroy(stack *s);
+
+void ploop_beg(NUMBER *num);
+void ploop_end(NUMBER *num);
+
+#endif  /* _CMPTRACE_DEC_ */

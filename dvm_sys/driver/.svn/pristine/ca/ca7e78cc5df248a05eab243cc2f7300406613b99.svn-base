@@ -1,0 +1,33 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Applied Mathematics             ##
+#######################################################################
+
+
+# dvm/driver/makefile.uni
+
+# Valentin Emelianov  (4/01/99)
+
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR= src
+
+all:
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "LINKER=$(LINKER)" all
+#	cp user/* ../user
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)"  clean
+	@echo "****** DONE RECURSIVELY CLEAN SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+	cd src; $(MAKE) "MAKE=$(MAKE)"  cleanall
+	@echo "****** DONE RECURSIVELY CLEAN SUBDIRECTORIES dvm/driver/: $(SUBDIR) ******"
+

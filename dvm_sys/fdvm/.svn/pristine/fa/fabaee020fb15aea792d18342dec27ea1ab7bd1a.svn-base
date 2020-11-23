@@ -1,0 +1,644 @@
+omp_specification_directive: omp_threadprivate_directive
+	;
+omp_execution_directive: omp_parallel_begin_directive
+	| omp_parallel_end_directive
+	| omp_sections_begin_directive
+	| omp_sections_end_directive
+	| omp_section_directive
+	| omp_do_begin_directive
+	| omp_do_end_directive
+	| omp_single_begin_directive
+	| omp_single_end_directive
+	| omp_workshare_begin_directive
+	| omp_workshare_end_directive
+	| omp_parallel_do_begin_directive
+	| omp_parallel_do_end_directive
+	| omp_parallel_sections_begin_directive
+	| omp_parallel_sections_end_directive
+	| omp_parallel_workshare_begin_directive
+	| omp_parallel_workshare_end_directive
+	| omp_master_begin_directive
+	| omp_master_end_directive
+	| omp_ordered_begin_directive
+	| omp_ordered_end_directive
+	| omp_barrier_directive
+	| omp_atomic_directive
+	| omp_flush_directive
+	| omp_critical_begin_directive
+	| omp_critical_end_directive
+	;
+
+ompdvm_onethread: OMPDVM_ONETHREAD end_spec 
+	{
+          $$ = get_bfnd(fi,OMP_ONETHREAD_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	};
+
+
+omp_parallel_end_directive: OMPDVM_ENDPARALLEL end_spec 
+	{
+  	   $$ = make_endparallel();
+	};
+
+
+omp_parallel_begin_directive: OMPDVM_PARALLEL end_spec opt_key_word parallel_clause_list
+	{
+  	   $$ = make_parallel();
+           $$->entry.Template.ll_ptr1 = $4;
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_PARALLEL end_spec opt_key_word
+	{
+  	   $$ = make_parallel();
+	   opt_kwd_ = NO;
+	};
+
+parallel_clause_list: opt_comma opt_key_word parallel_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| parallel_clause_list opt_comma opt_key_word parallel_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);	
+	}
+	;
+
+parallel_clause:  ompprivate_clause
+        | ompreduction_clause
+        | ompshared_clause
+        | ompdefault_clause
+        | ompfirstprivate_clause
+	| omplastprivate_clause
+        | ompcopyin_clause
+	| ompif_clause
+	| ompnumthreads_clause
+        ;
+
+omp_variable_list_in_par: op_slash_1 LEFTPAR op_slash_0 omp_variable_list RIGHTPAR
+        {
+		$$ = $4;
+        };
+
+ompprivate_clause: PRIVATE omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_PRIVATE,$2,LLNULL,SMNULL);
+	};
+
+ompfirstprivate_clause: OMPDVM_FIRSTPRIVATE omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_FIRSTPRIVATE,$2,LLNULL,SMNULL);
+	}
+        ;
+
+omplastprivate_clause: OMPDVM_LASTPRIVATE omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_LASTPRIVATE,$2,LLNULL,SMNULL);
+	}
+        ;
+
+ompcopyin_clause: OMPDVM_COPYIN omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_COPYIN,$2,LLNULL,SMNULL);
+	}
+        ;
+
+ompshared_clause: OMPDVM_SHARED omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_SHARED,$2,LLNULL,SMNULL);
+	}
+        ;
+ompdefault_clause: DEFAULT_CASE LEFTPAR needkeyword def_expr RIGHTPAR
+	{
+		$$ = make_llnd(fi,OMP_DEFAULT,$4,LLNULL,SMNULL);
+	}
+        ;
+
+def_expr: PRIVATE
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "private";
+		$$->type = global_string;
+	}
+	| OMPDVM_SHARED
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "shared";
+		$$->type = global_string;
+	}
+	| OMPDVM_NONE
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "none";
+		$$->type = global_string;
+	}
+	;
+ompif_clause: OMPDVM_IF LEFTPAR expr RIGHTPAR
+	{
+		$$ = make_llnd(fi,OMP_IF,$3,LLNULL,SMNULL);
+	}
+        ;
+
+ompnumthreads_clause: OMPDVM_NUM_THREADS LEFTPAR expr RIGHTPAR
+	{
+		$$ = make_llnd(fi,OMP_NUM_THREADS,$3,LLNULL,SMNULL);
+	}
+        ;
+
+ompreduction_clause: REDUCTION LEFTPAR ompreduction RIGHTPAR
+	{
+		PTR_LLND q;
+		q = set_ll_list($3,LLNULL,EXPR_LIST);
+		$$ = make_llnd(fi,OMP_REDUCTION,q,LLNULL,SMNULL);
+	};
+
+ompreduction:  opt_key_word ompreduction_op COLON ompreduction_vars
+           {$$ = make_llnd(fi,DDOT,$2,$4,SMNULL);}
+         ; 
+
+ompreduction_vars: variable_list;
+
+ompreduction_op: PLUS
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "+";
+              $$->type = global_string;
+             }
+	    | MINUS
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "-";
+              $$->type = global_string;
+             }
+
+            | ASTER
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "*";
+              $$->type = global_string;
+             }
+            | SLASH
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "/";
+              $$->type = global_string;
+             }
+            | MIN
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "min";
+              $$->type = global_string;
+             }
+            | MAX
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "max";
+              $$->type = global_string;
+             }
+            | OR
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) ".or.";
+              $$->type = global_string;
+             }
+            | AND
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) ".and.";
+              $$->type = global_string;
+             }
+            | EQV
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) ".eqv.";
+              $$->type = global_string;
+             }
+            | NEQV
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) ".neqv.";
+              $$->type = global_string;
+             }
+            | IAND
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "iand";
+              $$->type = global_string;
+             }
+            | IEOR
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "ieor";
+              $$->type = global_string;
+             }
+            | IOR
+             {
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "ior";
+              $$->type = global_string;
+             }
+            | UNKNOWN
+             { err("Illegal reduction operation name", 70);
+               errcnt--;
+              $$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+              $$->entry.string_val = (char *) "unknown";
+              $$->type = global_string;
+             }
+            ;
+
+
+omp_sections_begin_directive: OMPDVM_SECTIONS end_spec opt_key_word sections_clause_list 
+	{
+  	   $$ = make_sections($4);
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_SECTIONS end_spec opt_key_word
+	{
+  	   $$ = make_sections(LLNULL);
+	   opt_kwd_ = NO;
+	};
+
+sections_clause_list: opt_comma opt_key_word sections_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| sections_clause_list opt_comma opt_key_word sections_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);
+	}
+	;
+
+sections_clause:  ompprivate_clause
+        | ompreduction_clause
+        | ompfirstprivate_clause
+	| omplastprivate_clause
+        ;
+
+omp_sections_end_directive: OMPDVM_ENDSECTIONS end_spec opt_key_word ompnowait_clause
+	{
+		PTR_LLND q;
+   	        $$ = make_endsections();
+		q = set_ll_list($4,LLNULL,EXPR_LIST);
+                $$->entry.Template.ll_ptr1 = q;
+                opt_kwd_ = NO;
+	}
+	| OMPDVM_ENDSECTIONS end_spec opt_key_word
+	{
+   	        $$ = make_endsections();
+	        opt_kwd_ = NO; 
+	};
+
+omp_section_directive: OMPDVM_SECTION end_spec
+	{
+           $$ = make_ompsection();
+	};
+
+
+omp_do_begin_directive: OMPDVM_DO end_spec opt_key_word do_clause_list 
+	{
+           $$ = get_bfnd(fi,OMP_DO_DIR,SMNULL,$4,LLNULL,LLNULL);
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_DO end_spec opt_key_word
+	{
+           $$ = get_bfnd(fi,OMP_DO_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	   opt_kwd_ = NO;
+	};
+
+omp_do_end_directive: OMPDVM_ENDDO end_spec opt_key_word ompnowait_clause
+	{
+		PTR_LLND q;
+		q = set_ll_list($4,LLNULL,EXPR_LIST);
+	        $$ = get_bfnd(fi,OMP_END_DO_DIR,SMNULL,q,LLNULL,LLNULL);
+      	        opt_kwd_ = NO;
+	}
+	| OMPDVM_ENDDO end_spec opt_key_word 
+	{
+           $$ = get_bfnd(fi,OMP_END_DO_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	   opt_kwd_ = NO;
+	};
+
+do_clause_list: opt_comma opt_key_word do_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| do_clause_list opt_comma opt_key_word do_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);
+	}
+	;
+
+do_clause:  ompprivate_clause
+        | ompreduction_clause
+        | ompfirstprivate_clause
+	| omplastprivate_clause
+	| ompschedule_clause
+	| ompordered_clause
+        ;
+
+ompordered_clause: OMPDVM_ORDERED
+	{
+		/*$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "ORDERED";
+		$$->type = global_string;*/
+                $$ = make_llnd(fi,OMP_ORDERED,LLNULL,LLNULL,SMNULL);
+	}
+	;
+
+ompschedule_clause: OMPDVM_SCHEDULE LEFTPAR needkeyword ompschedule_op COMMA expr RIGHTPAR
+	{
+		$$ = make_llnd(fi,OMP_SCHEDULE,$4,$6,SMNULL);
+	}
+	| OMPDVM_SCHEDULE LEFTPAR needkeyword ompschedule_op RIGHTPAR
+	{
+		$$ = make_llnd(fi,OMP_SCHEDULE,$4,LLNULL,SMNULL);
+	}
+	;
+
+ompschedule_op: STATIC
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "STATIC";
+		$$->type = global_string;
+		
+	}
+	| DYNAMIC
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "DYNAMIC";
+		$$->type = global_string;
+		
+	}
+	| OMPDVM_GUIDED
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "GUIDED";
+		$$->type = global_string;
+		
+	}
+	| OMPDVM_RUNTIME
+	{
+		$$ = make_llnd(fi,KEYWORD_VAL,LLNULL,LLNULL,SMNULL);
+		$$->entry.string_val = (char *) "RUNTIME";
+		$$->type = global_string;
+		
+	}
+	;
+
+omp_single_begin_directive: OMPDVM_SINGLE end_spec opt_key_word single_clause_list 
+	{
+  	   $$ = make_single();
+           $$->entry.Template.ll_ptr1 = $4;
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_SINGLE end_spec opt_key_word
+	{
+  	   $$ = make_single();
+	   opt_kwd_ = NO;
+	};
+
+single_clause_list: opt_comma opt_key_word single_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| single_clause_list opt_comma opt_key_word single_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);
+	}
+	;
+
+single_clause:  ompprivate_clause
+        | ompfirstprivate_clause
+        ;
+
+omp_single_end_directive: OMPDVM_ENDSINGLE end_spec opt_key_word end_single_clause_list 
+	{
+  	   $$ = make_endsingle();
+           $$->entry.Template.ll_ptr1 = $4;
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_ENDSINGLE end_spec opt_key_word
+	{
+  	   $$ = make_endsingle();
+	   opt_kwd_ = NO;
+	};
+
+end_single_clause_list: opt_comma opt_key_word end_single_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| end_single_clause_list opt_comma opt_key_word end_single_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);
+	}
+	;
+
+
+end_single_clause:  ompnowait_clause
+        | ompcopyprivate_clause
+        ;
+
+ompcopyprivate_clause: OMPDVM_COPYPRIVATE omp_variable_list_in_par
+	{
+		$$ = make_llnd(fi,OMP_COPYPRIVATE,$2,LLNULL,SMNULL);
+	}
+        ;
+
+ompnowait_clause: OMPDVM_NOWAIT
+	{
+		$$ = make_llnd(fi,OMP_NOWAIT,LLNULL,LLNULL,SMNULL);
+	}
+        ;
+
+omp_workshare_begin_directive: OMPDVM_WORKSHARE end_spec
+	{
+           $$ = make_workshare();
+	};
+
+omp_workshare_end_directive: OMPDVM_ENDWORKSHARE end_spec opt_key_word ompnowait_clause
+	{
+		PTR_LLND q;
+   	        $$ = make_endworkshare();
+		q = set_ll_list($4,LLNULL,EXPR_LIST);
+                $$->entry.Template.ll_ptr1 = q;
+  	        opt_kwd_ = NO;
+	}
+	| OMPDVM_ENDWORKSHARE end_spec opt_key_word
+	{
+   	        $$ = make_endworkshare();
+                opt_kwd_ = NO;
+	};
+
+omp_parallel_do_begin_directive: OMPDVM_PARALLELDO end_spec opt_key_word paralleldo_clause_list  
+	{
+           $$ = get_bfnd(fi,OMP_PARALLEL_DO_DIR,SMNULL,$4,LLNULL,LLNULL);
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_PARALLELDO end_spec opt_key_word
+	{
+           $$ = get_bfnd(fi,OMP_PARALLEL_DO_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	   opt_kwd_ = NO;
+	}
+	;
+
+paralleldo_clause_list: opt_comma opt_key_word paralleldo_clause opt_key_word
+	{ 
+		$$ = set_ll_list($3,LLNULL,EXPR_LIST);
+	}
+	| paralleldo_clause_list opt_comma opt_key_word paralleldo_clause opt_key_word
+	{ 
+		$$ = set_ll_list($1,$4,EXPR_LIST);
+	}
+	;
+
+paralleldo_clause: ompprivate_clause
+        | ompreduction_clause
+        | ompshared_clause
+        | ompdefault_clause
+        | ompfirstprivate_clause
+	| omplastprivate_clause
+        | ompcopyin_clause
+	| ompif_clause
+	| ompnumthreads_clause
+	| ompschedule_clause
+	| ompordered_clause
+        ;
+
+
+omp_parallel_do_end_directive: OMPDVM_ENDPARALLELDO end_spec
+	{
+           $$ = get_bfnd(fi,OMP_END_PARALLEL_DO_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	};
+
+omp_parallel_sections_begin_directive: OMPDVM_PARALLELSECTIONS end_spec opt_key_word parallel_clause_list
+	{
+           $$ = make_parallelsections($4);
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_PARALLELSECTIONS end_spec opt_key_word
+	{
+           $$ = make_parallelsections(LLNULL);
+	   opt_kwd_ = NO;
+	};
+
+
+omp_parallel_sections_end_directive: OMPDVM_ENDPARALLELSECTIONS end_spec
+	{
+           $$ = make_endparallelsections();
+	};
+
+omp_parallel_workshare_begin_directive: OMPDVM_PARALLELWORKSHARE end_spec opt_key_word parallel_clause_list 
+	{
+           $$ = make_parallelworkshare();
+           $$->entry.Template.ll_ptr1 = $4;
+	   opt_kwd_ = NO;
+	}
+	| OMPDVM_PARALLELWORKSHARE end_spec opt_key_word
+	{
+           $$ = make_parallelworkshare();
+	   opt_kwd_ = NO;
+	};
+
+omp_parallel_workshare_end_directive: OMPDVM_ENDPARALLELWORKSHARE end_spec
+	{
+           $$ = make_endparallelworkshare();
+	};
+
+omp_threadprivate_directive: OMPDVM_THREADPRIVATE in_dcl omp_variable_list_in_par
+	{ 
+	   $$ = get_bfnd(fi,OMP_THREADPRIVATE_DIR, SMNULL, $3, LLNULL, LLNULL);
+	};
+
+omp_master_begin_directive: OMPDVM_MASTER end_spec 
+	{
+  	   $$ = make_master();
+	};
+
+omp_master_end_directive: OMPDVM_ENDMASTER end_spec 
+	{
+  	   $$ = make_endmaster();
+	};
+omp_ordered_begin_directive: OMPDVM_ORDERED end_spec 
+	{
+  	   $$ = make_ordered();
+	};
+
+omp_ordered_end_directive: OMPDVM_ENDORDERED end_spec 
+	{
+  	   $$ = make_endordered();
+	};
+
+omp_barrier_directive: OMPDVM_BARRIER end_spec 
+	{
+           $$ = get_bfnd(fi,OMP_BARRIER_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	};
+omp_atomic_directive: OMPDVM_ATOMIC end_spec 
+	{
+           $$ = get_bfnd(fi,OMP_ATOMIC_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	};
+
+omp_flush_directive: OMPDVM_FLUSH end_spec omp_variable_list_in_par
+	{
+           $$ = get_bfnd(fi,OMP_FLUSH_DIR,SMNULL,$3,LLNULL,LLNULL);
+	}
+	| OMPDVM_FLUSH end_spec 
+	{
+           $$ = get_bfnd(fi,OMP_FLUSH_DIR,SMNULL,LLNULL,LLNULL,LLNULL);
+	}
+	;
+
+omp_critical_begin_directive: OMPDVM_CRITICAL end_spec LEFTPAR ident RIGHTPAR
+	{
+  	   $$ = make_critical();
+           $$->entry.Template.ll_ptr1 = $4;
+	}
+	| OMPDVM_CRITICAL end_spec 
+	{
+  	   $$ = make_critical();
+	}
+	;
+
+omp_critical_end_directive: OMPDVM_ENDCRITICAL end_spec LEFTPAR ident RIGHTPAR
+	{
+  	   $$ = make_endcritical();
+           $$->entry.Template.ll_ptr1 = $4;
+	}
+	| OMPDVM_ENDCRITICAL end_spec 
+	{
+  	   $$ = make_endcritical();
+	}
+	;
+
+omp_common_var: SLASH name op_slash_1 SLASH op_slash_0
+	{ 
+		PTR_SYMB s;
+		PTR_LLND l;
+		s = make_common($2); 
+		l = make_llnd(fi,VAR_REF, LLNULL, LLNULL, s);
+		$$ = make_llnd(fi,OMP_THREADPRIVATE, l, LLNULL, SMNULL);
+	};
+
+
+omp_variable_list: omp_common_var
+	{
+		$$ = set_ll_list($1,LLNULL,EXPR_LIST);
+	}
+	| ident
+	{	
+		$$ = set_ll_list($1,LLNULL,EXPR_LIST);
+	}
+	| omp_variable_list COMMA omp_common_var
+	{ 
+		$$ = set_ll_list($1,$3,EXPR_LIST);
+	}
+	| omp_variable_list COMMA ident
+	{ 
+		$$ = set_ll_list($1,$3,EXPR_LIST);
+	}
+	;
+
+op_slash_1 : {
+		operator_slash = 1;
+	};
+op_slash_0 : {
+		operator_slash = 0;
+	};
+

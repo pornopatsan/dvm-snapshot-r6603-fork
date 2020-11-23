@@ -1,0 +1,28 @@
+#For Lomonosov (lomonosov.parallel.ru) PLATFORM (Intel compilers with OpenMP)
+# for DVM tools
+ CC="/opt/intel/composerxe/bin/icc -g -O2 -no-scalar-rep"
+ CXX="/opt/intel/composerxe/bin/icpc -g -O2 -no-scalar-rep"
+ LINKER="/opt/intel/composerxe/bin/icpc -g"
+ LLVMCONFIG="/home/users/admdvm/CLANG/bin/llvm-config"
+# for parallel programs
+ PCC="/opt/intel/impi/5.0.1.035/bin64/mpiicc -g -O2 -no-scalar-rep -openmp"
+ PCXX="/opt/intel/impi/5.0.1.035/bin64/mpiicpc -g -O2 -no-scalar-rep -openmp"
+ PFORT="/opt/intel/impi/5.0.1.035/bin64/mpiifort -g -O2 -no-scalar-rep -openmp"
+ PLINKER="/opt/intel/impi/5.0.1.035/bin64/mpiicpc -g -openmp"
+ PFLINKER="/opt/intel/impi/5.0.1.035/bin64/mpiifort -g -openmp"
+ MPIRUN_CMD="impi"
+ CUDA_PATH="/opt/cuda/cuda-6.5"
+ PGI_PATH="/opt/pgi/linux86-64/2012"
+ NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=4.2 -O2 -ta=nvidia:keepgpu,cc20"
+# launch settings
+ dvmcopy=1
+ dvmrun="slurm.run"
+ maxtime=30
+ queuemode=regular4
+# DVMH options for default preset
+ DVMH_PPN=8
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=2

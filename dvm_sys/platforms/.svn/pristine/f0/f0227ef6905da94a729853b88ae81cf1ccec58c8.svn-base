@@ -1,0 +1,23 @@
+#For Tester (tester.dvm-system.org) PLATFORM (with OpenMP)
+# for DVM tools
+ CC='cc -g -O2'
+ CXX='c++ -g -O2'
+ LINKER='c++ -g'
+ LLVMCONFIG='llvm-config'
+# for parallel programs
+ PCC='mpicc -g -O2 -fopenmp'
+ PCXX='mpic++ -g -O2 -fopenmp'
+ PFORT='mpif90 -g -O2 -fopenmp'
+ PLINKER='mpic++ -g -fopenmp'
+ PFLINKER='mpif90 -g -fopenmp'
+ ADD_LIBS=''
+ CUDA_PATH='/usr'
+# launch settings
+ dvmrun='runmpi'
+# DVMH options for default preset
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=8
+ CUDAS_PER_NODE=1
+ NODES_COUNT=1

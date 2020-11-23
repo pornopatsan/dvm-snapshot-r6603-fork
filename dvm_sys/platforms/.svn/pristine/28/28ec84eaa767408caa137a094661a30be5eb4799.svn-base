@@ -1,0 +1,28 @@
+#For mvs100k.jscc.ru PLATFORM (with OpenMP)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="/gpfs/NETHOME/DVM/MVS-100K/bin/llvm-config"
+# for parallel programs
+ MPIR_HOME="/gpfs/NETHOME/DVM/MVS-100K/MVAPICH"
+ MPIRUN_CMD="/gpfs/NETHOME/DVM/MVS-100K/MVAPICH/bin/run-mvapich-ib"
+ PCC="$MPIR_HOME/bin/mpicc -g -O2 -openmp -no-scalar-rep"
+ PCXX="$MPIR_HOME/bin/mpicxx -g -O2 -openmp -no-scalar-rep"
+ PFORT="$MPIR_HOME/bin/mpif77 -g -O2 -openmp -no-scalar-rep"
+ PLINKER="$MPIR_HOME/bin/mpicxx -g -openmp"
+ PFLINKER="$MPIR_HOME/bin/mpif77 -g -openmp"
+# ADD_LIBS="-L/$MPIR_HOME/lib"
+# launch settings
+ dvmcopy=1
+ dvmrun="suppz.run"
+ maxtime=10
+ restart=0
+ quantum=0
+# DVMH options for default preset
+ DVMH_PPN="2"
+ DVMH_NUM_THREADS="4,4"
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=8
+ CUDAS_PER_NODE=0

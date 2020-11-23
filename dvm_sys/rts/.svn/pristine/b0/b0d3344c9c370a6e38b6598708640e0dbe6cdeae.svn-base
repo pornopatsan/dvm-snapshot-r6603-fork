@@ -1,0 +1,6 @@
+/* WITH DYNAMIC CONTROL AND WITHOUT TRACE */
+
+EnableDynControl=1;        /* turn on/off dynamical check */
+EnableTrace=0;             /* trace on/off */
+DelUsrTrace=0;             /* delete trace files */
+Is_DVM_STAT=0;             /* statistics on/off */

@@ -1,0 +1,7 @@
+all:	tag.h
+
+tag.h:	head tag
+	( cat head; \
+	  sed < tag \
+	    '/#defin/s/\([^ ]*\) \([^ 	]*\)\(.*\)/  tag \[ \2 \] = \"\2\";/')\
+	  > tag.h

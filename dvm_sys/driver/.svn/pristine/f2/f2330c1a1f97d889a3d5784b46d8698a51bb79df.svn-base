@@ -1,0 +1,35 @@
+#!/bin/sh
+
+. dvm_utils.sh
+
+npp="$1"
+shift
+taskname="$1"
+
+export I_MPI_MIC=1
+export I_MPI_FABRICS="shm:tcp"
+export I_MPI_MIC_POSTFIX=".mic"
+export I_MPI_DEBUG=5
+
+pwd=`pwd | $sed -e 's|/home|/nethome|'`
+$sed -i -e 's|/home|/nethome|' "$current_par"
+
+list_nodes=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | wc -w )
+if [ $list_nodes -gt 2 ]; then
+    echo "DVMH_PPN list is too long. Maximum length is 2."
+    exit 1
+fi
+host_procs=$npp
+mic_procs=0
+if [ $list_nodes -eq 2 ]; then
+    first_ppn=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $1;}' )
+    second_ppn=$( printf '%s\n' "$DVMH_PPN" | tr "," " " | awk '{print $2;}' )
+    if [ $npp -ne $(( $first_ppn + $second_ppn )) ]; then
+        echo "In case of 2-element DVMH_PPN launch must be performed exactly on amount of processors which is a sum of elements in DVMH_PPN"
+        exit 1
+    fi
+    host_procs=$first_ppn
+    mic_procs=$second_ppn
+fi
+
+do_cmd mpirun -host "mic" -n $host_procs -wdir "$pwd" "$@" : -host "mic0" -n $mic_procs -wdir "$pwd" "$@"

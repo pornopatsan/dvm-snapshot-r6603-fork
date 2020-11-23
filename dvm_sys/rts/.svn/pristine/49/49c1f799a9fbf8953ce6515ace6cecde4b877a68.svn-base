@@ -1,0 +1,36 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# dvm/rts/makefile.uni
+
+# What to compile
+SUBDIR=src
+
+Incs:
+	@mkdir -p ../par; cp par/*.* ../par;
+	@mkdir -p ../include; cp include/*.* ../include
+
+libdvm:
+	@cd src; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "FORT=$(FORT)" "LINKER=$(LINKER)" all
+
+map_tasks:
+	@cd src/map_tasks; $(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "FORT=$(FORT)" "LINKER=$(LINKER)" all
+
+all: Incs libdvm map_tasks
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/rts/: $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES dvm/rts/: $(SUBDIR) ******"
+	@cd src; ($(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "FORT=$(FORT)" "LINKER=$(LINKER)" clean)
+	@cd src/map_tasks; ($(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "FORT=$(FORT)" "LINKER=$(LINKER)" clean)
+	@echo "****** DONE CLEAN SUBDIRECTORIES dvm/rts/: $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES dvm/rts/: $(SUBDIR) ******"
+	@cd src; ($(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "FORT=$(FORT)" "LINKER=$(LINKER)" cleanall)
+	@cd src/map_tasks; ($(MAKE) "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "FORT=$(FORT)" "LINKER=$(LINKER)" cleanall)
+	@echo "****** DONE CLEANALL SUBDIRECTORIES dvm/rts/: $(SUBDIR) ******"
+
+.PHONY: all clean cleanall Incs libdvm map_tasks

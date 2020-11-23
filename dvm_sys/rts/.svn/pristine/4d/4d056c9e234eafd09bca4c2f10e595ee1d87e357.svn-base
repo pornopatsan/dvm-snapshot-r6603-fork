@@ -1,0 +1,23 @@
+### makefile for automated task mapping algorithm
+# requires variables: CXX LINKER
+
+LIBDIR=..\..\..\lib
+
+SRCS = Distribution.cpp NaiveDistribution.cpp ProcessorLoad.cpp Task.cpp TaskData.cpp TransposedDistribution.cpp Muzzle.cpp
+INCS = Distribution.h MyException.h NaiveDistribution.h ProcessorLoad.h Task.h TaskData.h TaskInfo.h TransposedDistribution.h
+OBJS = $(SRCS:.cpp=.obj)
+
+all: $(LIBDIR)\map_tasks.lib
+
+$(LIBDIR)\map_tasks.lib: $(SRCS) $(INCS)
+	$(CXX) -DWIN32 -c $(SRCS)
+	@del /q $@
+	$(LINKER) -lib /out:$@ $(OBJS)
+
+clean:
+	@del /q $(OBJS)
+
+cleanall: clean
+	@del /q $(LIBDIR)\map_tasks.lib
+
+.PHONY: all clean cleanall

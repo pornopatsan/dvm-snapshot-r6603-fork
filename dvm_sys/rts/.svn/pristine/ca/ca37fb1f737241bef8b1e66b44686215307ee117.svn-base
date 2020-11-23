@@ -1,0 +1,57 @@
+#ifndef _STATIST_EXT_
+#define _STATIST_EXT_
+/*******************/    /*E0000*/
+
+/****************************************\
+* Parameters specifying statistics modes *
+\****************************************/    /*E0001*/
+
+extern byte Is_DVM_STAT;      /* general flag of statistics gathering on */    /*E0002*/
+extern byte Is_IO_STAT;       /* */    /*E0003*/
+extern uLLng StatBufLength;    /* size of statistics buffer for one processor */    /*E0004*/
+extern char StatFileName[128];/* name of statistics file */    /*E0005*/
+extern byte DelStatist;       /* flag on deleting old files with statistics */    /*E0006*/ 
+
+extern int  TimeExpendPrint;  /* flag on print task execution time 
+                                 0   - not print ;
+                                 1   - short print;
+                                 > 1 - detail print.*/    /*E0007*/
+
+extern char StatGrpName[33];  /* group name for printing time*/    /*E0008*/
+extern byte CallCountPrint;   /* function call statistics output */    /*E0009*/
+extern byte IsSynchrTime;     /* calculate time of real 
+                                 dissynchronization */    /*E0010*/
+extern byte IsTimeVariation;  /* calculate time of potential 
+                                 dissynchronization  and time variations */    /*E0011*/
+extern int  MaxIntervalLevel; /* max level of nested intervals */    /*E0012*/
+extern byte IntervalBarrier;  /* */    /*E0013*/
+extern int  IntermediateIntervalsLevel; /* */    /*E0014*/
+extern byte DVMExitSynchr;    /* */    /*E0015*/
+
+/* Parameters for calculation of the execution time of
+            parallel loop iteration group              */    /*E0016*/
+
+extern int PLGroupNumber[MaxVMRank]; /* the number of iteration 
+                                        coordinate group*/    /*E0017*/
+extern int PLTimeTrace; /* output information of the 
+                           execution time of parallel loop 
+                           group iteration in trace */    /*E0018*/
+
+/* */    /*E0019*/
+
+extern byte WriteStat;         /* */    /*E0020*/
+extern byte WriteStatByParts;  /* */    /*E0021*/
+extern byte WriteStatByFwrite; /* */    /*E0022*/
+
+/* ------------------------------------------------- */    /*E0023*/
+
+extern byte SendRecvTime; /* */    /*E0024*/
+extern byte SendRecvTimePrint; /* */    /*E0025*/
+
+/* */    /*E0026*/
+
+extern int  StatCompressLevel; /* */    /*E0027*/
+extern int  StatCompressScheme; /* */    /*E0028*/ 
+
+
+#endif  /* _STATIST_EXT_ */    /*E0029*/

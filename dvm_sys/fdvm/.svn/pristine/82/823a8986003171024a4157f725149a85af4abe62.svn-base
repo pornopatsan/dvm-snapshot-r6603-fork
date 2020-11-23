@@ -1,0 +1,10 @@
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+if(MSVC_IDE)
+   foreach(DIR ${SAGE_DIRS})
+    file(GLOB_RECURSE FILES RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}
+      "${DIR}/*.h" "${DIR}/*.def" "${DIR}/head" "${DIR}/tag")
+    set(HEADERS ${HEADERS} ${FILES})
+  endforeach()
+  source_group("Header Files" FILES ${HEADERS})
+endif()
+add_library(libSage low_level.c unparse.c ${HEADERS})

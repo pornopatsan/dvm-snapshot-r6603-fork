@@ -1,0 +1,62 @@
+         PROGRAM    JACAS
+         PARAMETER    (K=8,  ITMAX=20)
+         REAL     A(K,K), EPS, MAXEPS, B(K,K)
+CDVM$    DISTRIBUTE     ( BLOCK,   BLOCK)   ::   A
+CDVM$    ALIGN B(I,J)  WITH  A(I,J)
+CDVM$    REDUCTION_GROUP    REPS 
+C		 arrays A and B  with block distribution 
+
+        PRINT *,  '**********  TEST_JACOBI_AS   **********'
+CDVM$   SHADOW_GROUP    SA ( A )
+C		creation of descriptor for operations with imported/exported 
+C		elements of array A
+                   MAXEPS = 0.5E - 7
+CDVM$    PARALLEL  ( J, I)   ON  A( I,  J)
+C		nest of parallel loops for initialization of arrays
+             DO  1   J =  1,  K
+             DO  1   I =  1,  K
+                 A( I,   J)  =  0.
+                 IF(I.EQ.1 .OR. J.EQ.1 .OR. I.EQ.K .OR. J.EQ.K) THEN
+                    B(I,  J) = 0.
+                 ELSE
+                    B(I,  J)  = ( 1. + I + J )
+                 ENDIF
+    1   CONTINUE
+                   DO  2   IT = 1,  ITMAX
+                          EPS = 0.
+C		descriptor of reduction operations is created 
+C		and  initial values of reduction variables are stored
+CDVM$    PARALLEL  ( J,  I)   ON  A( I,  J) ,  SHADOW_START    SA,
+CDVM$*   REDUCTION(REPS:MAX(EPS))
+C		the loops iteration order is changed: at first
+C		exported (boundary) elements of A are calculated and sent
+C		then internal elements of array A are calculated     
+                   DO  21   J  =  2,  K-1
+                   DO  21   I  =  2,  K-1
+                          EPS =  MAX  ( EPS,  ABS( B( I, J) - A( I, J)))
+                          A( I, J) = B( I, J)
+   21   CONTINUE
+CDVM$    REDUCTION_START     REPS
+C		start of reduction operation to accumulate the partial results
+C		calculated in  copies of variable EPS on every processor
+CDVM$    PARALLEL  ( J,  I)  ON B( I,   J) ,  SHADOW_WAIT     SA
+C		the loops iteration order is changed: at first
+C		internal elements of B are calculated, then imported elements
+C		of array A from neighboring processors are received,
+C		then boundary elements of array B are calculated     
+                    DO  22  J =  2,  K-1
+                    DO  22  I =  2,  K-1
+      B(I, J) =   (A( I-1, J ) + A( I, J-1 ) + A( I+1, J ) +
+     *            A( I, J+1 ))/4 
+   22    CONTINUE
+CDVM$    REDUCTION_WAIT     REPS
+C		awaiting completion of reduction operation
+                    PRINT 200,  IT, EPS
+200                 FORMAT(' IT = ',I4, '   EPS = ', E14.7)
+                    IF  ( EPS .LT. MAXEPS )   GO TO  3
+    2    CONTINUE
+    3    OPEN (3, FILE='JACAS.DAT', FORM='FORMATTED',STATUS='UNKNOWN')
+         WRITE (3,*)   B
+         CLOSE (3)
+         END
+

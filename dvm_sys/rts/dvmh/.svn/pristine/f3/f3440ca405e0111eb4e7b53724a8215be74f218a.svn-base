@@ -1,0 +1,271 @@
+### makefile for rts-dvmh
+# requires variables: MPI_INC CXX LINKER MACHINE
+# optional variables: CUDA_PATH NVCC HAVE_NVRTC PGI_PATH MS_F
+
+LIBDIR=..\..\lib
+INCDIR=..\..\include
+BINDIR=..\..\bin
+
+!IF DEFINED(CUDA_PATH)
+CUDA_INC = "$(CUDA_PATH)\include"
+!IF !DEFINED(NVCC)
+NVCC = "$(CUDA_PATH)\bin\nvcc.exe" -arch=sm_20 -DCUDA_FERMI_ARCH -O2
+!IF "$(MACHINE)" == "x86"
+NVCC = $(NVCC) --machine=32
+!ENDIF
+!ENDIF
+!ELSE
+CUDA_INC = .
+NVCC = $(CXX) /TP
+!ENDIF
+
+# Compile-time options available:
+#   -DCUDA_INT_INDEX - Use 'int' type for indexes in internal CUDA kernels, otherwise - 'DvmType'.
+#   -DNDEBUG - affects assertions. They will disappear.
+#   -DDONT_USE_CACHE - do not use caching for blocks_info.
+#   -DHAVE_CUDA - include support for CUDA.
+#   -DHAVE_NVRTC - include support for NVRTC CUDA.
+
+!IF DEFINED(CUDA_PATH)
+!IF DEFINED(HAVE_NVRTC)
+CUDAOPT = -DHAVE_CUDA -DHAVE_NVRTC
+!ELSE
+CUDAOPT = -DHAVE_CUDA
+!ENDIF
+!ELSE
+CUDAOPT =
+!ENDIF
+DVMOPT   = -D_DVM_MPI_
+DVMHOPT  = -DWIN32 $(CUDAOPT) -D_CRT_SECURE_NO_WARNINGS $(MS_F)
+CCOPT    =
+
+CFLAGS   = $(DVMOPT) $(DVMHOPT) $(CCOPT) /EHsc /O2 /W3 /I$(CUDA_INC) /I"$(MPI_INC)" /I$(INCDIR) /IWin\include
+
+HOSTCC   = $(CXX) $(CFLAGS) /c
+!IF DEFINED(CUDA_PATH)
+MYNVCC   = $(NVCC) $(DVMOPT) $(DVMHOPT) $(CCOPT) -I$(INCDIR) -IWin/include -c
+!ELSE
+MYNVCC   = $(NVCC) $(DVMOPT) $(DVMHOPT) $(CCOPT) /I$(INCDIR) /IWin\include /c
+!ENDIF
+
+!IF DEFINED(CUDA_PATH)
+!IF "$(MACHINE)" == "x86"
+CUDA_LIB_DIR = "$(CUDA_PATH)"\lib\Win32
+!ELSE
+CUDA_LIB_DIR = "$(CUDA_PATH)"\lib\x64
+!ENDIF
+!IF DEFINED(HAVE_NVRTC)
+NVRTC_LIB = $(CUDA_LIB_DIR)\cuda.lib $(CUDA_LIB_DIR)\nvrtc.lib
+!ELSE
+NVRTC_LIB =
+!ENDIF
+CUDA_LIB = $(CUDA_LIB_DIR)\cudart.lib $(NVRTC_LIB)
+!ELSE
+CUDA_LIB =
+!ENDIF
+
+OBJ = \
+	cuda_copying.obj \
+	cuda_device.obj \
+	cuda_reduction.obj \
+	cuda_transform.obj \
+	distrib.obj \
+	dvmh.obj \
+	dvmh2.obj \
+	dvmh_async.obj \
+	dvmh_buffer.obj \
+	dvmh_copying.obj \
+	dvmh_data.obj \
+	dvmh_debug.obj \
+	dvmh_device.obj \
+	dvmh_log.obj \
+	dvmh_pieces.obj \
+	dvmh_predictor.obj \
+	dvmh_rtc.obj \
+	dvmh_rts.obj \
+	dvmh_stat.obj \
+	dvmh_stdio.obj \
+	dvmh_types.obj \
+	dvmlib_adapter.obj \
+	loop.obj \
+	loop_distribution.obj \
+	mps.obj \
+	region.obj \
+	settings.obj \
+	util.obj
+
+all: $(LIBDIR)/dvmh.lib Incs
+
+cuda_copying.obj: cuda_copying.cu cuda_copying.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_device.h dvmh_async.h dvmh_log.h settings.h \
+ util.h
+	$(MYNVCC) cuda_copying.cu
+cuda_device.obj: cuda_device.cu cuda_device.h
+	$(MYNVCC) cuda_device.cu
+cuda_reduction.obj: cuda_reduction.cu cuda_reduction.h dvmh_types.h \
+ include/dvmhlib_types.h include/dvmhlib_block_red.h \
+ include/dvmhlib_warp_red.h cuda_utils.h dvmh_device.h dvmh_async.h \
+ dvmh_log.h settings.h util.h dvmh_stat.h
+	$(MYNVCC) cuda_reduction.cu
+cuda_transform.obj: cuda_transform.cu cuda_transform.h dvmh_types.h \
+ include/dvmhlib_types.h include/dvmhlib_device.h include/dvmhlib_f2c.h \
+ include/dvmhlib_block_red.h include/dvmhlib_warp_red.h cuda_utils.h \
+ dvmh_device.h dvmh_async.h dvmh_log.h settings.h util.h
+	$(MYNVCC) cuda_transform.cu
+distrib.obj: distrib.cpp distrib.h dvmh_pieces.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_log.h settings.h util.h \
+ include/dvmhlib_const.h dvmh_buffer.h dvmh_data.h mps.h
+	$(HOSTCC) distrib.cpp
+dvmh.obj: dvmh.cpp dvmh.h dvmlib_incs.h dvmh_types.h \
+ include/dvmhlib_types.h system.typ include/dvmhlib.h \
+ include/dvmhlib_rename_iface.h include/dvmhlib_types.h \
+ include/dvmhlib_const.h include/dvmhlib_const.h cuda_reduction.h \
+ cuda_transform.h distrib.h dvmh_pieces.h dvmh_log.h settings.h util.h \
+ dvmh_buffer.h dvmh_data.h dvmh_device.h dvmh_async.h dvmh_predictor.h \
+ dvmh_rts.h dvmh_stat.h dvmlib_adapter.h loop.h region.h \
+ loop_distribution.h mps.h
+	$(HOSTCC) dvmh.cpp
+dvmh2.obj: dvmh2.cpp dvmh2.h include/dvmhlib2.h \
+ include/dvmhlib2_rename_iface.h include/dvmhlib_types.h \
+ include/dvmhlib_const.h include/dvmhlib_stdio.h include/dvmhlib_debug.h \
+ include/dvmh_runtime_api.h include/dvmhlib_const.h distrib.h \
+ dvmh_pieces.h dvmh_types.h include/dvmhlib_types.h dvmh_log.h settings.h \
+ util.h dvmh_buffer.h dvmh_data.h dvmh_rts.h dvmh_async.h dvmh_stat.h \
+ dvmlib_adapter.h dvmlib_incs.h system.typ loop.h dvmh_device.h region.h \
+ mps.h
+	$(HOSTCC) dvmh2.cpp
+dvmh_async.obj: dvmh_async.cpp dvmh_async.h dvmh_log.h settings.h \
+ dvmh_types.h include/dvmhlib_types.h util.h
+	$(HOSTCC) dvmh_async.cpp
+dvmh_buffer.obj: dvmh_buffer.cpp dvmh_buffer.h util.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_log.h settings.h cuda_transform.h \
+ dvmh_copying.h dvmh_device.h dvmh_async.h dvmh_stat.h
+	$(HOSTCC) dvmh_buffer.cpp
+dvmh_copying.obj: dvmh_copying.cpp dvmh_copying.h dvmh_types.h \
+ include/dvmhlib_types.h cuda_copying.h dvmh_buffer.h util.h dvmh_log.h \
+ settings.h dvmh_device.h dvmh_async.h dvmh_stat.h
+	$(HOSTCC) dvmh_copying.cpp
+dvmh_data.obj: dvmh_data.cpp dvmh_data.h util.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_log.h settings.h distrib.h dvmh_pieces.h \
+ dvmh_buffer.h dvmh_device.h dvmh_async.h dvmh_rts.h dvmh_stat.h mps.h \
+ region.h include/dvmhlib_const.h
+	$(HOSTCC) dvmh_data.cpp
+dvmh_debug.obj: dvmh_debug.cpp include/dvmhlib_debug.h \
+ include/dvmhlib_types.h include/dvmh_runtime_api.h \
+ include/dvmhlib_const.h include/dvmhlib_types.h dvmlib_incs.h \
+ dvmh_types.h system.typ dvmh_log.h settings.h
+	$(HOSTCC) dvmh_debug.cpp
+dvmh_device.obj: dvmh_device.cpp dvmh_device.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_async.h dvmh_log.h settings.h util.h \
+ cuda_device.h dvmh_stat.h
+	$(HOSTCC) dvmh_device.cpp
+dvmh_log.obj: dvmh_log.cpp dvmh_log.h settings.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_async.h util.h dvmlib_incs.h system.typ
+	$(HOSTCC) dvmh_log.cpp
+dvmh_pieces.obj: dvmh_pieces.cpp dvmh_pieces.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_log.h settings.h util.h
+	$(HOSTCC) dvmh_pieces.cpp
+dvmh_predictor.obj: dvmh_predictor.cpp dvmh_predictor.h
+	$(HOSTCC) dvmh_predictor.cpp
+dvmh_rtc.obj: dvmh_rtc.cpp include/dvmhlib_const.h dvmh.h dvmlib_incs.h \
+ dvmh_types.h include/dvmhlib_types.h system.typ include/dvmhlib.h \
+ include/dvmhlib_rename_iface.h include/dvmhlib_types.h \
+ include/dvmhlib_const.h dvmh_data.h util.h dvmh_log.h settings.h \
+ dvmh_device.h dvmh_async.h dvmh_rts.h dvmh_stat.h loop.h region.h mps.h \
+ dynamic_include.h
+	$(HOSTCC) dvmh_rtc.cpp
+dvmh_rts.obj: dvmh_rts.cpp dvmh_rts.h dvmh_types.h include/dvmhlib_types.h \
+ dvmh_async.h dvmh_log.h settings.h util.h include/dvmhlib2.h \
+ include/dvmhlib2_rename_iface.h include/dvmhlib_types.h \
+ include/dvmhlib_const.h include/dvmhlib_stdio.h include/dvmhlib_debug.h \
+ include/dvmh_runtime_api.h distrib.h dvmh_pieces.h dvmh_buffer.h \
+ dvmh_data.h dvmh_device.h dvmh_stat.h dvmh_stdio.h dvmlib_adapter.h \
+ dvmlib_incs.h system.typ loop.h region.h include/dvmhlib_const.h \
+ loop_distribution.h mps.h
+	$(HOSTCC) dvmh_rts.cpp
+dvmh_stat.obj: dvmh_stat.cpp dvmh_stat.h dvmh_types.h \
+ include/dvmhlib_types.h util.h dvmh_log.h settings.h
+	$(HOSTCC) dvmh_stat.cpp
+dvmh_stdio.obj: dvmh_stdio.cpp dvmh_stdio.h dvmh_async.h dvmh_log.h \
+ settings.h dvmh_types.h include/dvmhlib_types.h util.h \
+ include/dvmhlib_stdio.h include/dvmhlib_types.h \
+ include/dvmh_runtime_api.h include/dvmhlib_const.h distrib.h \
+ dvmh_pieces.h dvmh_buffer.h dvmh_data.h dvmh_rts.h loop.h dvmh_device.h \
+ region.h mps.h
+	$(HOSTCC) dvmh_stdio.cpp
+dvmh_types.obj: dvmh_types.cpp dvmh_types.h include/dvmhlib_types.h \
+ dvmh_async.h dvmh_log.h settings.h util.h
+	$(HOSTCC) dvmh_types.cpp
+dvmlib_adapter.obj: dvmlib_adapter.cpp dvmlib_adapter.h dvmh_data.h util.h \
+ dvmh_types.h include/dvmhlib_types.h dvmh_log.h settings.h dvmlib_incs.h \
+ system.typ distrib.h dvmh_pieces.h dvmh_async.h loop.h dvmh_device.h \
+ region.h include/dvmhlib_const.h mps.h
+	$(HOSTCC) dvmlib_adapter.cpp
+loop.obj: loop.cpp loop.h dvmh_data.h util.h dvmh_types.h \
+ include/dvmhlib_types.h dvmh_log.h settings.h dvmh_device.h dvmh_async.h \
+ region.h include/dvmhlib_const.h cuda_reduction.h distrib.h \
+ dvmh_pieces.h dvmh_stat.h
+	$(HOSTCC) loop.cpp
+loop_distribution.obj: loop_distribution.cpp loop_distribution.h \
+ dvmh_types.h include/dvmhlib_types.h dvmh_device.h dvmh_async.h \
+ dvmh_log.h settings.h util.h
+	$(HOSTCC) loop_distribution.cpp
+mps.obj: mps.cpp mps.h dvmh_types.h include/dvmhlib_types.h util.h \
+ dvmh_log.h settings.h loop.h dvmh_data.h dvmh_device.h dvmh_async.h \
+ region.h include/dvmhlib_const.h
+	$(HOSTCC) mps.cpp
+region.obj: region.cpp region.h include/dvmhlib_const.h dvmh_data.h util.h \
+ dvmh_types.h include/dvmhlib_types.h dvmh_log.h settings.h dvmh_device.h \
+ dvmh_async.h distrib.h dvmh_pieces.h dvmh_buffer.h dvmh_rts.h \
+ dvmh_stat.h loop.h
+	$(HOSTCC) region.cpp
+settings.obj: settings.cpp settings.h dvmh_types.h include/dvmhlib_types.h \
+ dvmh_log.h
+	$(HOSTCC) settings.cpp
+util.obj: util.cpp util.h dvmh_types.h include/dvmhlib_types.h dvmh_log.h \
+ settings.h include/dvmhlib_const.h
+	$(HOSTCC) util.cpp
+
+dynamic_include.h: include/dvmhlib_device.h include/dvmhlib_f2c.h include/dvmhlib_warp_red.h include/dvmhlib_block_red.h
+	$(BINDIR)\dvmh_conv_include "static const std::string dvmhlib_f2c = " <include\dvmhlib_f2c.h >dynamic_include.h
+	$(BINDIR)\dvmh_conv_include "static const std::string dvmhlib_block_red = " <include\dvmhlib_block_red.h >>dynamic_include.h
+	$(BINDIR)\dvmh_conv_include "static const std::string dvmhlib_warp_red = " <include\dvmhlib_warp_red.h >>dynamic_include.h
+	$(BINDIR)\dvmh_conv_include "static const std::string dvmhlib_device = " <include\dvmhlib_device.h >>dynamic_include.h
+!IF DEFINED(PGI_PATH)
+	$(BINDIR)\dvmh_conv_include "static const std::string pgi_include = " <"$(PGI_PATH)\include_acc\pgi_cuda_runtime.h" >>dynamic_include.h
+!ELSE
+	echo static const std::string pgi_include; >>dynamic_include.h
+!ENDIF
+
+$(LIBDIR)\dvmh.lib: $(OBJ)
+	del $(LIBDIR)\dvmh.lib
+	$(LINKER) -lib /out:$(LIBDIR)\dvmh.lib $(OBJ) Win\lib\$(MACHINE)\pthreadVC2.lib $(CUDA_LIB)
+
+Incs: include/dvmhlib.h include/dvmhlib_rename_iface.h include/dvmhlib_const.h include/dvmhlib_types.h \
+ include/dvmhlib_cuda.h include/dvmhlib_device.h include/dvmhlib_f2c.h include/dvmhlib_warp_red.h include/dvmhlib_block_red.h \
+ include/dvmhlib2.h include/dvmhlib2_rename_iface.h include/dvmhlib_debug.h include/dvmhlib_stdio.h include/dvmh_runtime_api.h
+	copy include\dvmhlib.h $(INCDIR)\dvmhlib.h
+	copy include\dvmhlib_rename_iface.h $(INCDIR)\dvmhlib_rename_iface.h
+	copy include\dvmhlib_const.h $(INCDIR)
+	copy include\dvmhlib_types.h $(INCDIR)
+	copy include\dvmhlib_cuda.h $(INCDIR)
+	copy include\dvmhlib_device.h $(INCDIR)
+	copy include\dvmhlib_f2c.h $(INCDIR)
+	copy include\dvmhlib_warp_red.h $(INCDIR)
+	copy include\dvmhlib_block_red.h $(INCDIR)
+	copy include\dvmhlib2.h $(INCDIR)\dvmhlib2.h
+	copy include\dvmhlib2_rename_iface.h $(INCDIR)\dvmhlib2_rename_iface.h
+	copy include\dvmhlib_const.h $(INCDIR)
+	copy include\dvmhlib_types.h $(INCDIR)
+	copy include\dvmhlib_stdio.h $(INCDIR)
+	copy include\dvmhlib_debug.h $(INCDIR)
+	copy include\dvmh_runtime_api.h $(INCDIR)
+
+clean:
+	del $(OBJ) dynamic_include.h
+cleanall: clean
+	del $(LIBDIR)\dvmh.lib
+	del $(INCDIR)\dvmhlib.h $(INCDIR)\dvmhlib_cuda.h
+	del $(INCDIR)\dvmhlib2.h $(INCDIR)\dvmh_runtime_api.h
+
+.PHONY: all Incs clean cleanall

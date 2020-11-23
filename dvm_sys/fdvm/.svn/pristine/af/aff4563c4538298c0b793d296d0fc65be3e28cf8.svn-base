@@ -1,0 +1,67 @@
+************************************************************************
+./LICENSE            pC++/Sage++ License Information        (PHB 9/2/93)
+************************************************************************
+
+      This file is a REQUIRED part of the pC++/Sage++ Environment
+
+The pC++/Sage++ software is *not* in the public domain.  However, it
+is freely available without fee for education, research, and
+non-profit purposes.  By obtaining copies of this and other files that
+comprise the pC++/Sage++ environment, you, the Licensee, agree to
+abide by the following conditions and understandings with respect to
+the copyrighted software:
+
+1.  The software is copyrighted by Indiana University (IU), University
+of Oregon (UO), and the University of Rennes (UR), and they retain
+ownership of the software.
+
+2.  Permission to use and modify this software and its documentation
+for education, research, and non-profit purposes is hereby granted to
+Licensee, provided that the copyright notice, the original author's
+names and unit identification, and this permission notice appear on
+all such works, and that no charge be made for such copies.
+
+3.  We request that the Licensee not distribute the pC++/Sage++
+software.  In order to maintain the software, we will distribute the
+most up-to-date version of the software via FTP.  Please "finger
+sage@cica.indiana.edu" for more information.  Furthermore, our funding
+agencies would like to know what you think about pC++/Sage++.  If you
+are using the software, PLEASE join our mailing list by sending mail
+to sage-request.cica.indiana.edu with the Subject: "subscribe".  We
+will notify you of important bug fixes and updates as they become
+available.
+
+Any entity desiring permission to incorporate this software into
+commercial products should contact:
+
+         Dennis Gannon                            gannon@cs.indiana.edu
+         215 Lindley Hall
+         Department of Computer Science
+         Indiana Univerity
+	 Bloomington, IN  47401
+         USA
+
+4.  Licensee may not use the name, logo, or any other symbol of
+IU/UO/UR nor the names of any of its employees nor any adaptation
+thereof in advertizing or publicity pertaining to the software without
+specific prior written approval of the IU/UO/UR.
+
+5.  IU/UO/UR MAKES NO REPRESENTATIONS ABOUT THE SUITABILITY OF THE
+SOFTWARE FOR ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR
+IMPLIED WARRANTY.
+
+6.  IU/UO/UR shall not be liable for any damages suffered by Licensee
+from the use of this software.
+
+7.  The software was developed under agreements between the IU/UO/UR
+and the Federal Government which entitle the Government to certain
+rights.
+
+************************************************************************
+
+Copyright (c) 1993 Indiana University, University of Oregon,
+University of Rennes.  All Rights Reserved.
+
+Funded by: ARPA under Rome Labs contract AF 30602-92-C-0135 and the
+National Science Foundation Office of Advanced Scientific Computing
+under grant ASC-9111616 and Esprit BRA APPARC

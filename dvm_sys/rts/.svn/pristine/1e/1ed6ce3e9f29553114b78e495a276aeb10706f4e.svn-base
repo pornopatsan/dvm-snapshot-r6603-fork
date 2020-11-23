@@ -1,0 +1,378 @@
+#ifndef _GLOBAL2_VAR_
+#define _GLOBAL2_VAR_
+/*******************/    /*E0000*/
+
+/**************\
+*  inputpar.c  *
+\**************/    /*E0001*/
+
+int ParFileOpenCount = 1; /* number of attempts to open parameter file */    /*E0002*/
+DVMUSERFUN
+s_PARAMETERKEY *_PARAMETERS=NULL; /* array of structures with parameter characteristics */    /*E0003*/
+DVMUSERFUN
+int n_PARAMETERS=0;      /* max. number of parameters in structure array */    /*E0004*/
+DVMUSERFUN
+int j_PARAMETERS=0;      /* current number of used parameters */    /*E0005*/
+DVMUSERFUN
+int i_PARAMETERS=0;      /* auxiliary variable */    /*E0006*/
+DVMUSERFUN
+int k_PARAMETERS=0;      /* auxiliary variable */    /*E0007*/
+char *m_TEMPNAME=NULL;
+
+#ifdef _DATA_ALIGN_ACCESS_
+  DVMUSERFUN
+  byte MinParSym=1;               /* min. number of signs in parameter name */    /*E0008*/
+  DVMUSERFUN
+  byte SysMinParSym=1;
+#else
+  DVMUSERFUN
+  byte MinParSym=4;
+  DVMUSERFUN
+  byte SysMinParSym=4;
+#endif
+
+/********************************************************************\
+* Global variables to control memory allocation and freeing requests *
+\********************************************************************/    /*E0009*/
+
+DVMUSERFUN
+s_ALLOCMEM *AllocBuffer=NULL;  /* structure array to keep memory requests */    /*E0010*/
+DVMUSERFUN
+byte alloc_noerr=0;            /* for macros mac_calloc, ... */    /*E0011*/
+
+/****************************************************************\
+* Global variables to control trace and built-in debugging tools *
+\****************************************************************/    /*E0012*/
+
+byte StatOff = 0;                /* */    /*E0013*/
+char StatOpenReg[16]= {'w','b'}; /* */    /*E0014*/ 
+char *EventName[MaxEventNumber+1];/* array of event names */    /*E0015*/
+char *GrpName[StatGrpCount+1];    /* array of event group names*/    /*E0016*/
+byte StatGrp[MaxEventNumber+1];   /* array of event group numbers
+                                     to be processed in current statistics interval*/    /*E0017*/
+s_GRPTIMES TaskInter[StatGrpCount][StatGrpCount]; /* global interval
+                                                     of the user task */    /*E0018*/
+s_GRPTIMES DebugInter[StatGrpCount][StatGrpCount]; /* global interval
+                                                      for debugging */    /*E0019*/
+s_GRPTIMES (*CurrInterPtr)[StatGrpCount]=&DebugInter[0]; /* pointer to the saved information
+                                                            about current interval */    /*E0020*/
+DvmType MISize=0;          /* */    /*E0021*/
+int  CurrOper=UserGrp;  /* current operation initialized by the task  */    /*E0022*/
+byte CurrOperFix=0;     /* fix current operation */    /*E0023*/
+byte stat_event_flag=0; /* flag: support system function call
+                           from the support system;must be saved in statistics
+                           (by stat_event call) */    /*E0024*/
+s_STATGRP StatGrpStack[MaxLevel];  /* stack of operation groups */    /*E0025*/
+byte IsStat[MaxEventNumber+1];/* array of event flags. needed for statistics */    /*E0026*/
+int StatGrpNumber=UserGrp;    /* group number to print times*/    /*E0027*/
+
+/* */    /*E0028*/
+
+double TaskInterProductTime = 0.;
+double TaskInterLostTime    = 0.;
+double CurrInterProductTime = 0.;
+double CurrInterLostTime    = 0.;
+double SaveProductTime      = 0.;
+double SaveLostTime         = 0.;
+
+/*      auxiliary variables for
+   macros DVMFTimeStart and DVMFTimeFinish */    /*E0029*/
+
+byte         IsExpend=0;
+byte         IsVariation=0;
+byte         IsSynchr=0;
+
+s_STATGRP   *FromGrpPtr;
+s_STATGRP   *ToGrpPtr;
+s_GRPTIMES  *GrpTimesPtr;
+double       Double1, Double2;
+int          FromGrpNumber, ToGrpNumber;
+
+/* ---------------------------------------- */    /*E0030*/
+
+byte PLTimeMeasure=0;/* turn on execution time calculation regime
+                        for iteration groups in parallel loops */    /*E0031*/
+s_PARLOOP *MeasurePL=NULL; /* pointer to loop descriptor
+                              which iteration time should be measured */    /*E0032*/
+s_PARLOOP *TcPL=NULL; /* pointer to loop descriptor
+                          which iteration time should be measured */    /*E0033*/
+
+/* ---------------------------------------- */    /*E0034*/
+
+DVMUSERFUN
+byte RTL_TRACE=0;      /* current flag of trace on */    /*E0035*/
+byte ALL_TRACE=0;      /* current flag of tracing of all functions
+                          (except statistics and debugger calls */    /*E0036*/
+byte DEB_TRACE=0;      /* current flag of tracing
+                          of debugger calls */    /*E0037*/
+byte STAT_TRACE=0;     /* current flag of tracing
+                          of statistics calls */    /*E0038*/
+byte RTL_STAT=0;       /* general flag of statistics gathering on */    /*E0039*/
+byte TraceProcNumber[MaxProcNumber+1]; /* array of flags
+                                        for tarced processors */    /*E0040*/
+char *TraceBufPtr=NULL;/* trace buffer address */    /*E0041*/
+DvmType  CurrTraceFileSize=0; /* */    /*E0042*/
+char *TraceOSBuffer;   /* trace buffer address for tracing 
+                          buffering by operating system */    /*E0043*/ 
+char *StatBufPtr=NULL; /* statistics buffer address */    /*E0044*/
+DvmType StatArrHeader[2*MAXARRAYDIM+2]; /* header of distributed array of
+                                        statistics buffer */    /*E0045*/
+ObjectRef StatObjectRef; /* reference to current object of statistics */    /*E0046*/
+uLLng EventCount[MaxEventNumber]; /* */    /*E0047*/
+uLLng EventCount0[MaxEventNumber];/* */    /*E0048*/
+word TraceBufCountArr[2+sizeof(double)/sizeof(word)]={0}; /* relative address of current record in trace buffer */    /*E0049*/
+int  TraceBufFullArr[2+sizeof(double)/sizeof(int)]={0}; /* flag that trace round in buffer is over */    /*E0050*/
+
+uLLng dvm_DataCheckSum=0;  /* checksum of data memory */    /*E0051*/
+uLLng dvm_DataStartAddr=0; /* beginning address of data memory */    /*E0052*/
+uLLng dvm_DataFinalAddr=0; /* end of data memory address */    /*E0053*/
+
+uLLng dvm_CodeCheckSum=0;  /* checksum of code memory */    /*E0054*/
+uLLng dvm_CodeStartAddr=0; /* beginning address of code memory */    /*E0055*/
+uLLng dvm_CodeFinalAddr=0; /* end of code memory address */    /*E0056*/
+
+uLLng dvm_ControlTotal=0;  /* checksum of specified memory area */    /*E0057*/
+
+double *MeasureStartTime=NULL; /* array of initial time measuring */    /*E0058*/
+double *MeasureTraceTime=NULL; /* array of times from measuring beginning, calculated when tracing */    /*E0059*/
+int MeasureIndex=-1;           /* current address of time measuring */    /*E0060*/
+
+DVMUSERFUN
+double dvm_TimeDelta=0.; /* shift for interrogated in dvm_time time */    /*E0061*/
+double DVMFTime=0.0;     /* execution time of DVM-system functions, used by user */    /*E0062*/
+DVMUSERFUN
+int    DVMCallLevel=0;   /* nesting index of function calls, used by user */    /*E0063*/
+double MeasureLocalTime; /* to measure next service time increment */    /*E0064*/
+double Init_dvm_time=0.; /* initial system time */    /*E0065*/
+double Curr_dvm_time=0.; /* last dvm time */    /*E0066*/
+char  *dvm_time_ptr=(char *)&Curr_dvm_time;
+byte   Is_Curr_dvm_time=0; /* time in Curr_dvm_time  */    /*E0067*/
+double Curr_synchr_time=0.; /* dissynchronization time */    /*E0068*/
+char *synchr_time_ptr=(char *)&Curr_synchr_time;
+
+#ifdef _UNIX_
+   struct timeval dvm_timeval;  /* */    /*E0069*/
+#endif
+
+DVMUSERFUN
+uLLng CallFlag=0;    /* flag of entering external (for LIBDVM) function */    /*E0070*/
+DVMUSERFUN
+uLLng CallNamePtr=0; /* pointer to external function name */    /*E0071*/
+DVMUSERFUN
+uLLng CallFilePtr=0; /* pointer to file name when entering external function */    /*E0072*/
+DVMUSERFUN
+uLLng CallLine=0;    /* line number when entering external function */    /*E0073*/
+
+DVMUSERFUN
+unsigned int DVM_LEVEL=0;  /* nesting level of function calls */    /*E0074*/
+DVMUSERFUN
+uLLng DVM_LINE[MaxLevel]={0};    /* array of line numbers of source program */    /*E0075*/
+DVMUSERFUN
+char *DVM_FILE[MaxLevel]={" "}; /* array of pointers to names of source program files */    /*E0076*/
+double DVM_TIME1;          /* time of last trace event */    /*E0077*/
+double DVM_TIME2;          /* time of current trace event */    /*E0078*/
+byte _CurrentTimeTrace=0;  /* current flag: trace of current system time */    /*E0079*/ 
+double SystemStartTime;    /* startup time of DVM-system */    /*E0080*/
+double SystemFinishTime;   /* termination time of DVM-system */    /*E0081*/
+double SystemDeltaSum=0.0; /* sum of time intervals between trace events */    /*E0082*/
+double UserStartTime=0.0;  /* startup time of applied program */    /*E0083*/
+double UserFinishTime=0.0; /* termination time of applied program */    /*E0084*/
+double UserDeltaSum=0.0;   /* sum of time intervals between trace events, caused by applied program */    /*E0085*/
+DVMUSERFUN
+byte UserSumFlag=0;        /* flag to sum user intervals between events */    /*E0086*/
+
+byte tprintf_time=0;       /* subtract the function tprintf working time
+                              fromt the tracing output time */    /*E0087*/
+double sum_trace_time=0.;  /* accumulated tracing working time */    /*E0088*/
+double trace_time=0.;      /* start time of tracing function work */    /*E0089*/
+
+char TraceFileName[MaxParFileName+1]="";/* formed name of output trace file <processor_number.trc> */    /*E0090*/
+FILE *DVM_TRACE_FILE=NULL; /* pointer to descriptor of output trace file */    /*E0091*/
+
+#ifdef _DVM_ZLIB_
+   gzFile gzDVM_TRACE_FILE=NULL; /* */    /*E0092*/
+#endif
+
+int   MaxTraceStrLen=4096; /* max. size of trace record in bytes */    /*E0094*/
+char *dvm_blank=NULL;  /* blank line to separate levels in trace */    /*E0095*/
+byte  BShiftFlag=0;    /* flag that line feed was during tracing in buffer */    /*E0096*/
+char *FShiftFlag=NULL; /* flag that line feed was during tracing in file */    /*E0097*/
+
+/* Format templates to print time during tracing */    /*E0098*/
+
+char TracePrintFormat1[64]="NAME=%-26.26s TIME=%.";
+char TracePrintFormat2[64]="%-26.26s TIME=%.";
+
+/* */    /*E0099*/
+
+DVMUSERFUN
+#ifdef  _DVM_Minus_
+   byte Minus = _DVM_Minus_;
+#else
+   byte Minus = '-';
+#endif
+
+/* ----------------------------------- */    /*E0100*/
+
+void  **PtrToVoidPtr;
+
+/* */    /*E0101*/
+
+double CommTime = 0.;             /* */    /*E0102*/
+byte   _SendRecvTime = 0;         /* */    /*E0103*/
+
+double SendCallTime    = 0.;      /* */    /*E0104*/
+double MinSendCallTime = 1.e10;   /* */    /*E0105*/
+double MaxSendCallTime = 0.;      /* */    /*E0106*/
+int    SendCallCount   = 0;       /* */    /*E0107*/
+
+double RecvCallTime    = 0.;      /* */    /*E0108*/
+double MinRecvCallTime = 1.e10;   /* */    /*E0109*/
+double MaxRecvCallTime = 0.;      /* */    /*E0110*/
+int    RecvCallCount   = 0;       /* */    /*E0111*/
+
+s_SendRecvTimes  *SendRecvTimesPtr; /* */    /*E0112*/
+DvmType   ArithmLoopCount = 0; /* */    /*E0113*/
+
+#ifdef  _DVM_MPI_
+
+MPI_Status  GMPI_Status;
+
+#endif
+
+byte InversByteOrder = 0;  /* */    /*E0114*/
+
+/* */    /*E0115*/
+
+#ifdef  _DVM_MPI_
+  DvmType    MPISendByteNumber  = 0; /* */    /*E0116*/
+  DvmType    MPISendByteNumber0 = 0; /* */    /*E0117*/
+  DvmType    MPISendByteCount   = 0; /* */    /*E0118*/
+  DvmType    MPISendByteCount0  = 0; /* */    /*E0119*/
+  DvmType    MPIMsgCount        = 0; /* */    /*E0120*/
+  DvmType    MPIMsgCount0       = 0; /* */    /*E0121*/
+  DvmType    MPIMsgNumber       = 0; /* */    /*E0122*/
+  DvmType    MaxMPIMsgLen       = 0; /* */    /*E0123*/
+  DvmType    MaxMPIMsgLen0      = 0; /* */    /*E0124*/
+  DvmType    MinMPIMsgLen       = DVMTYPE_MAX; /* */    /*E0125*/
+  DvmType    MinMPIMsgLen0      = DVMTYPE_MAX; /* */    /*E0126*/
+  double  MPI_AllreduceTime  = 0.;   /* */    /*E0127*/
+  double  MPI_AlltoallvTime  = 0.;   /* */    /*E0128*/
+  double  MPI_BcastTime       = 0.;
+  double  MPI_BarrierTime     = 0.;
+  double  MPI_GatherTime      = 0.;
+
+#endif
+
+/* ---------------- */    /*E0129*/
+
+DVMUSERFUN
+double  dvmclock=0.;
+
+/* */    /*E0130*/
+
+byte   FreeCompressBuf[CompressBufNumber];
+void  *CompressBuf[CompressBufNumber];
+DvmType   CompressBufSize[CompressBufNumber];
+
+/* */    /*E0131*/
+
+#ifdef _DVM_MPI_
+  DvmType dvm_compress0=0;
+  DvmType dvm_compress1=0;
+  DvmType dvm_compress2=0;
+  DvmType dvm_compress3=0;
+  DvmType dvm_compress4=0;
+#endif
+
+/* */    /*E0132*/
+
+#if defined(_DVM_MPI_) && defined(_DVM_PARIO_)
+  int  IOProcess = 1;  /* */    /*E0133*/
+#else
+  int  IOProcess = 0;
+#endif
+
+#ifdef _DVM_IOPROC_
+  int  IAmIOProcess = 1; /* */    /*E0134*/
+#else
+  int  IAmIOProcess = 0;
+#endif
+
+DVMUSERFUN
+int    MPS_ProcCount = 1;        /* */    /*E0135*/
+int   *IOProcessSign = NULL;     /* */    /*E0136*/
+int   *ApplIOProcessNumber=NULL; /* */    /*E0137*/
+int   *IOProcessNumber   = NULL; /* */    /*E0138*/
+int    IOProcessCount    = 0;    /* */    /*E0139*/
+DVMUSERFUN
+int   *ApplProcessNumber = NULL; /* */    /*E0140*/
+DVMUSERFUN
+int    ApplProcessCount  = 0;    /* */    /*E0141*/
+
+char **MPS_ProcNameList  = NULL; /* */    /*E0142*/
+char  *MPS_ProcName      = NULL; /* */    /*E0143*/
+
+int   *ApplNumber;  /* */    /*E0144*/
+int   *IONumber;    /* */    /*E0145*/
+int    MyApplProc;  /* */    /*E0146*/
+int    MyIOProc;    /* */    /*E0147*/
+double IOProcTime = 0.;   /* */    /*E0148*/
+double ServerProcTime=0.; /* */    /*E0149*/
+
+/* */    /*E0150*/
+
+double t_iom_Sendnowait1  = 0.;
+double T_iom_Sendnowait1  = 0.;
+double t_iom_Recvnowait1  = 0.;
+double T_iom_Recvnowait1  = 0.;
+double t_iom_Waitrequest1 = 0.;
+double T_iom_Waitrequest1 = 0.;
+double t_iom_Waitany1     = 0.;
+double T_iom_Waitany1     = 0.;
+double t_iom_Recvany1     = 0.;
+double T_iom_Recvany1     = 0.;
+double t_iom_Recv1        = 0.;
+double T_iom_Recv1        = 0.;
+
+#ifdef _DVM_MPI_
+  byte             ExclProcWait=0; /* */    /*E0151*/
+  int              MPI_CurrentProcIdent = 0;
+  MPI_Comm         APPL_COMM_WORLD = MPI_COMM_NULL;
+  MPI_Comm         IO_COMM_WORLD = MPI_COMM_NULL;
+  MPI_Comm         DVM_COMM_WORLD = MPI_COMM_NULL;
+  MPI_Group        appl_gr, io_gr, mpi_gr, dvm_gr;
+#endif
+
+/* */    /*E0152*/
+
+DVMUSERFUN
+byte MPI_ProfInitSign = 0;  /* */    /*E0153*/
+DVMUSERFUN
+int  MPI_BotsulaProf = 0;   /* */    /*E0154*/
+DVMUSERFUN
+int  MPI_BotsulaDeb = 0;    /* */    /*E0155*/
+DVMUSERFUN
+byte RTS_Call_MPI = 0;      /* */    /*E0156*/
+
+#ifdef _WIN_MPI_
+   #ifdef _NT_MPI_
+      DVMUSERFUN
+      MPI_Fint MPIR_F_TRUE = 1, MPIR_F_FALSE = 0;
+   #else
+      DVMUSERFUN
+      int MPIR_F_TRUE = 1, MPIR_F_FALSE = 0;
+   #endif
+#endif
+
+DVMUSERFUN
+s_COLLECTION *RequestColl=NULL;   /* */    /*E0157*/
+DVMUSERFUN
+s_COLLECTION *ReqStructColl=NULL; /* */    /*E0158*/
+DVMUSERFUN
+s_COLLECTION *CommColl=NULL;       /* */    /*E0159*/
+DVMUSERFUN
+s_COLLECTION *CommStructColl=NULL; /* */    /*E0160*/
+
+
+#endif /* _GLOBAL2_VAR_ */    /*E0161*/

@@ -1,0 +1,37 @@
+#ifndef _CNTRLERR_DEC_
+#define _CNTRLERR_DEC_
+/********************/
+
+void cntx_Init(void);
+void cntx_Done(void);
+void cntx_LevelInit(int No, byte Rank, byte Type, DvmType* pInit, DvmType* pLast, DvmType* pStep);
+void cntx_LevelDone(void);
+void cntx_SetIters(AddrType index[], DvmType IndexTypes[]);
+dvm_CONTEXT *cntx_CurrentLevel(void);
+dvm_CONTEXT *cntx_GetLevel(DvmType No);
+DvmType cntx_LevelCount(void);
+DvmType cntx_GetParallelDepth(void);
+DvmType cntx_GetInitParallelDepth(void);
+int cntx_IsInitParLoop(void);
+DvmType cntx_GetAbsoluteParIter(void);
+int cntx_IsParallelLevel(void);
+dvm_CONTEXT* cntx_GetParallelLevel(void);
+char *cntx_FormatLevelString(char* Str);
+
+void error_Init(ERRORTABLE *errTable, int MaxErrors);
+void error_Done(ERRORTABLE *errTable);
+ERROR_RECORD *error_Put(ERRORTABLE *errTable, char *File, UDvmType Line, char *Context, char *Message, int StructNo, DvmType CntxNo, int trccpu, UDvmType trcline);
+ERROR_RECORD *error_Find(ERRORTABLE *errTable, char *File, UDvmType Line, char *Message, int StructNo, DvmType CntxNo);
+byte error_Message(char *To, ERRORTABLE *errTable, char *File, UDvmType Line, char *Context, char *Message, int trccpu, UDvmType trcrec);
+byte error_Print( char *To, ERROR_RECORD *pErr );
+void error_PrintRecord( FILE *stream, ERROR_RECORD *pErr );
+FILE *error_OpenFile( char *Name );
+void error_PrintAll( char *To, ERRORTABLE *errTable, byte timesort );
+void error_DynControl( int code, ... );
+void error_DynControlPrintAll(void);
+void error_CmpTrace( char *File, UDvmType Line, int code );
+void error_CmpTraceExt(DvmType RecordNo, char *File, UDvmType Line, int code, ... );
+void error_CmpTracePrintAll(void);
+
+
+#endif  /* _CNTRLERR_DEC_ */

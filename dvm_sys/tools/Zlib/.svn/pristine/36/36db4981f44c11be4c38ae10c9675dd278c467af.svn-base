@@ -1,0 +1,72 @@
+LIB     = ./Release/libzlib.a
+
+INC_DIR = -I./include
+SOURCE_DIR = ./src
+
+COPT    = $(INC_DIR) $(RELEASE)
+LINK    = ar crs
+
+MODULES  = \
+	adler32.o \
+	compress.o \
+	crc32.o \
+	gzio.o \
+	uncompr.o \
+	deflate.o \
+	trees.o \
+	zutil.o \
+	inflate.o \
+	infblock.o \
+	inftrees.o \
+	infcodes.o \
+	infutil.o \
+	inffast.o
+
+adler32.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/adler32.c
+compress.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/compress.c
+crc32.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/crc32.c
+gzio.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/gzio.c
+uncompr.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/uncompr.c
+deflate.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/deflate.c
+trees.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/trees.c
+zutil.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/zutil.c
+inflate.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/inflate.c
+infblock.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/infblock.c
+inftrees.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/inftrees.c
+infcodes.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/infcodes.c
+infutil.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/infutil.c
+inffast.o:
+	$(CC) -c $(COPT) $(SOURCE_DIR)/inffast.c
+
+all: Incs libzlib
+
+Incs:
+	cp include/zlib.h ../../include/
+	cp include/zconf.h ../../include/
+
+libzlib: $(LIB)
+
+$(LIB): $(MODULES)
+	mkdir -p Release
+	rm -f $(LIB)
+	$(LINK) $(LIB) $(MODULES)
+
+clean:
+	rm -rf *.o Release
+
+cleanall: clean
+
+.PHONY: all clean cleanall Incs libzlib

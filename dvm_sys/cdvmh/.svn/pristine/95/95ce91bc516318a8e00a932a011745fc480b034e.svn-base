@@ -1,0 +1,16 @@
+include_directories("${CMAKE_CURRENT_BINARY_DIR}")
+set(CDVMH_EXECUTABLES aux_visitors.cpp cdvmh_log.cpp converter_aux.cpp 
+  converter_debug.cpp converter_main.cpp file_ctx.cpp c_dvmh.cpp handler_gen.cpp 
+  pass_ctx.cpp pragmas.cpp pragma_parser.cpp project_ctx.cpp utils.cpp)
+if(MSVC_IDE)
+  source_group(src FILES ${CDVMH_EXECUTABLES})  
+  file(GLOB_RECURSE CDVMH_HEADERS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} *.h)
+  source_group(src FILES ${CDVMH_HEADERS})
+  file(GLOB_RECURSE CDVMH_INCLUDE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}  "../include/*.h")         
+  source_group(include FILES ${CDVMH_INCLUDE})  
+endif()   
+add_executable(cdvmh ${CDVMH_EXECUTABLES} ${CDVMH_HEADERS} ${CDVMH_INCLUDE})
+add_dependencies(cdvmh ${LLVM_LIBS})
+add_definitions("-D${PROJECT_NAME}_PROJECT")
+target_link_libraries(cdvmh ${LLVM_LIBS})
+install(TARGETS cdvmh RUNTIME DESTINATION bin)

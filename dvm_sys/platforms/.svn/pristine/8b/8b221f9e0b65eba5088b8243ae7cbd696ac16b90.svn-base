@@ -1,0 +1,28 @@
+#For Titan (titan.dvm-system.org) PLATFORM (with OpenMP)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="llvm-config"
+# for parallel programs
+ PCC="/opt/mpi/bin64/mpiicc -g -O2 -no-scalar-rep -qopenmp"
+ PCXX="/opt/mpi/bin64/mpiicpc -g -O2 -no-scalar-rep -qopenmp"
+ PFORT="/opt/mpi/bin64/mpiifort -g -O2 -no-scalar-rep -qopenmp"
+ PLINKER="/opt/mpi/bin64/mpiicpc -g -qopenmp"
+ PFLINKER="/opt/mpi/bin64/mpiifort -g -qopenmp"
+ CUDA_PATH="/opt/cuda/cuda-8.0/"
+# NVCC="$CUDA_PATH/bin/nvcc --generate-code arch=compute_35,code=sm_35 -O2 -lineinfo -DCUDA_NO_SM_20_INTRINSICS -DPGI_COMPILE_BITCODE"
+# PGI_PATH="/opt/pgi/linux86-64/2018"
+# NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=9.1 -O2 -ta=nvidia:keepgpu,cc35,nollvm"
+ NVCC="$CUDA_PATH/bin/nvcc --generate-code arch=compute_20,code=sm_20 -O2 -lineinfo -DCUDA_NO_SM_20_INTRINSICS -DPGI_COMPILE_BITCODE -DCUDA_FERMI_ARCH"
+ PGI_PATH="/opt/pgi/linux86-64/2018"
+ NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=8.0 -O2 -ta=nvidia:keepgpu,cc20,nollvm"
+# launch settings
+ dvmrun="runmpi"
+# DVMH options for default preset
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=1
+ NODES_COUNT=1

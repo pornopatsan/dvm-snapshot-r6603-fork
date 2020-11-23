@@ -1,0 +1,18 @@
+#ifndef _CHECKSUM_VAR_
+#define _CHECKSUM_VAR_
+/********************/    /*E0000*/
+
+/****************************************\
+* Checksums of standard parameter files  *
+\****************************************/    /*E0001*/
+
+byte ParFileCheckSum=1;      /* flag to check checksum of
+                                parameter files */    /*E0002*/
+uLLng SystemStdCheckSum=0;
+uLLng SysTraceStdCheckSum=0;
+uLLng DebugStdCheckSum=0;
+uLLng TrcEventStdCheckSum=0;
+uLLng TrcDynControlStdCheckSum=0;
+uLLng StatistStdCheckSum=0;
+
+#endif   /*  _CHECKSUM_VAR_  */    /*E0003*/

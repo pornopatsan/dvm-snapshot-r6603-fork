@@ -1,0 +1,52 @@
+#ifndef _CONFIG_DEF_
+#define _CONFIG_DEF_
+/******************/    /*E0000*/
+
+/* Type of message transfer system */    /*E0001*/
+
+#define  EMP_MPS_TYPE   0
+#define  GNS_MPS_TYPE   1
+#define  ROU_MPS_TYPE   2
+#define  MPI_MPS_TYPE   3
+#define  PVM_MPS_TYPE   4
+
+#ifdef _WIN_MPI_
+  #define MaxProcNumber      100  /* */    /*E0002*/
+#else
+  #define MaxProcNumber      2000 /* max. number of processors */    /*E0003*/
+#endif
+
+#define MaxVMRank             4 /* max. rank of virtual
+                                          subsystem  */    /*E0004*/
+#define MaxDVMObjCount      500 /* max. number of created
+                                          DVM-objects  */    /*E0005*/
+#define MaxDACount          500 /* max. number of created 
+                                          distributed arrays */    /*E0006*/
+#define MAXARRAYDIM           7 /* max. rank of 
+                                          distributed array */    /*E0007*/
+#define CurrentParNumber     50 /* max. number of parameters
+                                          specified in command line   */    /*E0008*/
+#define SysParNumber        200 /* max. number of parameters
+                                          controlling runtime system */    /*E0009*/
+#define TraceParNumber      200 /* max. number of 
+                                          trace parameters */    /*E0010*/
+#define DebugParNumber      150 /* max. number of parameters of
+                                          built-in debugging tools */    /*E0011*/
+#define EventParNumber      150 /* max. number of parameters,
+                                          describing
+                                          trace events */    /*E0012*/
+#define StatistParNumber    150 /* max. number of
+                                          statistics parameters */    /*E0013*/
+
+#define MaxParFileName      128 /* maximal size of 
+                                   parameter file name */    /*E0014*/
+#define MaxEventNumber      630 /* a number of trace events  */    /*E0015*/
+#define MaxLevel             32 /* max. nesting level of function calls 
+                                   when tracing */    /*E0016*/
+
+#define CompressBufNumber    12 /* */    /*E0017*/
+#define MaxApplMesSize      128 /* */    /*E0018*/
+#define ListCount             6 /* */    /*E0019*/
+
+
+#endif  /* _CONFIG_DEF_ */    /*E0020*/

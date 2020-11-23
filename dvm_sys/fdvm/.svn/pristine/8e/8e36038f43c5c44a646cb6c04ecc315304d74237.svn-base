@@ -1,0 +1,75 @@
+typedef union { 
+         int       token ;
+         char      charv ;
+         char      *charp;
+         PTR_BFND   bfnode ;
+         PTR_LLND   ll_node ;
+         PTR_SYMB   symbol  ;
+         PTR_TYPE   data_type ;
+         PTR_HASH   hash_entry ;
+         PTR_LABEL  label ;        
+         PTR_BLOB   blob_ptr ;
+       } YYSTYPE;
+#define	IFDEFA	258
+#define	APPLYTO	259
+#define	ALABELT	260
+#define	SECTIONT	261
+#define	SPECIALAF	262
+#define	FROMT	263
+#define	TOT	264
+#define	TOTLABEL	265
+#define	TOFUNCTION	266
+#define	DefineANN	267
+#define	IDENTIFIER	268
+#define	TYPENAME	269
+#define	SCSPEC	270
+#define	TYPESPEC	271
+#define	TYPEMOD	272
+#define	CONSTANT	273
+#define	STRING	274
+#define	ELLIPSIS	275
+#define	SIZEOF	276
+#define	ENUM	277
+#define	STRUCT	278
+#define	UNION	279
+#define	IF	280
+#define	ELSE	281
+#define	WHILE	282
+#define	DO	283
+#define	FOR	284
+#define	SWITCH	285
+#define	CASE	286
+#define	DEFAULT_TOKEN	287
+#define	BREAK	288
+#define	CONTINUE	289
+#define	RETURN	290
+#define	GOTO	291
+#define	ASM	292
+#define	CLASS	293
+#define	PUBLIC	294
+#define	FRIEND	295
+#define	ACCESSWORD	296
+#define	OVERLOAD	297
+#define	OPERATOR	298
+#define	COBREAK	299
+#define	COLOOP	300
+#define	COEXEC	301
+#define	LOADEDOPR	302
+#define	MULTIPLEID	303
+#define	MULTIPLETYPENAME	304
+#define	ASSIGN	305
+#define	OROR	306
+#define	ANDAND	307
+#define	EQCOMPARE	308
+#define	ARITHCOMPARE	309
+#define	LSHIFT	310
+#define	RSHIFT	311
+#define	UNARY	312
+#define	PLUSPLUS	313
+#define	MINUSMINUS	314
+#define	HYPERUNARY	315
+#define	DOUBLEMARK	316
+#define	POINTSAT	317
+
+
+extern YYSTYPE yylval;

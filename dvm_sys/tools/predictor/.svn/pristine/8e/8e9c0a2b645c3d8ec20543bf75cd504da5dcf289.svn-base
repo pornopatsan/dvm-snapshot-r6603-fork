@@ -1,0 +1,69 @@
+.KEEP_STATE:
+#############################################################################
+#                                                                           #
+#                                  PRESAGE                                  #
+#                                                                           #
+#############################################################################
+
+EXE	= predictor
+LIB	= rater
+INC_DIR = -I../Include -I../../Rater/Include
+#ROUTDIR  = ../Release
+ROUTDIR  = ../Debug
+LIBDIR = ../../Rater/Src/$(ROUTDIR)
+
+##################### for GNU ####################
+
+COPT    = -g -w $(INC_DIR) -DP_DEBUG
+CC      = g++
+cc	= gcc
+LINK	= $(CC)
+
+#################### for SUN ####################
+
+#COPT    =  +w -O4 $(INC_DIR)   
+#CC      = /export/ws/SUNWspro/bin/CC
+#CC 	= CC
+#cc	= cc
+#LINK	= $(CC) 
+
+release : $(ROUTDIR)/$(EXE)
+
+debug   : $(ROUTDIR)/$(EXE)
+
+SRCFILES  = \
+	AppModelData.cpp	ModelInterval.cpp	\
+	AppModelMain.cpp	ModelMPS_AM.cpp	ParseString.cpp \
+	CallParams.cpp	RuntimeInfo.cpp	Interval.cpp \
+	DVM_Event.cpp	ModelParLoop.cpp	SaveHTML.cpp \
+	LoopBlock.cpp	ModelReduct.cpp	SaveResults.cpp \
+	LoopLS.cpp		ModelRegular.cpp	TraceRead.cpp \
+	Ps.cpp		ModelShadow.cpp	Predictor.cpp \
+	ModelDArray.cpp	ModelUnknown.cpp	ModelIO.cpp \
+	TraceLine.cpp
+
+.SUFFIXES:
+.SUFFIXES: .o .cpp 
+
+MODULES   = $(SRCFILES:%.cpp=$(ROUTDIR)/%.o) 
+
+$(ROUTDIR)/%.o:%.cpp
+	$(CC) -c $(COPT) -o $(ROUTDIR)/$*.o $*.cpp
+ 	
+	
+
+################################## PREDICTOR ################################
+
+$(ROUTDIR)/$(EXE): $(MODULES)
+	$(LINK) -o $(ROUTDIR)/$(EXE) $(MODULES) -L$(LIBDIR) -l$(LIB)
+
+############################################################################
+	
+clean:
+	rm -f $(ROUTDIR)/*.o $(ROUTDIR)/$(EXE).exe 
+
+tags:
+	rm -f tags
+	ectags -f tags $(SRCFILES)   
+
+################################## END #####################################

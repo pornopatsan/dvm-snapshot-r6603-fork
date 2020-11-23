@@ -1,0 +1,16 @@
+#!/bin/sh
+
+rm -f dvmvers.h rts/include/dvmvers.h tools/pppa/src/dvmvers.h
+rm -fr bin
+rm -fr include
+rm -fr par
+rm -fr lib
+rm -fr user
+rm -fr demo
+rm -fr doc
+rm -fr dist
+rm -f hname
+
+echo ============== STARTING DVM CLEANING ALL ==============
+make -f makefile.uni "MAKE=make -f makefile.uni" cleanall
+echo =============== DONE DVM CLEANING ALL  =================

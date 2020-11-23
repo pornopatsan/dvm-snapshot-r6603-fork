@@ -1,0 +1,26 @@
+cd ..
+mkdir dvm_bin
+cd dvm_bin
+mkdir bin
+mkdir lib
+mkdir par
+mkdir include
+rem mkdir user
+mkdir examples
+copy ..\dvm_sys\bin\* bin
+copy bin\%dvmrun% bin\dvmrun_bin.bat
+if exist %MPI_HOME%\lib\*.dll copy %MPI_HOME%\lib\*.dll bin
+copy ..\dvm_sys\lib\dvm.lib lib\dvm.lib
+copy ..\dvm_sys\rts\src\clfdvm.f lib\clfdvm.f
+lib /out:lib\dvm.lib lib\dvm.lib %MPI_LIB%
+rem lib /out:lib\dvm.lib lib\dvm.lib %MPI_HOME%\lib\libmpi.lib
+copy ..\dvm_sys\par\* par
+copy ..\dvm_sys\include\* include
+rem copy ..\dvm_sys\user\* user
+copy ..\dvm_sys\examples\* examples
+copy ..\dvm_sys\dvminstall.bat .
+copy ..\dvm_sys\dvmvers.h .
+rem call dvminstall.bat
+cd ..\dvm_sys
+
+

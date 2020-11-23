@@ -1,0 +1,31 @@
+#For Uran (umt.imm.uran.ru) PLATFORM
+# for DVM tools
+ CC="gcc -g -O2"
+ CXX="g++ -g -O2"
+ LINKER="g++ -g"
+ LLVMCONFIG="/misc/home/u1336/DVM/CLANG/bin/llvm-config"
+# for parallel programs
+ PCC="mpicc -g -O2 -no-scalar-rep -qopenmp"
+ PCXX="mpicxx -g -O2 -no-scalar-rep -qopenmp"
+ PFORT="mpif77 -g -O2 -no-scalar-rep -qopenmp"
+ PLINKER="mpicxx -g -qopenmp"
+ PFLINKER="mpif77 -g -qopenmp"
+ CUDA_PATH="/opt/cuda"
+ ADD_LIBS="-L/misc/home/u1336/DVM/CUDA_DRIVER/lib64"
+ NVCC="$CUDA_PATH/bin/nvcc -g -O2 -arch=sm_20 -DCUDA_FERMI_ARCH -DHAVE_EXPLICIT_CAST -DPGI_COMPILE_BITCODE"
+ PGI_PATH="/opt/pgi/linux86-64/2016"
+ NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=7.5 -O2 -ta=nvidia:keepgpu,cc20,nollvm"
+# launch settings
+ dvmcopy=1
+ dvmrun="slurm.run"
+ queuemode="tesla"
+ maxtime="30"
+ MPIRUN_CMD="--wrap"
+# DVMH options for default preset
+ DVMH_PPN=12
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=8
+ 

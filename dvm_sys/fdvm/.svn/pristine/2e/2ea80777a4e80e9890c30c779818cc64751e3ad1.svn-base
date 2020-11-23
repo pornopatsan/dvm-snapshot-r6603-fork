@@ -1,0 +1,69 @@
+/*********************************************************************/
+/*                  pC++/Sage++  Copyright (C) 1993                  */
+/*  Indiana University  University of Oregon  University of Rennes   */
+/*********************************************************************/
+
+/* format is the following variant 'a'|'s'|'u'|'t'|'e'|'p'|'d'|'D'|'_',
+   's'|'_', 'b'|'_','c'|'C'|'_', 'f'|'_'
+
+	_ stands for no
+-----------------------
+	a stands for atomic type (T_INT and so on)
+	u stands for union 
+	t stands for array
+	s stands for structure (first field structure)
+	e stands for enumeration 
+	p stands for pointer or reference
+	d stands for derived 
+	D stands for descript type
+------------------
+	s stands for symbol
+------------------
+	b stands for bastype
+------------------
+	c stands for class type
+	C stand  for collection type
+------------------
+        f stands have a list of fields (should go to symbol also)
+
+*/
+DEFNODECODE(DEFAULT,			'a','_','_','_','_')
+DEFNODECODE(T_INT,			'a','_','_','_','_')
+DEFNODECODE(T_FLOAT,			'a','_','_','_','_')
+DEFNODECODE(T_DOUBLE,			'a','_','_','_','_')
+DEFNODECODE(T_CHAR,			'a','_','_','_','_')
+DEFNODECODE(T_BOOL,			'a','_','_','_','_')
+DEFNODECODE(T_STRING,			'a','_','_','_','_')
+DEFNODECODE(T_COMPLEX,			'a','_','_','_','_')
+DEFNODECODE(T_DCOMPLEX,			'a','_','_','_','_')
+DEFNODECODE(T_GATE,			'a','_','_','_','_')
+DEFNODECODE(T_EVENT,			'a','_','_','_','_')
+DEFNODECODE(T_SEQUENCE,			'a','_','_','_','_')
+
+DEFNODECODE(T_ENUM,			'e','_','_','_','f')
+DEFNODECODE(T_SUBRANGE,			'_','_','_','_','_')
+DEFNODECODE(T_LIST,			'_','_','_','_','_')
+DEFNODECODE(T_ARRAY,			't','_','b','_','_')
+DEFNODECODE(T_RECORD,			's','_','_','_','f')
+DEFNODECODE(T_ENUM_FIELD,		'_','_','_','_','_')
+DEFNODECODE(T_UNKNOWN,			'a','_','_','_','_')
+DEFNODECODE(T_VOID,			'a','_','_','_','_')
+DEFNODECODE(T_DESCRIPT,			'D','_','b','_','_')
+DEFNODECODE(T_FUNCTION,			'_','_','b','_','_')
+DEFNODECODE(T_POINTER,			'p','_','b','_','_')
+DEFNODECODE(T_UNION,			'u','_','_','_','f')
+DEFNODECODE(T_STRUCT,			's','_','_','_','f')
+DEFNODECODE(T_CLASS,			's','_','_','_','f')
+DEFNODECODE(T_TECLASS,			's','_','_','_','f')
+DEFNODECODE(T_DERIVED_CLASS,		'd','s','_','_','_')
+DEFNODECODE(T_DERIVED_TYPE,		'd','s','_','_','_')
+DEFNODECODE(T_COLLECTION,		's','_','_','_','f')
+DEFNODECODE(T_DERIVED_COLLECTION,	'd','s','_','_','_')
+DEFNODECODE(T_DERIVED_TEMPLATE,		'd','s','_','_','_')
+DEFNODECODE(T_REFERENCE,		'p','_','b','_','_')
+
+DEFNODECODE(LOCAL,			'_','_','_','_','_')
+DEFNODECODE(INPUT,			'_','_','_','_','_')
+DEFNODECODE(OUTPUT,			'_','_','_','_','_')
+DEFNODECODE(IO,				'_','_','_','_','_')
+

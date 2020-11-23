@@ -1,0 +1,40 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+
+# dvm/tools/pppa/makefile.win
+
+# Valentin Emelianov  (4/01/99)
+
+#
+# This makefile recursively calls MAKE in each subdirectory
+#
+
+# What to compile
+SUBDIR=src
+
+all: 
+	@echo "****** RECURSIVELY MAKING SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"
+	@cd src
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" all
+	@cd ..
+	@echo "****** DONE MAKING SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"
+
+clean:
+	@echo "****** RECURSIVELY CLEAN SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"
+	@cd src
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" clean
+	@cd ..
+	@del /q .\obj\*.*
+	@echo "****** DONE CLEAN SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"
+
+cleanall:
+	@echo "****** RECURSIVELY CLEANALL SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"
+	@cd src
+	@$(MAKE) /nologo  -f makefile.win "MAKE=$(MAKE)" "CC=$(CC)" "CXX=$(CXX)" "LINKER=$(LINKER)" cleanall
+	@cd ..
+	@del /q .\bin\*.*
+	@del /q .\obj\*.*
+	@echo "****** DONE CLEANALL SUBDIRECTORIES dvm/tools/pppa/: $(SUBDIR) ******"

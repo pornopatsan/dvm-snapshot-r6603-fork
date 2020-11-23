@@ -171,7 +171,7 @@ public:
     explicit IncludeCollector(SourceFileContext &fileCtx, Preprocessor &PP): fileCtx(fileCtx), PP(PP), ignoreLevel(-1) {}
 public:
     virtual void FileChanged(SourceLocation Loc, FileChangeReason Reason, SrcMgr::CharacteristicKind FileType, FileID PrevFID);
-    virtual void FileSkipped(const FileEntry &ParentFile, const Token &FilenameTok, SrcMgr::CharacteristicKind FileType);
+    virtual void FileSkipped(const FileEntryRef &ParentFile, const Token &FilenameTok, SrcMgr::CharacteristicKind FileType);
 #if CLANG_VERSION_MAJOR < 7
     virtual void InclusionDirective(SourceLocation HashLoc, const Token &IncludeTok, StringRef FileName, bool IsAngled, CharSourceRange FilenameRange,
             const FileEntry *File, StringRef SearchPath, StringRef RelativePath, const Module *Imported);

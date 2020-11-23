@@ -1,0 +1,85 @@
+#ifndef _SYSDEBUG_VAR_
+#define _SYSDEBUG_VAR_
+/********************/    /*E0000*/
+
+/****************************************\
+* Parameters of built-in debugging tools * 
+\****************************************/    /*E0001*/
+
+byte TstObject=0;     /* flag to check the object is
+                         DVM one */    /*E0002*/
+byte DisArrayFill=0;  /* flaag of filling in of distributed arrays
+                         during their distribution and redistribution */    /*E0003*/
+byte FillCode[18]={0};/* sequence of bytes for filling  
+                         initialized elements of distributed arrays */    /*E0004*/
+DvmType WaitDelay=0;     /* value of delay of rtl_Waitrequest 
+                              function execution */    /*E0005*/
+DvmType RecvDelay=0;     /* value of delay of rtl_Recvnowait 
+                              function execution*/    /*E0006*/
+DvmType SendDelay=0;     /* value of delay of rtl_Sendnowait 
+                              function execution */    /*E0007*/
+
+/* Global variables to check memory allocation and freeing */    /*E0008*/
+
+DVMUSERFUN
+byte SaveAllocMem=0;  /* flag to keep allocations in array of structures */    /*E0009*/
+byte CheckFreeMem=0;  /* flag to check the array of structures on each memory freeing */    /*E0010*/
+
+int AllocBufSize=5000;/* size of array of structures to keep memory allocations */    /*E0011*/
+byte BoundSize=0;     /* length of left and right bounds of
+                         allocated memory in bytes */    /*E0012*/
+byte BoundCode=255;   /* fill code for left and right bounds */    /*E0013*/
+
+byte CheckPtr=0;        /* flag on control pointer values
+                           while allocate and free memory */    /*E0014*/
+uLLng MinPtr=0x1000;     /* min. value of pointer 
+                           when checking memory allocations */    /*E0015*/
+uLLng MaxPtr=0xffffff00; /* max. value of pointer 
+                           when checking memory allocations */    /*E0016*/
+
+/* */    /*E0017*/
+
+int MPI_MsgTest=0;   /* */    /*E0018*/
+
+int MPI_TestCount=100; /* */    /*E0019*/
+int MPI_TestSize=10000; /* */    /*E0020*/
+
+/* */    /*E0021*/
+
+DVMUSERFUN
+int MPI_TraceRoutine=0; /* */    /*E0022*/
+DVMUSERFUN
+int DVM_TraceOff=1;   /* */    /*E0023*/
+DVMUSERFUN
+int MPI_TraceLevel=0; /* */    /*E0024*/
+DVMUSERFUN
+int MPI_TraceReg=0;   /* */    /*E0025*/
+DVMUSERFUN
+byte MPI_SlashOut=1;  /* */    /*E0026*/
+DVMUSERFUN
+byte MPI_TraceAll=1;  /* */    /*E0027*/
+DVMUSERFUN
+byte MPI_TraceTime=1; /* */    /*E0028*/
+DVMUSERFUN
+byte MPI_TraceTimeReg=0; /* */    /*E0029*/
+DVMUSERFUN
+byte MPI_TraceFileLine=1; /* */    /*E0030*/
+DVMUSERFUN
+byte MPI_TraceMsgChecksum=1; /* */    /*E0031*/
+DVMUSERFUN
+int MPI_DynAnalyzer=1;/* */    /*E0032*/
+DVMUSERFUN
+int MPI_TestTraceCount=1000; /* */    /*E0033*/
+DVMUSERFUN
+DvmType MPI_TraceBufSize=3072000; /* */    /*E0034*/
+DVMUSERFUN
+DvmType MPI_TraceFileSize=10240000; /* */    /*E0035*/
+DVMUSERFUN
+DvmType MPI_TotalTraceFileSize=100000000; /* */    /*E0036*/
+DVMUSERFUN
+byte MPI_DebugMsgChecksum=0; /* */    /*E0037*/
+DVMUSERFUN
+byte MPI_DebugBufChecksum=1; /* */    /*E0038*/
+
+
+#endif  /* _SYSDEBUG_VAR_ */    /*E0039*/

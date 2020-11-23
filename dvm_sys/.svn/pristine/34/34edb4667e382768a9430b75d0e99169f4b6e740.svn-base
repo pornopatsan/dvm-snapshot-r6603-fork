@@ -1,0 +1,702 @@
+#!/bin/sh
+
+has_tool() {
+    which "$1" >/dev/null 2>& 1
+}
+
+non_empty() {
+    test -f "$1" && test $(wc -c <"$1") -gt 0
+}
+
+DVMVERS=5.0
+# Unused variable:
+dvmdata=" - DVM-system from 22.10.2013 rts2889d cdvm47 fdvm 4.0 010709 PPPA 2.4 301008 predictor 290507 trcutil(2903)"
+
+if [ "$(uname)" = "Darwin" ]; then
+    export IS_OSX=1
+    sed=gsed
+elif [ "$(uname | grep -i cygwin | wc -l)" -gt 0 ]; then
+    export IS_WIN=1
+    sed=sed
+else
+    sed=sed
+fi
+
+MY_PATH="$(which "$0")"
+if [ $(printf '%s\n' "$MY_PATH" | grep "dvminstall" | wc -l) -gt 0 ]; then
+    cd "$(dirname  "$MY_PATH" )"
+fi
+if [ ! -f "dvminstall" ]; then
+    echo "Can not change directory"
+    exit 1
+fi
+
+BUILD_DIR="$(pwd)"
+
+# Default values for obligatory parameters
+# for serial programs
+CC="cc -g -O2"
+CXX="c++ -g -O2"
+LINKER="c++ -g"
+# for parallel programs
+if [ "$WITHOUT_MPI" != "1" ] && has_tool mpicc && ( has_tool mpic++ || has_tool mpicxx || has_tool mpiCC ) && ( has_tool mpif90 || has_tool mpif77 ) ; then
+    WITHOUT_MPI=0
+    PCC="mpicc"
+    if has_tool mpic++; then
+        PCXX="mpic++"
+    elif has_tool mpicxx; then
+        PCXX="mpicxx"
+    else
+        PCXX="mpiCC"
+    fi
+    if has_tool mpif90; then
+        PFORT="mpif90"
+    else
+        PFORT="mpif77"
+    fi
+else
+    WITHOUT_MPI=1
+    PCC="cc"
+    PCXX="c++"
+    if has_tool f95; then
+        PFORT="f95"
+    elif has_tool f90; then
+        PFORT="f90"
+    else
+        PFORT="f77"
+    fi
+fi
+if $PCC --version >/dev/null 2>& 1; then
+    PAR_COMP=$($PCC --version | head -n 1 | awk '{print $1;}')
+elif $PCC -V >/dev/null 2>& 1; then
+    PAR_COMP=$($PCC -V | head -n 2 | awk '{print $1;}')
+fi
+case "$PAR_COMP" in
+    cc | gcc | clang | icc )
+        COPTS="-g -O2 -fopenmp"
+        LOPTS="-g -fopenmp"
+        ;;
+    pgcc )
+        COPTS="-g -O2 -mp"
+        LOPTS="-g -mp"
+        ;;
+    * )
+        COPTS="-g -O2"
+        LOPTS="-g"
+        ;;
+esac
+PLINKER="$PCXX $LOPTS"
+PFLINKER="$PFORT $LOPTS"
+PCC="$PCC $COPTS"
+PCXX="$PCXX $COPTS"
+PFORT="$PFORT $COPTS"
+
+dvmrun="runmpi"
+dvm_run="dvm_run"
+
+Par=ar
+Pld=ld
+Pobjcopy=objcopy
+ADD_LIBS=
+flib=
+OPTIONCHAR="-"
+Pred_vis='firefox'
+Doc_vis='firefox'
+I_MPI_LINK=opt_mt
+
+MAKE="make -f makefile.uni"
+
+DTRAN=-D_MPI_PROF_EXT_
+TRANLIB=
+# /nethome/admdvm/DEB_MPI_VERS/DEB_MPI_1.8/lib/libdvm_tracer.a
+if [ -n "$TRANLIB" ]; then
+    DTRAN=-D_MPI_PROF_TRAN_
+fi
+
+if [ -z "$PLATFORM" -a -e ~/platform ]; then
+    PLATFORM=`cat ~/platform`
+fi
+
+if [ -z "$PLATFORM" -a -e platform ]; then
+    PLATFORM=`cat platform`
+fi
+
+if [ -z "$PLATFORM" -a -e "platforms/$(hostname)" ]; then
+    PLATFORM="$(hostname)"
+fi
+
+if [ -n "$PLATFORM" ]; then
+    if [ -e "platforms/$PLATFORM" ]; then
+        . "platforms/$PLATFORM"
+    else
+        echo "Can not find $PLATFORM platform"
+        exit 1
+    fi
+else
+    # Determine optional parameters' values
+    if has_tool llvm-config-3.9; then
+        LLVMCONFIG="llvm-config-3.9"
+    elif has_tool llvm-config-3.8; then
+        LLVMCONFIG="llvm-config-3.8"
+    elif has_tool llvm-config-3.7; then
+        LLVMCONFIG="llvm-config-3.7"
+    elif has_tool llvm-config-3.6; then
+        LLVMCONFIG="llvm-config-3.6"
+    elif has_tool llvm-config-3.5; then
+        LLVMCONFIG="llvm-config-3.5"
+    elif has_tool llvm-config-3.4; then
+        LLVMCONFIG="llvm-config-3.4"
+    elif has_tool llvm-config; then
+        LLVMCONFIG="llvm-config"
+    fi
+    if [ -n "$IS_WIN" ]; then
+        unset CUDA_PATH
+    elif has_tool nvcc; then
+        CUDA_PATH="$(dirname "$(dirname "$(which nvcc)")")"
+    elif [ -e "/usr/local/cuda/bin/nvcc" ]; then
+        CUDA_PATH="/usr/local/cuda"
+    fi
+    PLATFORM="$(hostname)"
+    if [ $WITHOUT_MPI -ne 0 ]; then
+        dvmrun="runplain"
+    fi
+fi
+
+if [ ! -e "platforms/$PLATFORM" ]; then
+    PLATF_TEXT="#For $PLATFORM PLATFORM
+# for DVM tools
+ CC='$CC'
+ CXX='$CXX'
+ LINKER='$LINKER'
+ LLVMCONFIG='$LLVMCONFIG'
+# for parallel programs
+ PCC='$PCC'
+ PCXX='$PCXX'
+ PFORT='$PFORT'
+ PLINKER='$PLINKER'
+ PFLINKER='$PFLINKER'
+ ADD_LIBS='$ADD_LIBS'
+ CUDA_PATH='$CUDA_PATH'
+# launch settings
+ dvmrun='$dvmrun'"
+
+    echo "No platform was selected. These settings were automatically detected:"
+    echo "$PLATF_TEXT"
+    printf "Press any key to continue... "
+    read garbage
+    echo
+    echo "$PLATF_TEXT" >"platforms/$PLATFORM"
+fi
+echo "--- PLATFORM is $PLATFORM ---"
+
+printf "Press Ctrl+C to interrupt... "
+for i in `seq 2 -1 0`; do
+    printf "$i... "
+    sleep 1
+done
+echo
+
+echo "$PLATFORM" >platform
+
+MPSOPT="-D_DVM_MPI_ -DMPICH_IGNORE_CXX_SEEK -DOMPI_SKIP_MPICXX=1 -DMPICH_SKIP_MPICXX=1 -DMPI_NO_CPPBIND"
+
+if [ $WITHOUT_MPI -ne 0 ]; then
+    MPSOPT="$MPSOPT -D_MPI_STUBS_"
+    dvm_run="dvm_run_nompi"
+fi
+
+DVMOPT="$MPSOPT $DTRAN -D_RTS_ZLIB_ -D_UNIX_ -D_F_TIME_ -D_DATA_ALIGN_ACCESS_"
+DVMHOPT="$DVMOPT"
+DVMH_ADD_LIBS="-lm -lstdc++"
+if [ -z "$IS_OSX" ]; then
+    DVMH_ADD_LIBS="$DVMH_ADD_LIBS -lrt"
+fi
+
+if [ -n "$LLVMCONFIG" ]; then
+    CLANG="$( "$LLVMCONFIG" --bindir )/clang"
+    CLANG_VER="$( "$LLVMCONFIG" --version | tr '.' ' ' )" # Space-separated value is convenient for MAKE
+fi
+if [ -n "$CUDA_PATH" ]; then
+    DVMHOPT="$DVMHOPT -DHAVE_CUDA"
+    if [ -e "$CUDA_LIB_PATH/lib64" ]; then
+        CUDA_LIB_PATH="$CUDA_PATH/lib64"
+    else
+        CUDA_LIB_PATH="$CUDA_PATH/lib"
+    fi
+    CUDA_LIB="-L$CUDA_LIB_PATH -L$CUDA_LIB_PATH/stubs -lcudart"
+    if [ -e "$CUDA_PATH/include/nvrtc.h" ]; then
+        CUDA_LIB="$CUDA_LIB -lnvrtc"
+        if [ -z "$IS_OSX" ]; then
+            CUDA_LIB="$CUDA_LIB -lcuda"
+        fi
+        DVMHOPT="$DVMHOPT -DHAVE_NVRTC"
+    fi
+    if [ -z "$NVCC" ]; then
+        CUDA_VERSION=$("$CUDA_PATH/bin/nvcc" --version | tail -1 | tr ',' ' ' | awk '{print $5}')
+        CUDA_MAJOR=$(echo "$CUDA_VERSION" | tr '.' ' ' | awk '{print $1}')
+        if [ "$CUDA_MAJOR" -ge 0 ] 2>/dev/null; then
+            if [ $CUDA_MAJOR -ge 9 ]; then
+                # No support for sm_20 since CUDA 9.0
+                NVCC="$CUDA_PATH/bin/nvcc -g -O2 -arch=sm_30"
+            fi
+        fi
+        if [ -z "$NVCC" ]; then
+            NVCC="$CUDA_PATH/bin/nvcc -g -O2 -arch=sm_20 -DCUDA_FERMI_ARCH"
+        fi
+    fi
+    optcconv="-e2"
+else
+    CUDA_LIB_PATH=
+    CUDA_LIB=
+    NVCC=
+    optcconv="-e2 -noCuda"
+fi
+optfconv="$optcconv"
+
+# Test Pld and Pobjcopy
+F1=`mktemp -u`
+echo "void A(){}" >"$F1.c"
+F2=`mktemp -u`
+rm -f "$F1.o" "$F2.o"
+if eval $PCC -o "$F1.o" -c "$F1.c" >/dev/null 2>& 1 && non_empty "$F1.o"; then
+    if ! $Pld -r -o "$F2.o" "$F1.o" >/dev/null 2>& 1 && non_empty "$F2.o"; then
+        Pld=
+    fi
+    if ! $Pobjcopy "$F1.o" >/dev/null 2>& 1; then
+        Pobjcopy=
+    fi
+fi
+
+# Test intmax_t, ptrdiff_t, 'explicit' for a cast operator, libunwind, libffi
+mv "$F1.c" "$F1.cpp"
+echo "#include <stdint.h>
+intmax_t v;" >"$F1.cpp"
+rm -f "$F1.o"
+if eval $PCXX -o "$F1.o" -c "$F1.cpp" >/dev/null 2>& 1 && non_empty "$F1.o"; then
+    DVMHOPT="$DVMHOPT -DHAVE_INTMAX_T"
+fi
+echo "#include <cstddef>
+ptrdiff_t v;" >"$F1.cpp"
+rm -f "$F1.o"
+if eval $PCXX -o "$F1.o" -c "$F1.cpp" >/dev/null 2>& 1 && non_empty "$F1.o"; then
+    DVMHOPT="$DVMHOPT -DHAVE_PTRDIFF_T"
+fi
+echo "struct A {explicit operator int() const { return 0; } };" >"$F1.cpp"
+rm -f "$F1.o"
+if eval $PCXX -o "$F1.o" -c "$F1.cpp" >/dev/null 2>& 1 && non_empty "$F1.o"; then
+    rm -f "$F1.o"
+    if [ -z "$NVCC" ] || ( eval $NVCC -o "$F1.o" -c "$F1.cpp" >/dev/null 2>& 1 && non_empty "$F1.o" ) ; then
+        DVMHOPT="$DVMHOPT -DHAVE_EXPLICIT_CAST"
+        if [ -n "$NVCC" ]; then
+            NVCC="$NVCC -DHAVE_EXPLICIT_CAST"
+        fi
+    fi
+fi
+echo "#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+int main() { unw_cursor_t cursor; unw_context_t uc; unw_getcontext(&uc); unw_init_local(&cursor, &uc); return 0; }" >"$F1.cpp"
+rm -f "$F1.exe"
+if eval $PCXX -o "$F1.exe" "$F1.cpp" -lunwind >/dev/null 2>& 1 && non_empty "$F1.exe"; then
+    DVMHOPT="$DVMHOPT -DHAVE_LIBUNWIND"
+    DVMH_ADD_LIBS="$DVMH_ADD_LIBS -lunwind"
+fi
+rm -f "$F1.exe"
+echo "#include <ffi.h>
+int main() { ffi_cif cif; ffi_prep_cif(&cif, FFI_DEFAULT_ABI, 1, &ffi_type_sint, 0); return 0; }" >"$F1.cpp"
+if eval $PCXX -o "$F1.exe" "$F1.cpp" -lffi >/dev/null 2>& 1 && non_empty "$F1.exe"; then
+    DVMHOPT="$DVMHOPT -DHAVE_LIBFFI"
+    DVMH_ADD_LIBS="$DVMH_ADD_LIBS -lffi"
+fi
+
+isIntel=`$PFORT --version | grep 'ifort'`
+if [ -n "$isIntel" ]; then
+    DVMHOPT="$DVMHOPT -DINTEL_LOGICAL_TYPE"
+    CC="$CC -DINTEL_LOGICAL_TYPE"
+    CXX="$CXX -DINTEL_LOGICAL_TYPE"
+fi
+
+rm -f "$F1.cpp" "$F1.o" "$F1.exe" "$F2.o"
+
+if [ ! -e "driver/src/$dvmrun" ]; then
+    echo "Non-existent dvmrun command '$dvmrun' specified!"
+    exit 1
+fi
+
+echo "#define VERS \"$DVMVERS\"" >dvmtmp
+echo "#define PLATFORM \"$PLATFORM\"" >>dvmtmp
+echo "#define _DVM_Minus_ '$OPTIONCHAR'" >>dvmtmp
+mv dvmtmp dvmvers.h
+
+mkdir -p user
+if [ -e driver/makefile.uni ]; then
+    # ============== Starting DVM installation ...   ===============
+
+    # ====== create empty subdirectories ========
+    mkdir -p bin
+    mkdir -p lib
+    mkdir -p include
+    mkdir -p par
+
+    cd fdvm
+    mkdir -p lib
+    cd ..
+    if ! [ -f rts/include/dvmvers.h ] || ! cmp -s dvmvers.h rts/include/dvmvers.h; then
+        cp -f dvmvers.h rts/include
+    fi
+
+    if ! [ -f tools/pppa/src/dvmvers.h ] || ! cmp -s dvmvers.h tools/pppa/src/dvmvers.h; then
+        cp -f dvmvers.h tools/pppa/src
+    fi
+
+    # ============== DVM-system compilation ===============
+    export CC CXX LINKER LLVMCONFIG CLANG_VER PCC PCXX PFORT PLINKER PFLINKER OMPI_CC OMPI_CXX OMPI_F77 OMPI_FC I_MPI_LINK Par Pld Pobjcopy MAKE DVMOPT DVMHOPT CUDA_PATH NVCC PGI_PATH CUDA_LIB dvmrun dvm_run
+    if [ -n "$MAKE_JOBS" ]; then
+        if [ "$MAKE_JOBS" = "0" ]; then
+            MAKE_JOBS=$(cat /proc/cpuinfo | grep "processor" | wc -l)
+        elif [ "$MAKE_JOBS" = "-1" ]; then
+            MAKE_JOBS=
+        fi
+        $MAKE -j $MAKE_JOBS all
+    else
+        $MAKE all
+    fi
+    if [ $? != "0" ]; then
+        echo "DVM-system is not installed"
+        exit 1
+    fi
+
+    cp -f tools/predictor/Predictor.par par/Predictor.par
+fi
+cp -f par/usr.par user/usr.par
+
+rm -rf demo
+mkdir -p demo
+for f in $(find examples -mindepth 1 -maxdepth 1 -type d -not -path "examples/.*"); do
+    cp -r "$f" demo/
+done
+
+if [ -f build_number ]; then
+    build_number=$(cat build_number)
+    build_number=$(( build_number + 1 ))
+else
+    build_number=1
+fi
+echo "$build_number" >build_number
+dvmbuild="Version $DVMVERS"
+if [ -f "../revision" ]; then
+    dvmbuild="$dvmbuild, revision $(cat ../revision)"
+fi
+dvmbuild="$dvmbuild, platform $PLATFORM, build $build_number"
+dvmbuild_real="$dvmbuild"
+ADD_LIBS="\"\$USER_LIBS $ADD_LIBS $DVMH_ADD_LIBS\""
+ADD_LIB_PATHS="$CUDA_LIB_PATH"
+dvmwait=0
+dvmsave=0
+dvmshow=0
+dvmpar='"$dvmdir/par/.rel"'
+usrpar=
+dvmout=off
+Pred_sys='"$dvmdir/par/Predictor.par"'
+
+if [ -z "$CUDA_PATH" -o "$CUDAS_PER_NODE" = "0" ]; then
+    CUDA_PREF="# "
+fi
+if [ $WITHOUT_MPI -ne 0 -o "$NODES_COUNT" = "1" ]; then
+    CLUSTER_PREF="# "
+fi
+DVM_PARAMS="
+# General section
+break
+hard DVMVERS
+hard PLATFORM
+hard dvmbuild_real
+
+# Convertation section
+break
+hidden optcconv
+hidden optfconv
+
+# Compilation section
+break One can customize compiler options
+soft PCC C compiler
+soft PCXX C++ compiler
+soft PFORT Fortran compiler
+hard MPIR_HOME
+hard OMPI_CC
+hard OMPI_CXX
+hard OMPI_F77
+hard OMPI_FC
+hard CUDA_PATH
+soft NVCC NVIDIA CUDA C++ compiler
+hard PGI_PATH
+soft NVFORT Fortran-CUDA compiler
+hard CLANG
+
+# Linking section
+break One can add libraries (additional linker flags)
+user USER_LIBS
+hard PLINKER
+hard PFLINKER
+hard Pld
+hard CUDA_LIB
+hard noquote ADD_LIBS
+hard ADD_LIB_PATHS
+hidden I_MPI_LINK
+
+# Launch section
+break One can set launch options
+hard MPIRUN_CMD
+soft queuemode Name of the task queue to be used
+soft noquote maxtime Maximum execution time in minutes to be passed to the cluster resource manager
+soft noquote restart Restart task after the end of execution
+soft noquote quantum Quantum time of task (started as background work)
+soft noquote dvmwait Wait for task completion
+$CLUSTER_PREF user DVMH_PPN Number of processes per node
+user DVMH_STACKSIZE Stack size to set for the task
+user DVMH_NUM_THREADS Number of CPU threads per process
+$CUDA_PREF user DVMH_NUM_CUDAS Number of GPUs per process
+$CUDA_PREF user DVMH_CPU_PERF Performance of all cores of CPU per process
+$CUDA_PREF user DVMH_CUDAS_PERF Performance of each GPU per device
+$CUDA_PREF user noquote default 0 DVMH_NO_DIRECT_COPY Use standard cudaMemcpy functions instead of direct copying with GPU
+$CUDA_PREF user noquote default 1 DVMH_SPECIALIZE_RTC Use specialization algorithm to reduce CUDA kernel's resources / or compile kernels during execution without changes
+
+break Debugging options
+user noquote default 1 DVMH_LOGLEVEL Levels of debugging: 1 - errors only, 2 - warning, 3 - info, 4 - debug, 5 - trace
+user default 'dvmh_%d.log' DVMH_LOGFILE Log file name for each process
+user noquote default 0 DVMH_COMPARE_DEBUG An alternative way to turn comparative debugging mode on
+soft noquote dvmsave Save convertation results
+soft noquote dvmshow Show commands executed by the DVM driver
+
+# Final hard/hidden settings
+break
+hidden dvmrun
+hidden dvmcopy
+hidden flib
+hard OPTIONCHAR
+hidden noquote dvmpar
+hidden usrpar
+hidden dvmout
+hidden noquote Pred_sys
+hidden Pred_vis
+hidden Doc_vis
+
+# Arguable options
+$CUDA_PREF break CUDA profiling options
+$CUDA_PREF user noquote default 0 CUDA_PROFILE Enable/disable CUDA profiling
+$CUDA_PREF user default 'cuda.conf' CUDA_PROFILE_CONFIG File with GPU's metrics
+$CUDA_PREF user default 'cuda_profile.%d.%p' CUDA_PROFILE_LOG Output file name for each process
+$CUDA_PREF user noquote default 1 CUDA_PROFILE_CSV Set CSV output format
+"
+
+if [ -n "$ADD_SETTINGS" ]; then
+    DVM_PARAMS="$DVM_PARAMS
+# Platform-specific options"
+    if [ $(printf '%s\n' "$ADD_SETTINGS" | grep '^soft \|^user ' | wc -l) -gt 0 ]; then
+        DVM_PARAMS="$DVM_PARAMS
+break Platform-specific options"
+    fi
+    DVM_PARAMS="$DVM_PARAMS
+$ADD_SETTINGS
+"
+fi
+
+echo_quoted() {
+    printf "'"
+    printf %s "$1" | $sed "s/'/'\\\\''/g"
+    printf "'"
+}
+
+extract_word() {
+    local val w1
+    eval val=\"\${$1}\"
+    val=$(printf '%s' "$val" | $sed 's/^ *//')
+    w1=$(printf '%s' "$val" | $sed 's/ .*//')
+    val=$(printf '%s' "$val" | $sed 's/^[^ ]* *//')
+    eval $1=$(echo_quoted "$val")
+    eval $2=$(echo_quoted "$w1")
+}
+
+create_sett_and_user() {
+    local dvmdir
+    dvmdir="$1"
+
+    # ============== dvm_settings.sh and dvm.bat files creation ===============
+    echo "#!/bin/sh" >dvm_sett
+    echo "#!/bin/sh" >dvm_bat
+
+    echo >>dvm_bat
+    if [ -n "$dvmdir" ]; then
+        echo "dvmdir=$(echo_quoted "$dvmdir")" >>dvm_bat
+    fi
+    echo "export dvmbuild=$(echo_quoted "$dvmbuild")" >>dvm_bat
+
+    echo "$DVM_PARAMS" | while read -r parm; do
+        extract_word parm kind
+        if [ -z "$kind" -o "$kind" = "#" ]; then
+            :
+        elif [ "$kind" = "break" ]; then
+            echo >>dvm_sett
+            if [ -n "$parm" ]; then
+                echo >>dvm_bat
+                echo "#--------------- $parm:" >>dvm_bat
+            fi
+        else
+            noquote=0
+            defvalue="''"
+            extract_word parm var
+            if [ "$var" = "noquote" ]; then
+                noquote=1
+                extract_word parm var
+            fi
+            if [ "$var" = "default" ]; then
+                extract_word parm defvalue
+                extract_word parm var
+            fi
+            eval varvalue=\"\${$var}\"
+            if [ $noquote -ne 0 ]; then
+                quoted="$varvalue"
+            else
+                quoted="$(echo_quoted "$varvalue")"
+            fi
+            if [ -n "$parm" ]; then
+                comment=" # $parm"
+            else
+                comment=
+            fi
+            if [ -n "$varvalue" ]; then
+                defvalue="$quoted"
+            fi
+            if [ "$kind" = "hard" ]; then
+                if [ -n "$varvalue" ]; then
+                    echo "export $var=$quoted" >>dvm_sett
+                else
+                    echo "unset $var" >>dvm_sett
+                fi
+            elif [ "$kind" = "hidden" -a -n "$varvalue" ]; then
+                echo "if [ -z \"\$$var\" ]; then export $var=$quoted; fi" >>dvm_sett
+            elif [ "$kind" = "soft" -a -n "$varvalue" ]; then
+                echo "if [ -z \"\$$var\" ]; then export $var=$quoted; fi" >>dvm_sett
+                echo "# export $var=${quoted}${comment}" >>dvm_bat
+            elif [ "$kind" = "user" ]; then
+                if [ -z "$varvalue" ]; then
+                    printf "# " >>dvm_bat
+                fi
+                echo "export $var=${defvalue}${comment}" >>dvm_bat
+            fi
+        fi
+    done
+
+    echo >>dvm_bat
+    printf "exec " >>dvm_bat
+    if [ -n "$dvmdir" ]; then
+        printf %s '"$dvmdir/bin/dvm_drv"' >>dvm_bat
+    else
+        printf dvm >>dvm_bat
+    fi
+    echo ' "$@"' >>dvm_bat
+
+    rm -f bin/dvm_settings.sh user/dvm
+    mv dvm_sett bin/dvm_settings.sh
+    mv dvm_bat user/dvm
+    chmod 0755 user/dvm
+    chmod 0755 bin/*
+    # ============== dvm.bat file is done ===============
+
+    if [ -d demo ]; then
+        cp user/* demo
+    fi
+}
+
+if [ -e tools/predictor/Presage/Src/predictor ]; then
+    cp tools/predictor/Presage/Src/predictor bin
+fi
+if [ -e tools/predictor/Trcutil/trcutil ]; then
+    cp tools/predictor/Trcutil/trcutil bin/dvmdbgerr
+fi
+
+create_sett_and_user "$BUILD_DIR"
+
+dvm_one_liner() {
+    echo "#!/bin/sh" >dvmtmp
+    echo >>dvmtmp
+    echo "$2" >>dvmtmp
+    chmod 0755 dvmtmp
+    rm -f "$1"
+    mv dvmtmp "$1"
+}
+
+do_install_bin() {
+    local dvmdir
+    if [ "$1" = "--relative" ]; then
+        IS_RELATIVE=1
+        shift
+    else
+        IS_RELATIVE=0
+    fi
+    dvmdir="$1"
+    DVM_DRV="$dvmdir/bin/dvm_drv"
+    if [ $IS_RELATIVE -ne 0 ]; then
+        DVM_DRV_Q=dvm
+    else
+        DVM_DRV_Q="$( echo_quoted "$DVM_DRV" )"
+    fi
+    rm -f dvm
+    ln -s "$DVM_DRV" dvm
+    for lang in c cxx f; do
+        dvm_one_liner dvm-$lang "exec $DVM_DRV_Q $lang \"\$@\""
+    done
+    if [ "$NODES_COUNT" != "1" ] && [ "$CPUS_PER_NODE" -gt 0 ] 2>/dev/null; then
+        MPI_PPN="DVMH_PPN=$CPUS_PER_NODE "
+    fi
+    dvm_one_liner dvm-omp "DVMH_NUM_THREADS= DVMH_NUM_CUDAS=0 exec $DVM_DRV_Q \"\$@\""
+    dvm_one_liner dvm-mpi "${MPI_PPN}DVMH_NUM_THREADS=1 DVMH_NUM_CUDAS=0 exec $DVM_DRV_Q \"\$@\""
+    dvm_one_liner dvm-cuda "DVMH_NUM_THREADS=0 DVMH_NUM_CUDAS= exec $DVM_DRV_Q \"\$@\""
+}
+
+if [ -n "$INSTALL_DIR" ]; then
+    if [ $( echo "$INSTALL_DIR" | grep -e "^/" | wc -l ) -lt 1 ]; then
+        echo "INSTALL_DIR must be an absolute path"
+        exit 1
+    fi
+
+    if [ -e "$INSTALL_DIR" ]; then
+        printf "File or directory '%s' already exists. Delete? [Y/n] " "$INSTALL_DIR"
+        read ans
+        if [ "$ans" = "Y" -o "$ans" = "y" ]; then
+            rm -rf "$INSTALL_DIR"
+        fi
+    fi
+    if [ ! -e "$INSTALL_DIR" ]; then
+        mkdir -p "$INSTALL_DIR"
+        rsync -a --exclude='.*' bin examples include lib par user "$INSTALL_DIR/"
+        ( cd "$INSTALL_DIR" && create_sett_and_user "$INSTALL_DIR" )
+    fi
+fi
+if [ -n "$INSTALL_BIN" ]; then
+    if [ ! -e "$INSTALL_BIN" ]; then
+        mkdir -p "$INSTALL_BIN"
+    fi
+    if [ -d "$INSTALL_BIN" ]; then
+        if [ -n "$INSTALL_DIR" ]; then
+            ( cd "$INSTALL_BIN" && do_install_bin "$INSTALL_DIR" )
+        else
+            ( cd "$INSTALL_BIN" && do_install_bin "$BUILD_DIR" )
+        fi
+    else
+        echo "Can not install binaries to $INSTALL_BIN"
+    fi
+fi
+if [ -n "$PREPARE_DIST" ]; then
+    INSTALL_DIR="/usr/lib/dvm-$PLATFORM"
+    INSTALL_BIN="/usr/bin"
+    BIN_TO_SYS="../lib/dvm-$PLATFORM"
+
+    rm -rf dist
+    mkdir -p "dist$INSTALL_DIR"
+    rsync -a --exclude='.*' bin examples include lib par user "dist$INSTALL_DIR/"
+    ( cd "dist$INSTALL_DIR" && create_sett_and_user "$INSTALL_DIR" )
+    mkdir -p "dist$INSTALL_BIN"
+    ( cd "dist$INSTALL_BIN" && do_install_bin --relative "$BIN_TO_SYS" )
+fi
+
+echo "DVM-system is successfully installed on $PLATFORM platform"

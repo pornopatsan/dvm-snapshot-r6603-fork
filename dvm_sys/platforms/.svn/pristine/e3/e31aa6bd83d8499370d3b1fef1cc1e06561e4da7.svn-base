@@ -1,0 +1,24 @@
+#For mvs10p.jscc.ru PLATFORM (with OpenMP)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="/gpfs/NETHOME/DVM/CLANG/bin/llvm-config"
+# for parallel programs
+ PCC="/opt/software/intel/impi/latest/intel64/bin/mpiicc -g -O2 -no-scalar-rep -openmp"
+ PCXX="/opt/software/intel/impi/latest/intel64/bin/mpiicpc -g -O2 -no-scalar-rep -openmp"
+ PFORT="/opt/software/intel/impi/latest/intel64/bin/mpiifort -g -O2 -no-scalar-rep -openmp"
+ PLINKER="/opt/software/intel/impi/latest/intel64/bin/mpiicpc -g -openmp"
+ PFLINKER="/opt/software/intel/impi/latest/intel64/bin/mpiifort -g -openmp"
+# launch settings
+ dvmcopy=1
+ dvmrun="mvs10p.run"
+ maxtime=10
+ restart=0
+# DVMH options for default preset
+ DVMH_PPN="2,1,1"
+ DVMH_NUM_THREADS="8,8,240,240"
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=16
+ CUDAS_PER_NODE=0

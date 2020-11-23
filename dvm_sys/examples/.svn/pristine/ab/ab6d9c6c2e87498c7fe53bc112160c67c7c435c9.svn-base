@@ -1,0 +1,130 @@
+        PROGRAM    TASK2J
+        PARAMETER    (L=8,  ITMAX=20)
+        REAL     A(L,L), EPS,EPS1, MAXEPS, B(L,L),A1(L,L),B1(L,L)
+        INTEGER LP(2),HP(2)
+CDVM$   PROCESSORS    P(NUMBER_OF_PROCESSORS())
+CDVM$	TASK  MB( 2 )
+CDVM$	ALIGN   B1( I, J ) WITH  A1( I, J ) 
+CDVM$	ALIGN   B ( I, J ) WITH  A ( I, J ) 
+CDVM$	DISTRIBUTE  ::  A, A1
+        PRINT *,  '**********  TEST_TASK2J   ***********'
+        CALL DPT(LP,HP,2)
+CDVM$	MAP  MB( 1 )  ONTO  P( LP( 1) : HP(1))
+CDVM$	REDISTRIBUTE  A ( *, BLOCK )  ONTO  MB( 1 )
+CDVM$	MAP  MB( 2 )   ONTO  P( LP(2) : HP(2) )
+CDVM$	REDISTRIBUTE  A1( *, BLOCK )  ONTO  MB( 2 )
+        MAXEPS  =  0.5E - 7
+CDVM$	TASK_REGION MB
+CDVM$	ON   MB( 1 )
+CDVM$   PARALLEL    (J,I)   ON   A(I, J)
+C		nest of two parallel loops, iteration (i,j) will be executed on 
+C		processor, which is owner of element A(i,j) 
+            DO  1   J  =  1, L
+            DO  1   I  =  1, L
+                A(I,  J)  =  0.
+                IF(I.EQ.1 .OR. J.EQ.1 .OR. I.EQ.L .OR. J.EQ.L) THEN
+                      B(I,  J) = 0.
+                ELSE
+                      B(I,  J)  = ( 1. + I + J )
+                ENDIF
+    1       CONTINUE
+        DO  2   IT  =  1,  ITMAX
+                  EPS  =  0.
+CDVM$   PARALLEL  (J,  I)   ON  A(I,  J),  REDUCTION ( MAX( EPS ))
+C		variable EPS is used for calculation of maximum value
+                  DO  21  J  =  2, L-1
+                  DO  21  I  =  2, L-1
+                         EPS = MAX ( EPS,  ABS( B( I, J)  -  A( I, J)))
+                         A(I, J)  =  B(I, J)
+  21              CONTINUE
+CDVM$   PARALLEL  (J,  I)   ON  B(I,  J),   SHADOW_RENEW   (A)
+C		Copying shadow elements of array A from 
+C		neighbouring processors before loop execution
+                  DO  22  J = 2,  L-1
+                  DO  22  I = 2,  L-1
+        B(I, J) =  (A( I-1, J ) + A( I, J-1 ) + A( I+1, J)+
+     *                        A( I, J+1 )) / 4
+   22             CONTINUE
+                  IF ( EPS . LT . MAXEPS )    GO TO   3
+    2   CONTINUE
+    3   OPEN  (1, FILE='JACOBI1.DAT',FORM='FORMATTED',STATUS='UNKNOWN')
+        WRITE (1,200) IT, EPS  
+200     FORMAT(' IT = ',I4, '   EPS = ', E14.7)
+        CLOSE (1)
+CDVM$ END ON
+CDVM$	ON   MB( 2 )
+CDVM$   PARALLEL    (J,I)   ON   A1(I, J)
+C		nest of two parallel loops, iteration (i,j) will be executed on 
+C		processor, which is owner of element A1(i,j) 
+            DO  19   J  =  1, L
+            DO  19   I  =  1, L
+                A1(I,  J)  =  0.
+                IF(I.EQ.1 .OR. J.EQ.1 .OR. I.EQ.L .OR. J.EQ.L) THEN
+                      B1(I,  J) = 0.
+                ELSE
+                      B1(I,  J)  = ( 1. + I + J )
+                ENDIF
+   19       CONTINUE
+        DO  29   IT  =  1,  ITMAX
+                  EPS1  =  0.
+CDVM$   PARALLEL  (J,  I)   ON  A1(I,  J),  REDUCTION ( MAX( EPS1 ))
+C		variable EPS1 is used for calculation of maximum value
+                  DO  219  J  =  2, L-1
+                  DO  219  I  =  2, L-1
+                   EPS1 = MAX ( EPS1,  ABS( B1( I, J)  -  A1( I, J)))
+                   A1(I, J)  =  B1(I, J)
+  219             CONTINUE
+CDVM$   PARALLEL  (J,  I)   ON  B1(I,  J),   SHADOW_RENEW   (A1)
+C		Copying shadow elements of array A1 from 
+C		neighbouring processors before loop execution
+                  DO  229  J = 2,  L-1
+                  DO  229  I = 2,  L-1
+        B1(I, J) =  (A1( I-1, J ) + A1( I, J-1 ) + A1(I+1, J)+
+     *                        A1( I, J+1 )) / 4
+  229            CONTINUE
+                 IF ( EPS1 . LT . MAXEPS )    GO TO   39
+   29   CONTINUE 
+   39   OPEN  (2, FILE='JACOBI2.DAT',FORM='FORMATTED',STATUS='UNKNOWN')
+        WRITE (2,200) IT,  EPS1  
+        CLOSE (2)
+CDVM$	END ON
+CDVM$	END  TASK_REGION
+        PRINT *, ' B'
+        PRINT *,   B
+        PRINT *,  ' '
+        PRINT *, ' B1'
+        PRINT *,   B1
+        END
+
+       SUBROUTINE DPT(LP,HP,NT)
+C     distributing processors for NT tasks (NT = 2)      
+      INTEGER LP(2), HP(2)
+      NUMBER_OF_PROCESSORS() = 1
+CDVM$ DEBUG 1 (D = 0)
+      NP = NUMBER_OF_PROCESSORS()
+      NTP = NP/NT
+      IF(NP.EQ.1) THEN
+         LP(1) = 1
+         HP(1) = 1
+         LP(2) = 1
+         HP(2) = 1
+      ELSE
+         LP(1) = 1
+         HP(1) = NTP
+         LP(2) = NTP+1
+         HP(2) = NP
+      END IF
+CDVM$ ENDDEBUG 1
+      END
+
+
+
+
+
+
+
+
+
+
+
+

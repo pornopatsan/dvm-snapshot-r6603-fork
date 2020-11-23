@@ -1,0 +1,525 @@
+#ifndef _COMPILE_DEF_
+#define _COMPILE_DEF_
+/*******************/    /*E0000*/
+
+/**********************************\
+*                                  *
+* External compilatinon variables: *
+*                                  *
+* _INIT_INFO_                      *
+* _i860_                           *
+* _i860_GNS_                       *
+* _i860_ROU_                       *
+* _DATA_ALIGN_ACCESS_              *
+* _WIN_MPI_                        *
+* _DVM_MSC_                        *
+* _MS_F_                           *
+* _DVM_STDCALL_                    *
+* _DVM_GNS_                        *
+* _DVM_ROU_                        *
+* _DVM_MPI_                        *
+* _DVM_MPI2_                       *
+* _DVM_PVM_                        *
+* _UNIX_                           *
+* _F_TIME_                         *
+* _DVM_LLIO_                       *
+* _STRUCT_STAT_                    *
+* _ACCESS_FUN_                     *
+* _DEACT_CURRENT_PAR_              *
+* _DVM_STAT_                       *
+* _MVS_1000_16_                    *
+* _DVM_Msk3_                       *
+* _DVM_Minus_                      *
+* _RTS_ZLIB_                       *
+* _DVM_ZLIB_                       *
+* _DVM_PARIO_                      *
+* _DVM_IOPROC_                     *
+* _DVM_VSCANF_                     *
+* _NT_MPI_                         *
+* _DVM_MPI_PROF_                   *
+* _MPI_PROF_EXT_                   *
+*                                  *
+\**********************************/    /*e0001*/
+
+/*******************************************************************\
+*
+* External variables of dynamic debugger compilation:               *
+*                                                                   *
+* _DYNDEBUG_NOMEMCHECK_  - block memory volume restrictions of      *
+*                          dynamic debugger                         *
+* _DYNDEBUG_NOTIMECHECK_ - block execution time restrictions of     *
+*                          dynamic debugger                         *
+\********************************************************************/    /*E0002*/
+
+/* #define _DVM_Minus_ '^' */    /*E0003*/
+
+
+/* */    /*E0004*/
+
+#ifdef __cplusplus
+   #define DVMUSERVAR
+#endif
+
+#ifdef DVMUSERVAR
+   /* */    /*E0005*/
+
+   #undef DVMUSERVAR
+   #define DVMUSERVAR "C"
+   #define DVMUSERFUN extern "C"
+#else
+   /* */    /*E0006*/
+
+   #define DVMUSERVAR
+   #define DVMUSERFUN
+#endif
+
+#ifdef DVMSYSVAR
+   /* */    /*E0007*/
+
+   #undef DVMSYSVAR
+   #define DVMSYSVAR "C"
+   #define DVMSYSFUN extern "C"
+#else
+   /* */    /*E0008*/
+
+   #define DVMSYSVAR
+   #define DVMSYSFUN
+#endif
+
+/* ----------------------------------------- */    /*E0009*/
+
+
+#ifndef _RTS_ZLIB_
+   #define _RTS_ZLIB_  /* */    /*E0010*/
+#endif
+
+
+/*#define _DVM_IOPROC_*/    /*E0011*/
+
+
+#ifdef _RTS_ZLIB_
+   #ifndef _DVM_ZLIB_
+      #define _DVM_ZLIB_
+   #endif
+#endif
+
+/*
+#ifndef _DVM_ZLIB_
+   #define _DVM_ZLIB_
+#endif
+*/    /*E0012*/
+
+#ifdef _UNIX_
+   #ifndef _DVM_MPI2_
+//      #define _DVM_MPI2_
+   #endif
+#endif
+
+#ifdef _NT_MPI_
+   #ifndef _WIN_MPI_
+      #define _WIN_MPI_
+   #endif
+
+   #ifndef _DVM_MPI2_
+      #define _DVM_MPI2_
+   #endif
+#endif
+
+#ifdef _DVM_MPI2_
+   #ifndef _DVM_MPI_
+      #define _DVM_MPI_
+   #endif
+#endif
+
+#ifdef _WIN_MPI_
+   #ifndef _DVM_MPI_
+      #define _DVM_MPI_
+   #endif
+
+   #ifndef _DVM_MSC_
+      #define _DVM_MSC_
+   #endif
+#endif
+
+/* */    /*E0013*/
+
+#if defined(_MPI_PROF_TRAN_) && !defined(_MPI_PROF_EXT_)
+    #define _MPI_PROF_EXT_
+#endif
+
+#if !defined(_MPI_PROF_EXT_) && (defined(_DVM_MPI2_) || defined(_UNIX_))
+   #ifndef _DVM_MPI_PROF_
+      #define _DVM_MPI_PROF_
+   #endif
+#endif
+
+/* -------------------------- */    /*E0014*/
+
+#ifdef _DVM_MPI_
+   #ifndef _WIN_MPI_
+/*      #define _DVM_PARIO_*/    /*E0015*/   /* */    /*E0016*/
+   #endif
+#endif
+
+#ifdef _DVM_IOPROC_
+   #ifndef _DVM_PARIO_
+      #define _DVM_PARIO_
+   #endif
+#endif
+
+#ifndef _DVM_MPI_
+  #ifdef _DVM_PARIO_
+    #undef _DVM_PARIO_
+  #endif
+
+  #ifdef _DVM_IOPROC_
+    #undef _DVM_IOPROC_
+  #endif
+#endif
+
+#ifdef _DVM_MSC_
+   #ifndef _DVM_LLIO_
+      #define _DVM_LLIO_
+   #endif
+
+   #ifndef _STRUCT_STAT_
+      #define _STRUCT_STAT_
+   #endif
+
+   #ifndef _ACCESS_FUN_
+      #define _ACCESS_FUN_
+   #endif
+#endif
+
+// no stdcall at all
+//#ifdef _MS_F_
+//   #define _DVM_STDCALL_
+//#endif
+
+#ifdef _i860_GNS_
+   #define _i860_
+   #define _DVM_GNS_
+   #define _DVM_LLIO_
+   #define _STRUCT_STAT_
+   #define _ACCESS_FUN_
+   #define _DATA_ALIGN_ACCESS_
+#endif
+
+#ifdef _i860_ROU_
+   #define _i860_
+   #define _DVM_ROU_
+   #define _DVM_LLIO_
+   #define _STRUCT_STAT_
+   #define _ACCESS_FUN_
+   #define _DATA_ALIGN_ACCESS_
+#endif
+
+
+#define __callstd
+
+#ifdef _MS_F_
+
+   /* */    /*E0017*/
+
+   #define dvmifpc_                dvmifpc
+   #define dvmifstoreexist_        dvmifstoreexist
+   #define dvmremove_              dvmremove
+   #define dvmgetprocessorname_    dvmgetprocessorname
+   #define dvmcommsize_            dvmcommsize
+   #define dvmcommrank_            dvmcommrank
+   #define dvmgetach_              dvmgetach
+   #define dvmgetaf_               dvmgetaf
+   #define dvmsend_                dvmsend
+   #define dvmrecv_                dvmrecv
+   #define dvmsendrecv_            dvmsendrecv
+   #define dvmiprobe_              dvmiprobe
+   #define dvmreduce_              dvmreduce
+   #define dvmbarrier_             dvmbarrier
+   #define dvminit_                dvminit
+   #define dvmexit_                dvmexit
+
+   /* ------------------------------ */    /*E0018*/
+
+   #define getwrpar_               getwrpar
+   #define filldisk_               filldisk
+   #define wrline_                 wrline
+   #define tsttst_                 tsttst
+   #define initwaitdisk_           initwaitdisk
+   #define waitdisk_               waitdisk
+   #define freedisk_               freedisk
+   #define finaldisk_              finaldisk
+   #define skipopenclosedisk_      skipopenclosedisk
+   #define outoutinfotime_         outoutinfotime
+   #define rdline_                 rdline
+   #define waitline_               waitline
+   #define calccalc_               calccalc
+
+   #define dvmprinttime_           dvmprinttime
+
+   /* ------------------------------ */    /*E0019*/
+
+
+   #define tracer_dvm_exit_     tracer_dvm_exit
+   #define tracer_clock_res_    tracer_clock_res
+   #define tracer_send_         tracer_send
+   #define tracer_recv_         tracer_recv
+   #define tracer_proc_term_    tracer_proc_term
+   #define tracer_task_term_    tracer_task_term
+   #define tracer_get_time_     tracer_get_time
+
+
+   #define linit_     linit
+   #define tpcntr_    tpcntr
+   #define ftcntr_    ftcntr
+   #define lexit_     lexit
+
+   #define getam_     getam
+   #define crtamv_    crtamv
+   #define getamr_    getamr
+   #define delamv_    delamv
+
+   #define getps_     getps
+   #define crtps_     crtps
+   #define psview_    psview
+   #define delps_     delps
+   #define setpsw_    setpsw
+   #define genblk_    genblk
+   #define genbli_    genbli
+   #define genbld_    genbld
+   #define blkdiv_    blkdiv
+   #define setelw_    setelw
+
+   #define setgrn_    setgrn
+   #define getwar_    getwar
+   #define gettar_    gettar
+   #define rsttar_    rsttar
+
+   #define distr_     distr
+   #define redis_     redis
+
+   #define amvmap_    amvmap
+   #define mdistr_    mdistr
+   #define mredis_    mredis
+   #define delmvm_    delmvm
+
+   #define crtda_     crtda
+   #define crtda9_    crtda9
+   #define crtrda_    crtrda
+   #define crtraf_    crtraf
+   #define crtra9_    crtra9
+   #define delda_     delda
+   #define dacsum_    dacsum
+   #define getdas_    getdas
+   #define arcsum_    arcsum
+   #define arcsf_     arcsf
+   #define addhdr_    addhdr
+   #define delhdr_    delhdr
+
+   #define align_     align
+   #define realn_     realn
+   #define getamv_    getamv
+
+   #define arrmap_    arrmap
+   #define malign_    malign
+   #define mrealn_    mrealn
+   #define delarm_    delarm
+
+   #define begbl_     begbl
+   #define endbl_     endbl
+
+   #define crtpl_     crtpl
+   #define mappl_     mappl
+   #define plmap_     plmap
+   #define exfrst_    exfrst
+   #define imlast_    imlast
+   #define addbnd_    addbnd
+   #define addshd_    addshd
+   #define setba_     setba
+   #define rstba_     rstba
+   #define across_    across
+   #define doacr_     doacr
+   #define dopl_      dopl
+   #define endpl_     endpl
+
+   #define mapam_     mapam
+   #define runam_     runam
+   #define stopam_    stopam
+
+   #define crtred_    crtred
+   #define lindtp_    lindtp
+   #define crtrdf_    crtrdf
+   #define crtrg_     crtrg
+   #define insred_    insred
+   #define saverg_    saverg
+   #define saverv_    saverv
+   #define strtrd_    strtrd
+   #define waitrd_    waitrd
+   #define delrg_     delrg
+   #define rstrg_     rstrg
+   #define delred_    delred
+
+   #define crtshg_    crtshg
+   #define inssh_     inssh
+   #define insshd_    insshd
+   #define incsh_     incsh
+   #define incshd_    incshd
+   #define strtsh_    strtsh
+   #define recvsh_    recvsh
+   #define sendsh_    sendsh
+   #define recvla_    recvla
+   #define sendsa_    sendsa
+   #define waitsh_    waitsh
+   #define delshg_    delshg
+   #define rstshg_    rstshg
+
+   #define rwelm_     rwelm
+   #define rwelmf_    rwelmf
+   #define copelm_    copelm
+   #define elmcpy_    elmcpy
+   #define arrcpy_    arrcpy
+
+   #define arwelm_    arwelm
+   #define arwelf_    arwelf
+   #define acopel_    acopel
+   #define aelmcp_    aelmcp
+   #define aarrcp_    aarrcp
+   #define waitcp_    waitcp
+
+   #define tstelm_    tstelm
+   #define locind_    locind
+   #define pllind_    pllind
+   #define exlind_    exlind
+   #define rlocel_    rlocel
+   #define wlocel_    wlocel
+   #define clocel_    clocel
+   #define setind_    setind
+   #define getind_    getind
+
+   #define crtrbl_    crtrbl
+   #define crtrba_    crtrba
+   #define crtrbp_    crtrbp
+   #define loadrb_    loadrb
+   #define waitrb_    waitrb
+   #define delrb_     delrb
+   #define crtbg_     crtbg
+   #define insrb_     insrb
+   #define loadbg_    loadbg
+   #define waitbg_    waitbg
+   #define delbg_     delbg
+   #define rstbg_     rstbg
+
+   #define strtac_    strtac
+   #define waitac_    waitac
+   #define rstrda_    rstrda
+   #define crtcg_     crtcg
+   #define inscg_     inscg
+   #define strtcg_    strtcg
+   #define waitcg_    waitcg
+   #define delcg_     delcg
+   #define rstcg_     rstcg
+   #define consda_    consda
+   #define inclcg_    inclcg
+
+   #define crtibl_    crtibl
+   #define crtib_     crtib
+   #define loadib_    loadib
+   #define waitib_    waitib
+   #define delib_     delib
+   #define crtig_     crtig
+   #define insib_     insib
+   #define loadig_    loadig
+   #define waitig_    waitig
+   #define delig_     delig
+
+   #define rmkind_    rmkind
+
+   #define tstda_     tstda
+   #define getrnk_    getrnk
+   #define getsiz_    getsiz
+   #define locsiz_    locsiz
+   #define exlsiz_    exlsiz
+   #define getlen_    getlen
+   #define delobj_    delobj
+   #define tstio_     tstio
+   #define srmem_     srmem
+   #define dvmadr_    dvmadr
+   #define getash_    getash
+   #define getai_     getai
+   #define getal_     getal
+   #define getaf_     getaf
+   #define getad_     getad
+   #define getac_     getac
+   #define getach_    getach
+
+   #define fname_     fname
+   #define lnumb_     lnumb
+   #define dvmlf_     dvmlf
+   #define tron_      tron
+   #define troff_     troff
+   #define biof_      biof
+   #define eiof_      eiof
+   #define bsynch_    bsynch
+   #define tsynch_    tsynch
+
+   #define acsend_    acsend
+   #define acrecv_    acrecv
+   #define bcast_     bcast
+   #define dvtime_    dvtime
+   #define dmtime_    dmtime
+
+   #define dvmcom_    dvmcom
+
+   /* */    /*E0020*/
+
+   #define dvmfopen_       dvmfopen
+   #define dvmfclose_      dvmfclose
+   #define dvmsecread_     dvmsecread
+   #define dvmsecwrite_    dvmsecwrite
+   #define dvmsecwait_     dvmsecwait
+   #define dvmsync_        dvmsync
+
+   /* Dynamic control functions */    /*E0021*/
+
+   #define dbegsl_    dbegsl
+   #define dendl_     dendl
+   #define diter_     diter
+   #define dbegpl_    dbegpl
+   #define dldv_      dldv
+   #define dldv2_     dldv2
+   #define dstv_      dstv
+   #define drmbuf_    drmbuf
+   #define dprstv_    dprstv
+   #define dskpbl_    dskpbl
+   #define dbegtr_    dbegtr
+   #define dread_     dread
+   #define dreada_    dreada
+   #define drarr_     drarr
+   #define dcrtrg_    dcrtrg
+   #define dinsrd_    dinsrd
+   #define dinsrf_    dinsrf
+   #define dsavrg_    dsavrg
+   #define dclcrg_    dclcrg
+   #define ddelrg_    ddelrg
+   #define dvtr_      dvtr
+   #define dosl_      dosl
+   #define doplmb_    doplmb
+   #define doplmbseq_ doplmbseq
+   #define dbgtron_   dbgtron
+   #define dbgtroff_  dbgtroff
+   #define dbgtron_   dbgtron
+   #define dbgtroff_  dbgtroff
+   #define dbglparton_  dbglparton
+   #define dbglpartoff_ dbglpartoff
+
+   /* Performance analysis functions */    /*E0022*/
+
+   #define binter_    binter
+   #define einter_    einter
+   #define bsloop_    bsloop
+   #define bploop_    bploop
+   #define enloop_    enloop
+
+#endif
+
+
+#endif  /* _COMPILE_DEF_ */    /*E0023*/

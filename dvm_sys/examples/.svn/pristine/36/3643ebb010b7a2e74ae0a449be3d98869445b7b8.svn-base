@@ -1,0 +1,144 @@
+#define PRINTF printf
+
+/*  PROGRAM TASKS                                 */
+/* rectangular grid is distributed on two blocks  */
+/*                                                */
+/*                     <------- A2,B2 ----->      */
+/*                     0    1   2    ... N2       */
+/*       <--- A1,B1 -------->                     */
+/*       0   1   ...  N1-1  N1  N1+1 ... N1+N2-1  */
+/*------------------------------------------------*/
+/* 0   | .   .         .    .   .    ...  .       */
+/* ... |                                          */
+/* K-1 | .   .         .    .   .    ...  .       */
+/**************************************************/
+#define DVM(dvmdir)
+#define DO(v,l,h,s)   for(v=l; v<=h; v+=s)
+#define FOR(v,n)  for(v=0; v<n; v++)
+#define Max(a,b) ((a)>(b)?(a):(b))
+
+#define NUMBER_OF_PROCESSORS() 1
+
+#include <stdlib.h>
+#include <math.h>
+
+#define K   8 /*0*/
+#define N1  4 /*0*/
+#define N2  K-N1
+#define ITMAX 10
+
+DVM(PROCESSORS)  void * P[NUMBER_OF_PROCESSORS()];
+DVM(TASK) void * MB[2];
+double eps0;
+DVM(REDUCTION_GROUP) void * epsrg;
+DVM(DISTRIBUTE)  float (*A1)[K], (*A2)[K];
+DVM(ALIGN [i][j] WITH A1[i][j]) float (*B1)[K];
+DVM(ALIGN [i][j] WITH A2[i][j]) float (*B2)[K];
+DVM(REMOTE_GROUP) void * BOUND;
+
+int main(int argn, char** args)
+{
+int i,j, it;
+int NP;
+
+printf("---------- starting --------------\n");
+
+DVM(DEBUG 1 -d0)
+{
+NP = NUMBER_OF_PROCESSORS() / 2;
+}
+
+DVM(MAP MB[0] ONTO P[0:(NP?NP-1:0)]);
+DVM(MAP MB[1] ONTO P[NP:(NP?2*NP-1:NP)]);
+
+A1=malloc((N1+1)*K*sizeof(float));
+DVM(REDISTRIBUTE A1[][BLOCK] ONTO MB[0]);
+B1=malloc((N1+1)*K*sizeof(float));
+
+A2=malloc((N2+1)*K*sizeof(float));
+DVM(REDISTRIBUTE A2[][BLOCK] ONTO MB[1]);
+B2=malloc((N2+1)*K*sizeof(float));
+
+    /* Initialization */
+DVM(PARALLEL [i][j] ON A1[i][j])
+FOR(i,N1+1)
+FOR(j,K)
+{if (i==0 || j==0 || j==K-1) {
+    A1[i][j] = 0.f;
+    B1[i][j] = 0.f;
+} else  {
+    B1[i][j] = 1.f + i + j ;
+    A1[i][j] = B1[i][j];
+}}
+DVM(PARALLEL [i][j] ON A2[i][j])
+FOR(i,N2+1)
+FOR(j,K)
+{if(i == N2  || j==0 || j==K-1) {
+    A2[i][j] = 0.f;
+    B2[i][j] = 0.f;
+} else {
+    B2[i][j] = 1.f + ( i + N1 - 1 ) + j ;
+    A2[i][j] = B2[i][j];
+}}
+
+DO(it,1,ITMAX,1)
+{
+    eps0= 0.;
+
+    DVM(PREFETCH   BOUND);
+/*     exchange bounds */
+
+DVM(PARALLEL [j] ON A1[(N1)][j] ;
+            REMOTE_ACCESS BOUND : B2[1][ j ])
+    FOR(j,K)
+{
+A1[N1][j] = B2[1][j];
+}
+
+DVM(PARALLEL [j] ON A2[0][j] ;
+            REMOTE_ACCESS BOUND : B1[N1-1][  j  ])
+    FOR(j,K) A2[0][j] = B1[N1-1][j];
+
+DVM(TASK_REGION MB; REDUCTION MAX(eps0))
+{
+DVM(ON MB[0])
+{
+double eps=0.;
+DVM(PARALLEL [i][j] ON B1[i][j]; SHADOW_RENEW A1[][])
+DO(i,1, N1-1, 1)
+DO(j,1, K-2, 1)
+   B1[i][j]=(A1[i-1][j]+A1[i][j-1]+A1[i+1][j]+A1[i][j+1])/4.f;
+
+DVM(PARALLEL [i][j] ON A1[i][j]; REDUCTION MAX(eps))
+DO(i,1,N1-1,1)
+DO(j,1,K-2,1)
+        {eps =  Max(fabs(B1[i][j]-A1[i][j]),eps);
+        A1[i][j] = B1[i][j];
+        }
+eps0=Max(eps0,eps);
+}
+
+DVM(ON MB[1])
+{
+double eps=0.;
+DVM(PARALLEL [i][j] ON B2[i][j]; SHADOW_RENEW A2[][])
+DO(i,1,N2-1,1)
+DO(j,1,K-2,1)
+  B2[i][j]=(A2[i-1][j]+A2[i][j-1]+A2[i+1][j]+A2[i][j+1])/4.f;
+
+DVM(PARALLEL [i][j] ON A2[i][j]; REDUCTION MAX(eps))
+DO(i,1,N2-1,1)
+DO(j,1,K-2,1)
+        {eps =  Max(fabs(B2[i][j]-A2[i][j]),eps);
+        A2[i][j] = B2[i][j];
+        }
+eps0=Max(eps0,eps);
+}
+} /* TASK_REGION */
+
+printf("it=%d eps=%f\n",it,eps0);
+}/* FOR IT */
+return 0;
+}
+
+

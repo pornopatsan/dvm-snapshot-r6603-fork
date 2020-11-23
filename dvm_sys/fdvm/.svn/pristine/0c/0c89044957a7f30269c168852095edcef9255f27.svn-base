@@ -1,0 +1,40 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/Sage++/makefile.win
+
+LIBDIR = ../../lib
+
+HDRS        = ../h
+LIBINCLUDE  = ../lib/include
+SAGEINCLUDE = -I$(HDRS) -I$(LIBINCLUDE)
+
+# Directory in which include files can be found
+INCLUDEDIR = ./h
+INCL = -I$(INCLUDEDIR) $(SAGEINCLUDE)
+
+CFLAGS = $(INCL) -c -Wall
+TOOLSage_SRC = libSage++.cpp
+
+TOOLSage_HDR = $(LIBINCLUDE)/macro.h $(LIBINCLUDE)/bif_node.def \
+	$(LIBINCLUDE)/type.def $(LIBINCLUDE)/symb.def $(LIBINCLUDE)/libSage++.h
+
+TOOLSage_OBJ = libSage++.o
+
+libSage++.o: libSage++.cpp $(TOOLSage_HDR)
+	$(CXX) $(CFLAGS) libSage++.cpp
+
+$(LIBDIR)/libSage++.a: $(TOOLSage_OBJ)
+	ar qc $(LIBDIR)/libSage++.a $(TOOLSage_OBJ)
+
+all : $(LIBDIR)/libSage++.a
+	@echo "*** COMPILING LIBRARY Sage++ DONE"
+
+
+clean:
+	rm -f libSage++.o
+
+cleanall:
+	rm -f libSage++.o

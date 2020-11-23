@@ -1,0 +1,47 @@
+######################################
+###             makefile.uni       ###
+######################################
+
+BINDIR=../../bin
+LIBDIR=../../lib
+
+CFLAGS=
+
+$(BINDIR)/dvmdiff: dvmdiff.c
+	$(CC) $(CFLAGS) -D_UNIX_ -c dvmdiff.c
+	$(LINKER) -o $(BINDIR)/dvmdiff dvmdiff.o
+
+$(BINDIR)/analyzePtxasCuda: analyzePtxasCuda.cpp
+	$(CXX) $(CFLAGS) -D_UNIX_ -c analyzePtxasCuda.cpp
+	$(LINKER) -o $(BINDIR)/analyzePtxasCuda analyzePtxasCuda.o
+
+$(BINDIR)/dvmh_conv_include: dvmh_conv_include.cpp
+	$(CXX) $(CFLAGS) -D_UNIX_ -c $^
+	$(LINKER) -o $@ dvmh_conv_include.o
+
+$(LIBDIR)/mmm_prof.o: mmm_prof.c
+	$(PCC) $(CFLAGS) -D_UNIX_ $(MPSOPT) -c -o $(LIBDIR)/mmm_prof.o mmm_prof.c
+
+SCRIPTS:
+	@cp dvm_drv $(BINDIR)
+	@cp dvm_utils.sh $(BINDIR)
+	@cp dvm_help $(BINDIR)
+	@cp dvm_comp $(BINDIR)
+	@cp dvm_link $(BINDIR)
+	@cp $(dvm_run) $(BINDIR)/dvm_run
+	@cp $(dvmrun) $(BINDIR)
+	@cp dvm_ver $(BINDIR)
+	@cp dvm_help.txt $(BINDIR)
+# Revision needed:
+	@cp dvm_test $(BINDIR)
+	@cp dvm_pred $(BINDIR)
+	@cp dvm_doc $(BINDIR)
+
+all: $(BINDIR)/dvmdiff $(BINDIR)/analyzePtxasCuda $(BINDIR)/dvmh_conv_include SCRIPTS
+
+clean:
+	rm -f *.o
+
+cleanall: clean
+
+.PHONY: all clean cleanall SCRIPTS

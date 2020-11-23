@@ -1,0 +1,70 @@
+#ifndef _STATIST_VAR_
+#define _STATIST_VAR_
+/*******************/    /*E0000*/
+
+/****************************************\
+* Parameters specifying statistics modes *
+\****************************************/    /*E0001*/
+
+#ifdef _DVM_STAT_
+   byte Is_DVM_STAT=1;     /* general flag of statistics gathering on */    /*E0002*/
+#else
+   byte Is_DVM_STAT=0;
+#endif
+
+byte Is_IO_STAT=1;         /* */    /*E0003*/
+
+uLLng StatBufLength=200000; /* size of statistics buffer for one processor */    /*E0004*/
+char StatFileName[128]="sts"; /* name of statistics file */    /*E0005*/
+byte DelStatist=1;         /* flag on deleting old files with statistics */    /*E0006*/
+
+int  TimeExpendPrint=0;    /* flag on print task execution time 
+                               0   - not print ;
+                               1   - short print;
+                               > 1 - detail print*/    /*E0007*/
+
+char StatGrpName[33]="UserGrp"; /* group name for printing time*/    /*E0008*/
+byte CallCountPrint=0;     /* function call statistics output */    /*E0009*/
+
+byte IsSynchrTime=0;       /* calculate time of real 
+                              dissynchronization */    /*E0010*/
+   
+#ifdef _DVM_STAT_
+   byte IsTimeVariation=1; /* calculate time of potential 
+                              dissynchronization  and time variations */    /*E0011*/
+#else
+   byte IsTimeVariation=0;
+#endif
+
+int  MaxIntervalLevel=20;  /* max level of nested intervals */    /*E0012*/
+byte IntervalBarrier=0;    /* */    /*E0013*/
+int  IntermediateIntervalsLevel=0; /* */    /*E0014*/
+byte DVMExitSynchr=0;      /* */    /*E0015*/
+
+/* Parameters for calculation of the execution time of
+             parallel loop iteration group             */    /*E0016*/
+
+int PLGroupNumber[MaxVMRank]={10,10,10,10}; /* the number of iteration coordinate group
+                                               for each dimension of processor system */    /*E0017*/
+int PLTimeTrace = 0;   /* flag on output in trace information of
+                          execution time of parallel loop 
+                          iteration group */    /*E0018*/
+
+/* */    /*E0019*/
+
+byte WriteStat=1;         /* */    /*E0020*/
+byte WriteStatByParts=1;  /* */    /*E0021*/
+byte WriteStatByFwrite=0; /* */    /*E0022*/
+
+/* ------------------------------------------------- */    /*E0023*/
+
+byte SendRecvTime = 0;    /* */    /*E0024*/
+byte SendRecvTimePrint = 1; /* */    /*E0025*/
+
+/* */    /*E0026*/
+
+int  StatCompressLevel  = 0; /* */    /*E0027*/
+int  StatCompressScheme = 1; /* */    /*E0028*/
+
+
+#endif  /* _STATIST_VAR_ */    /*E0029*/

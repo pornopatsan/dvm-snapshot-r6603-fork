@@ -1,0 +1,40 @@
+#For K100 (k100.kiam.ru) PLATFORM (Intel compilers with OpenMP)
+# for DVM tools
+ CC="icc -g -O2 -no-scalar-rep"
+ CXX="icpc -g -O2 -no-scalar-rep"
+ LINKER="icpc -g"
+ LLVMCONFIG="/nethome/dvmuser1/LLVM-3.4/bin/llvm-config"
+# for parallel programs
+# PCC="/usr/mpi/intel/openmpi-1.4.2-qlc/bin/mpicc -O3 -no-scalar-rep -openmp"
+# PCXX="/usr/mpi/intel/openmpi-1.4.2-qlc/bin/mpiCC -O3 -no-scalar-rep -openmp"
+# PFORT="/usr/mpi/intel/openmpi-1.4.2-qlc/bin/mpif77 -O3 -no-scalar-rep -openmp"
+# PLINKER="/usr/mpi/intel/openmpi-1.4.2-qlc/bin/mpiCC -openmp"
+# PFLINKER="/usr/mpi/intel/openmpi-1.4.2-qlc/bin/mpif77 -openmp"
+# OMPI_CC="icc"
+# OMPI_CXX="icpc"
+# OMPI_F77="ifort"
+# OMPI_FC="ifort"
+ MPIR_HOME="/common/intel/compilers_and_libraries_2016/linux/mpi/intel64"
+ MPIRUN_CMD="/common/runmvs/bin/run-impi-tmi"
+ PCC="$MPIR_HOME/bin/mpiicc -cc=/common/intel/compilers_and_libraries_2016/linux/bin/intel64/icc -g -O2 -no-scalar-rep -qopenmp"
+ PCXX="$MPIR_HOME/bin/mpiicpc -cxx=/common/intel/compilers_and_libraries_2016/linux/bin/intel64/icpc -g -O2 -no-scalar-rep -qopenmp"
+ PFORT="$MPIR_HOME/bin/mpiifort -fc=/common/intel/compilers_and_libraries_2016/linux/bin/intel64/ifort -g -O2 -no-scalar-rep -qopenmp"
+ PLINKER="$MPIR_HOME/bin/mpiicpc -cxx=/common/intel/compilers_and_libraries_2016/linux/bin/intel64/icpc -g -qopenmp"
+ PFLINKER="$MPIR_HOME/bin/mpiifort -fc=/common/intel/compilers_and_libraries_2016/linux/bin/intel64/ifort -g -qopenmp"
+ ADD_LIBS="-L/nethome/admdvm/bin/lib64"
+ CUDA_PATH="/common/cuda-7.5"
+ PGI_PATH="/common/pgi/linux86-64/2011"
+ NVFORT="$PGI_PATH/bin/pgfortran -Mfixed -Mcuda=3.2 -O2 -ta=nvidia:keepgpu,cc20"
+# launch settings
+ dvmcopy=1
+ dvmrun="suppz.run"
+ maxtime=30
+ restart=0
+ quantum=0
+# DVMH options for default preset
+ DVMH_PPN=12
+ DVMH_NUM_THREADS=1
+ DVMH_NUM_CUDAS=0
+# machine configuration for more predefined presets
+ CPUS_PER_NODE=12
+ CUDAS_PER_NODE=3

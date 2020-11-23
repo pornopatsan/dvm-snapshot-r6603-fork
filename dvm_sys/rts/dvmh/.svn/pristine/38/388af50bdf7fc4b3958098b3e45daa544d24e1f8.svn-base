@@ -1,0 +1,62 @@
+#ifdef _MS_F_
+
+#define dvmh_finish_ dvmh_finish
+
+#define dvmh_get_actual_subvariable_ dvmh_get_actual_subvariable
+#define dvmh_get_actual_variable_ dvmh_get_actual_variable
+#define dvmh_get_actual_subarray_ dvmh_get_actual_subarray
+#define dvmh_get_actual_array_ dvmh_get_actual_array
+#define dvmh_get_actual_all_ dvmh_get_actual_all
+
+#define dvmh_actual_subvariable_ dvmh_actual_subvariable
+#define dvmh_actual_variable_ dvmh_actual_variable
+#define dvmh_actual_subarray_ dvmh_actual_subarray
+#define dvmh_actual_array_ dvmh_actual_array
+#define dvmh_actual_all_ dvmh_actual_all
+
+#define dvmh_remote_access_ dvmh_remote_access
+#define dvmh_shadow_renew_ dvmh_shadow_renew
+#define dvmh_redistribute_ dvmh_redistribute
+#define dvmh_realign_ dvmh_realign
+
+#define dvmh_destroy_variable_ dvmh_destroy_variable
+#define dvmh_destroy_array_ dvmh_destroy_array
+
+#define dvmh_calculate_offset_ dvmh_calculate_offset
+#define dvmh_fill_header_ dvmh_fill_header
+#define dvmh_fill_header_ex_ dvmh_fill_header_ex
+
+#define region_create_ region_create
+#define region_register_subarray_ region_register_subarray
+#define region_register_array_ region_register_array
+#define region_register_scalar_ region_register_scalar
+#define region_set_name_array_ region_set_name_array
+#define region_set_name_variable_ region_set_name_variable
+#define region_execute_on_targets_ region_execute_on_targets
+#define region_handle_consistent_ region_handle_consistent
+#define region_after_waitrb_ region_after_waitrb
+#define region_destroy_rb_ region_destroy_rb
+#define region_end_ region_end
+
+#define loop_create_ loop_create
+#define loop_insred_ loop_insred
+#define loop_across_ loop_across
+#define loop_set_cuda_block_ loop_set_cuda_block
+#define loop_shadow_compute_ loop_shadow_compute
+#define loop_register_handler_ loop_register_handler
+#define loop_perform_ loop_perform
+#define loop_get_device_num_ loop_get_device_num
+#define loop_has_element_ loop_has_element
+#define loop_fill_bounds_ loop_fill_bounds
+#define loop_fill_local_part_ loop_fill_local_part
+#define loop_red_init_ loop_red_init
+#define loop_get_slot_count_ loop_get_slot_count
+#define loop_get_dependency_mask_ loop_get_dependency_mask
+#define loop_guess_index_type_ loop_guess_index_type
+#define loop_red_post_ loop_red_post
+
+#define dvmh_register_array_ dvmh_register_array
+#define dvmh_register_scalar_ dvmh_register_scalar
+#define dvmh_get_next_stage_ dvmh_get_next_stage
+
+#endif

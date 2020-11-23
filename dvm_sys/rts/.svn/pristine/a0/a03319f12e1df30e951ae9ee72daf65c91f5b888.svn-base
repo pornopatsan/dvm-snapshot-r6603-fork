@@ -1,0 +1,20 @@
+#ifndef _TRCEVENT_VAR_
+#define _TRCEVENT_VAR_
+/********************/    /*E0000*/
+
+/************************\
+* Trace event parameters *
+\************************/    /*E0001*/
+
+byte IsDisableTraceEvents=1; /* flag to take DisableTraceEvents array into account */    /*E0002*/
+int  DisableTraceEvents[MaxEventNumber+1]={-1}; /* array of numbers of events
+                                                   to be traced */    /*E0003*/
+byte IsFullTraceEvents=1;    /* flag to take FullTraceEvents array into account */    /*E0004*/
+int  FullTraceEvents[MaxEventNumber+1]={1,2,-1}; /* array of traced event
+                                                    numbers in extended mode */    /*E0005*/
+byte IsEvent[MaxEventNumber+1];      /* array of traced event flags */    /*E0006*/
+byte MaxEventLevel[MaxEventNumber+1];/* max. nesting level for function
+                                        calls for event tracing */    /*E0007*/
+
+
+#endif  /* _TRCEVENT_VAR_ */    /*E0008*/

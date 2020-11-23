@@ -1,0 +1,26 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# dvm/cdvm/src/makefile.uni
+
+BINDIR = ../../bin
+EXECUTABLES = c_dvm
+LIBS =
+CFLAGS =
+
+OBJS = c_dvm.o
+
+$(BINDIR)/$(EXECUTABLES): $(OBJS)
+	$(LINKER) -o $(BINDIR)/$(EXECUTABLES) $(OBJS) $(LIBS)
+
+all: $(BINDIR)/$(EXECUTABLES)
+	@echo "*** COMPILING $(EXECUTABLES) DONE"
+
+clean:
+	rm -f $(OBJS)
+
+cleanall: clean
+
+.PHONY: all clean cleanall

@@ -1,0 +1,19 @@
+#For Apple OS X 10.11 El Capitan PLATFORM
+ GCC_VER=5 # Change this if needed
+# for DVM tools
+ CC="gcc-$GCC_VER -g -O2"
+ CXX="g++-$GCC_VER -g -O2"
+ LINKER="g++-$GCC_VER -g"
+ LLVMCONFIG=''
+# for parallel programs
+ PCC="mpicc -cc=gcc-$GCC_VER -g -O2 -fopenmp"
+ PCXX="mpicxx -cxx=g++-$GCC_VER -g -O2 -fopenmp"
+ PFORT="mpif77 -fc=gfortran-$GCC_VER -g -O2 -fopenmp"
+ PLINKER="mpicxx -cxx=g++-$GCC_VER -g -fopenmp"
+ PFLINKER="mpif77 -fc=gfortran-$GCC_VER -g -fopenmp"
+ ADD_LIBS=''
+if [ -d "/usr/local/cuda" ]; then
+ CUDA_PATH='/usr/local/cuda'
+fi
+# launch settings
+ dvmrun='runmpi'

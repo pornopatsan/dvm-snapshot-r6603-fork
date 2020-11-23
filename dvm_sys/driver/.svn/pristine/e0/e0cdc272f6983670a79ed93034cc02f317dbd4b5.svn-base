@@ -1,0 +1,27 @@
+#!/bin/sh
+
+# Uses variables: Doc_vis, dvmdir
+
+if [ "$Doc_vis" = "" ]; then
+    echo "--- Visualizer ( Doc_vis ) is not set ---"
+    exit 1
+fi
+if [ "$1" != "" ]; then
+    if [ ! -f "$dvmdir/doc/$1/index.html" ]; then
+        echo "--- DVM system documents are not found ---"
+        exit 1
+    fi
+    $Doc_vis "$dvmdir/doc/$1/index.html"
+    exit $?
+else
+    if [ -f "$dvmdir/doc/ue/index.html" ]; then
+        $Doc_vis "$dvmdir/doc/ue/index.html"
+        exit $?
+    fi
+    if [ -f "$dvmdir/doc/ur/index.html" ]; then
+        $Doc_vis "$dvmdir/doc/ur/index.html"
+        exit $?
+    fi
+    echo "--- DVM system documents are not found ---"
+    exit 1
+fi

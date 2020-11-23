@@ -124,7 +124,7 @@ void IncludeCollector::FileChanged(SourceLocation Loc, FileChangeReason Reason, 
     }
 }
 
-void IncludeCollector::FileSkipped(const FileEntry &ParentFile, const Token &FilenameTok, SrcMgr::CharacteristicKind FileType) {
+void IncludeCollector::FileSkipped(const FileEntryRef &ParentFile, const Token &FilenameTok, SrcMgr::CharacteristicKind FileType) {
     if (ignoreLevel == 0) {
         pendingInclusion.isSkipped = true;
         commitInclusion(FileType);

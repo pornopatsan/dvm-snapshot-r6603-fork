@@ -1,0 +1,44 @@
+        PROGRAM    JACH
+        PARAMETER    (L=8,  ITMAX=20)
+        REAL     A(L,L), B(L,L)
+CHPF$   DISTRIBUTE     ( BLOCK,   BLOCK)   ::   A
+CHPF$   ALIGN  B(I,J)  WITH  A(I,J)
+C		 arrays A and B  with block distribution 
+
+        PRINT *,  '**********  TEST_JACH     **********'
+C		nest of two INDEPENDENT loops, iteration (i,j) will be executed on 
+C		processor, which is owner of element A(i,j) 
+CHPF$   INDEPENDENT
+            DO  1   J  =  1, L
+CHPF$   INDEPENDENT
+            DO  1   I  =  1, L
+                A(I,  J)  =  0.
+                IF(I.EQ.1 .OR. J.EQ.1 .OR. I.EQ.L .OR. J.EQ.L) THEN
+                      B(I,  J) = 0.
+                ELSE
+                      B(I,  J)  = ( 1. + I + J )
+                ENDIF
+    1       CONTINUE
+        DO  2   IT  =  1,  ITMAX
+CHPF$   INDEPENDENT
+                  DO  21  J  =  2, L-1
+CHPF$   INDEPENDENT
+                  DO  21  I  =  2, L-1
+                         A(I, J)  =  B(I, J)
+   21             CONTINUE
+
+CHPF$   INDEPENDENT
+                  DO  22  J = 2,  L-1
+CHPF$   INDEPENDENT
+                  DO  22  I = 2,  L-1
+        B(I, J) =  (A( I-1, J ) + A( I, J-1 ) + A( I+1, J)+
+     *                        A( I, J+1 )) / 4
+   22             CONTINUE
+                  PRINT 300,  IT
+  300             FORMAT(' IT = ',I4)
+    2   CONTINUE
+    3   OPEN (3, FILE='JACH.DAT', FORM='FORMATTED', STATUS='UNKNOWN')
+        WRITE (3,*)   B
+        CLOSE (3)
+        END
+

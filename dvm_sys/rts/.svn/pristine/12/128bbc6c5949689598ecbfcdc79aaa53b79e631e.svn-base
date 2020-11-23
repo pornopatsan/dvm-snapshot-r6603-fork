@@ -1,0 +1,146 @@
+#ifndef _SYSTRACE_VAR_
+#define _SYSTRACE_VAR_
+/********************/    /*E0000*/
+
+/***********************************\
+* Parameters specifying trace modes *
+\***********************************/    /*E0001*/
+
+DVMUSERFUN
+byte Is_DVM_TRACE=0;       /* general flag of trace on */    /*E0002*/
+byte Is_IO_TRACE=0;        /* */    /*E0003*/
+byte Is_ALL_TRACE=1;       /* flag on tracing all functions 
+                              except statistics and debugger calls */    /*E0004*/
+byte Is_DEB_TRACE=0;       /* flag on tracing debugger calls */    /*E0005*/
+byte Is_STAT_TRACE=1;      /* flag on tracing statistics calls */    /*E0006*/
+byte Is_IOFun_TRACE=1;     /* */    /*E0007*/
+byte UserCallTrace=1;      /* */    /*E0008*/
+byte DisableTraceTime=1;   /* flag on subtraction of trace time
+                              from the tracing output time */    /*E0009*/
+byte BlockTrace=0;         /* stop tracing till 
+                              special function  tron_ */    /*E0010*/
+byte IsTraceProcList=1;    /* list TraceProcList is on */    /*E0011*/
+
+/* List of internal numbers of traced processors */    /*E0012*/
+
+int  TraceProcList[MaxProcNumber+1];
+
+byte FullTrace=1;          /* flag of detailed trace mode */    /*E0013*/
+DvmType TraceBufLength=1024000; /* trace buffer size in bytes */    /*E0014*/
+byte BufferTrace=1;        /* flag of tracing in buffer */    /*E0015*/
+byte FullBufferStop=0;     /* flag to stop tracing when buffer overflowed */    /*E0016*/
+byte BufferTraceUnLoad=1;  /* flag to dump trace buffer after work completion */    /*E0017*/
+byte ScreenTrace=0;   /* flag to output trace to the screen */    /*E0018*/
+byte FileTrace=1;     /* flag of trace accumulation in files */    /*E0019*/
+DvmType MaxTraceFileSize=1024000; /* */    /*E0020*/
+DvmType MaxCommTraceFileSize=50000000; /* */    /*E0021*/
+byte TraceFileOverflowReg=0; /* */    /*E0022*/ 
+byte KeyWordName=0;   /* flag to output "NAME=" before every event name */    /*E0023*/
+byte SetTraceBuf=1;   /* flag on trace with buffering by
+                         operating system */    /*E0024*/
+byte TraceFlush=1;    /* flag to drop output stream  when tracing every event */    /*E0025*/
+byte FatTraceNoOpen=1;/* flag to complete work when output trace file was not opened */    /*E0026*/
+byte PreUnderLine=1;  /* flag to underline title of each event */    /*E0027*/
+byte PostUnderLine=1; /* flag to underline end of printing of each event */    /*E0028*/
+byte BufferTraceShift=5; /* indent size according to nesting level of function calls when tracing in buffer */    /*E0029*/
+byte FileTraceShift=5;   /* indent size according to nesting level of function calls when tracing in file */    /*E0030*/
+
+byte MaxTraceLevel=127;  /* max. traced nesting level of function calls */    /*E0031*/
+
+byte TraceClosePrint=1;  /* flag to output messages after trace up-loading */    /*E0032*/
+
+char TracePath[128]="";       /* access path to trace files */    /*E0033*/
+char TraceFileExt[4]="ftr";   /* file extension when tracing in files */    /*E0034*/
+char TraceBufferExt[4]="btr"; /* file extension when tracing in buffer */    /*E0035*/
+byte MPI_TraceFileNameNumb=0; /* */    /*E0036*/
+byte DelSysTrace=1;           /* flag to delete old trace files */    /*E0037*/
+
+/* Underlining string of every event title */    /*E0038*/
+char PreUnderLining[256]="-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------";
+
+/* Completion string of printing end of every event */    /*E0039*/ 
+char PostUnderLining[256]=" ";
+
+byte CurrentTimeTrace=0;    /* flag of curreent system time trace */    /*E0040*/
+byte TimePrecision=6;       /* a number of digits after comma when printing time in trace  */    /*E0041*/
+
+byte LowDumpLevel=0;        /* flag of trace uploading using
+                               low level i/o functions */    /*E0042*/
+
+byte mappl_Trace=2;         /* additional information output mode
+                               while tracing mappl_ function:
+                               0 - do not output 
+                               1 - output index values 
+                               2 - output all additional information */    /*E0043*/
+byte dopl_Trace=1;          /* flag to output additional information when
+                               function dopl_ is traced */    /*E0044*/
+byte dopl_dyn_GetLocalBlock=1;/* flag on test calling of 
+                                 dyn_GetLocalBlock function 
+                                 while tracing dopl_ function */    /*E0045*/
+byte distr_Trace=1;         /* flag to output additional information when
+                               function distr_ is traced */    /*E0046*/
+byte align_Trace=1;         /* flag to output additional information when
+                               function align_ is traced */    /*E0047*/
+byte dacopy_Trace=1;        /* flag to output additional information when
+                               functions arrcpy_ and aarrcp_ are traced */    /*E0048*/
+byte OutIndexTrace=1;       /* flag to print output indexes
+                               in function GetIndexArray */    /*E0049*/
+int  RedVarTrace=1;         /* flag to print reduction variables
+                               in functions saverg_, saverv_, strtrd_
+                               and waitrd_ */    /*E0050*/
+byte diter_Trace=0;         /* output detail information while tracing 
+                               function diter  */    /*E0051*/
+byte drmbuf_Trace=0;        /* output detail information while tracing 
+                               function drmbuf */    /*E0052*/
+byte dyn_GetLocalBlock_Trace=0;/* flag on tracing dyn_GetLocalBlock 
+                                  function during detailed tracing mode */    /*E0053*/
+
+int  PrintBufferByteCount=8;/* a number of bytes, printed before Send and after Receive */    /*E0054*/ 
+
+uLLng TraceVarAddr=0;          /* trace variable address,
+                                 if address is equal to 0
+                                 variable is not traced */    /*E0055*/
+byte TraceVarType=0;          /* trace variable type: 
+                                 1 - int,
+                                 2 - long,
+                                 3 - float,
+                                 4 - double,
+                                 5 - char,
+                                 6 - short,
+								 7 - long long.
+								 */    /*E0056*/
+byte LoadWeightTrace=1;       /* flag of processor load weights
+                                 tracing during setelw_ funcyion call */    /*E0057*/
+byte WeightArrayTrace=1;      /* flag of coordinate load weights tracing
+                                 at the exit from function gettar_ */    /*E0058*/
+byte AcrossTrace=1;           /* flag of tracing ACROSS scheme execution
+                                 in across_ and dopl_ functions */    /*E0059*/
+byte MsgPartitionTrace=1;     /* */    /*E0060*/
+int  MsgScheduleTrace=2;      /* */    /*E0061*/
+byte MPI_AlltoallTrace=1;     /* */    /*E0062*/
+byte MPI_ReduceTrace=1;       /* */    /*E0063*/
+byte DAConsistTrace=1;        /* */    /*E0064*/
+byte MPI_MapAMTrace=1;        /* */    /*E0065*/
+byte CrtPSTrace=1;            /* */    /*E0066*/
+byte MsgCompressTrace=1;      /* */    /*E0067*/
+byte SysProcessNameTrace=1;   /* */    /*E0068*/
+byte MPI_RequestTrace = 0;    /* */    /*E0069*/
+byte MPI_IORequestTrace = 0;  /* */    /*E0070*/
+
+uLLng dvm_StartAddr=0;         /* beginning address of specified memory area */    /*E0071*/
+uLLng dvm_FinalAddr=0;         /* end address of specified memory area */    /*E0072*/
+
+byte EveryEventCheckMem=0;    /* flag to check specified memory in every trace event */    /*E0073*/
+byte EveryTraceCheckMem=0;    /* flag to check specified memory each time when trace is entered */    /*E0074*/
+byte EveryEventCheckCodeMem=0;/* flag to check code memory in every trace event */    /*E0075*/ 
+byte EveryTraceCheckCodeMem=0;/* flag to check code memory each time when trace is entered */    /*E0076*/
+byte EveryEventCheckBound=0;  /* flag to check bounds of busy memory blocks in every trace event */    /*E0077*/
+byte EveryTraceCheckBound=0;  /* flag to check bounds of busy memory blocks each time when trace is entered */    /*E0078*/
+
+/* */    /*E0079*/
+
+int TraceCompressLevel=0; /* */    /*E0080*/
+int TraceCompressFlush=0; /* */    /*E0081*/
+
+
+#endif  /* _SYSTRACE_VAR_ */    /*E0082*/

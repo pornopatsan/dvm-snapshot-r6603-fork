@@ -1,0 +1,54 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/lib/newsrc/makefile.win
+
+OUTDIR = ../../../obj
+LIBDIR = ../../../lib
+
+OLDHEADERS = ../../h
+
+# Directory in which include file can be found
+TOOLBOX_INCLUDE = ../include
+
+INCL = -I$(OLDHEADERS) -I../include
+
+TOOLBOX_SRC	=  low_level.c unparse.c 
+
+TOOLBOX_HDR =  $(TOOLBOX_INCLUDE)/macro.h $(TOOLBOX_INCLUDE)/bif_node.def \
+	$(TOOLBOX_INCLUDE)/type.def  $(TOOLBOX_INCLUDE)/symb.def 
+
+# -w don't issue warning now.
+#CFLAGS=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+#	/Fp"$(OUTDIR)/newsrc.pch" /YX /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+	/Fp"$(OUTDIR)/newsrc.pch" /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+.c{$(OUTDIR)/}.obj:
+    $(CC) $(CFLAGS) $<
+
+LIB32=$(LINKER) -lib
+LIB32_FLAGS=/nologo /out:"$(LIBDIR)/libsage.lib" 
+
+
+$(OUTDIR)/low_level.obj: low_level.c $(TOOLBOX_HDR)
+
+$(OUTDIR)/unparse.obj:   unparse.c $(TOOLBOX_HDR) $(TOOLBOX_INCLUDE)/unparse.def \
+	 $(TOOLBOX_INCLUDE)/unparseC++.def
+
+TOOLBOX_OBJ	=  $(OUTDIR)/low_level.obj  $(OUTDIR)/unparse.obj 
+
+$(LIBDIR)/libsage.lib: $(TOOLBOX_OBJ) $(TOOLBOX_HDR)  
+	$(LIB32) @<<
+	$(LIB32_FLAGS) $(TOOLBOX_OBJ)  
+<<
+
+all: $(LIBDIR)/libsage.lib
+    @echo "*** COMPILING LIBRARY newsrc DONE"
+
+
+clean:
+
+cleanall:

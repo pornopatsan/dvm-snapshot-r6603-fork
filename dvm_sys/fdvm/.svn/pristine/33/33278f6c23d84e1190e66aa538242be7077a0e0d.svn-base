@@ -1,0 +1,49 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/Sage++/makefile.win
+
+OUTDIR = ../../obj
+LIBDIR = ../../lib
+
+HDRS        = ../h
+LIBINCLUDE  = ../lib/include
+SAGEINCLUDE = -I$(HDRS) -I$(LIBINCLUDE)
+
+# Directory in which include files can be found
+INCLUDEDIR = ./h
+INCL = -I$(INCLUDEDIR) $(SAGEINCLUDE)
+
+LIB32=$(LINKER) -lib
+LIB32_FLAGS=/nologo /out:"$(LIBDIR)/libSage++.lib" 
+
+# -w don't issue warning now.
+#CFLAGS=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" $(INCL) \
+#	/Fp"$(OUTDIR)/libSage++.pch" /YX /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" $(INCL) \
+	/Fp"$(OUTDIR)/libSage++.pch"  /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+TOOLSage_SRC	=  libSage++.cpp
+
+TOOLSage_HDR     = $(LIBINCLUDE)/macro.h $(LIBINCLUDE)/bif_node.def  \
+	$(LIBINCLUDE)/type.def  $(LIBINCLUDE)/symb.def $(LIBINCLUDE)/libSage++.h
+
+TOOLSage_OBJ	=   $(OUTDIR)/libSage++.obj 
+
+$(OUTDIR)/libSage++.obj: libSage++.cpp $(TOOLSage_HDR)
+		$(CXX) $(CFLAGS)  libSage++.cpp
+
+$(LIBDIR)/libSage++.lib: $(TOOLSage_OBJ) 
+	$(LIB32) @<<
+	$(LIB32_FLAGS) $(TOOLSage_OBJ) 
+<<
+
+all : $(LIBDIR)/libSage++.lib
+    @echo "*** COMPILING LIBRARY Sage++ DONE"
+
+
+clean:
+
+cleanall:

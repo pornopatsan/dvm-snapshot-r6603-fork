@@ -1,0 +1,130 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2069BEB4-7CBF-421E-BAFF-AABDF23442C5}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>CodeTransformer</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseIntelIPP>false</UseIntelIPP>
+    <UseIntelTBB>false</UseIntelTBB>
+    <InstrumentIntelTBB>false</InstrumentIntelTBB>
+    <UseIntelMKL>No</UseIntelMKL>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v120</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+    <UseIntelIPP>false</UseIntelIPP>
+    <UseIntelTBB>false</UseIntelTBB>
+    <InstrumentIntelTBB>false</InstrumentIntelTBB>
+    <UseIntelMKL>No</UseIntelMKL>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+    <IncludePath>..\..\..\Sage\lib\include;..\..\..\Sage\h;..\..\..\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <OutDir>..\Debug\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+    <IncludePath>..\..\..\Sage\lib\include;..\..\..\Sage\h;..\..\..\include;$(VC_IncludePath);$(WindowsSDK_IncludePath);</IncludePath>
+    <OutDir>..\Release\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>-I. -I../../../Sage/lib/include -I../../../Sage/h -I../../../include /D "SYS5" /D "YYDEBUG" %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>false</MinimalRebuild>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
+      <AdditionalOptions>-I. -I../../../Sage/lib/include -I../../../Sage/h -I../../../include /D "SYS5" /D "YYDEBUG" %(AdditionalOptions)</AdditionalOptions>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MinimalRebuild>true</MinimalRebuild>
+      <OpenMPSupport>true</OpenMPSupport>
+    </ClCompile>
+    <Link>
+      <SubSystem>Console</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\codeTransformer\directive_parser.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\errors.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\GraphCall\graph_calls.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\GraphLoop\graph_loops.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\IndexesChanger\array_indexes_changer.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\LoopAnalyzer\loop_analyzer.cpp" />
+    <ClCompile Include="..\..\..\codeTransformer\transforms.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\codeTransformer\array_indexes_changer.h" />
+    <ClInclude Include="..\..\..\codeTransformer\directive_parser.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Array.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Arrays.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Cycle.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Distribution.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\DvmhDirective.h" />
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\GraphCSR.h" />
+    <ClInclude Include="..\..\..\codeTransformer\errors.h" />
+    <ClInclude Include="..\..\..\codeTransformer\GraphCall\graph_calls.h" />
+    <ClInclude Include="..\..\..\codeTransformer\GraphLoop\graph_loops.h" />
+    <ClInclude Include="..\..\..\codeTransformer\LoopAnalyzer\loop_analyzer.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\$(Configuration)\NEWsrc.lib" />
+    <Library Include="..\$(Configuration)\OLDsrc.lib" />
+    <Library Include="..\$(Configuration)\SageLib++.lib" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

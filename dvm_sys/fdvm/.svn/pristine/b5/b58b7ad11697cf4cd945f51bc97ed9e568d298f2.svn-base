@@ -1,0 +1,96 @@
+#######################################################################
+##                             Copyright (C) 1999                    ##
+##              Keldysh Institute of Appllied Mathematics            ##
+#######################################################################
+
+# sage/lib/oldsrc/makefile.win
+
+
+OUTDIR = ..\..\..\obj
+LIBDIR = ..\..\..\lib
+
+OLDHEADERS = ..\..\h
+
+# Directory in which include file can be found
+TOOLBOX_INCLUDE = ../include
+
+INCL = -I$(OLDHEADERS) -I../include
+
+# -w don't issue warning now.
+#CFLAGS=/nologo /ML /W3 /GX /O2 /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+#	/Fp"$(OUTDIR)/oldsrc.pch" /YX /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+CFLAGS=/nologo /D "WIN32" /D "NDEBUG" /D "_WINDOWS" /D SYS5 $(INCL) \
+	/Fp"$(OUTDIR)/oldsrc.pch" /Fo"$(OUTDIR)/" /Fd"$(OUTDIR)/" /c 
+
+.c{$(OUTDIR)/}.obj:
+    $(CC) $(CFLAGS) $<
+
+LIB32=$(LINKER) -lib
+LIB32_FLAGS=/nologo /out:"$(LIBDIR)/libdb.lib" 
+
+
+EXTHDRS	= $H/bif.h $H/db.h $H/db.h $H/defs.h $H/dep.h \
+	  $H/dep_str.h $H/list.h $H/ll.h $H/sets.h $H/symb.h \
+	  $H/tag $H/vparse.h
+
+OBJS	= $(OUTDIR)/anal_ind.obj $(OUTDIR)/db.obj $(OUTDIR)/db_unp.obj \
+      $(OUTDIR)/db_unp_vpc.obj  $(OUTDIR)/dbutils.obj $(OUTDIR)/garb_coll.obj \
+	  $(OUTDIR)/glob_anal.obj $(OUTDIR)/ker_fun.obj $(OUTDIR)/list.obj \
+	  $(OUTDIR)/make_nodes.obj $(OUTDIR)/mod_ref.obj $(OUTDIR)/ndeps.obj \
+	  $(OUTDIR)/readnodes.obj $(OUTDIR)/sets.obj $(OUTDIR)/setutils.obj \
+	  $(OUTDIR)/symb_alg.obj $(OUTDIR)/writenodes.obj 
+
+SRCS = anal_ind.c db.c db_unp.c db_unp_vpc.c  dbutils.c \
+	  garb_coll.c glob_anal.c ker_fun.c list.c \
+	  make_nodes.c mod_ref.c ndeps.c readnodes.c sets.c setutils.c \
+	  symb_alg.c writenodes.c
+
+$(LIBDIR)/libdb.lib: $(OBJS)
+    $(LIB32) @<<
+	$(LIB32_FLAGS) $(OBJS)  
+<<
+
+all: $(LIBDIR)/libdb.lib
+    @echo "*** COMPILING LIBRARY oldsrc DONE"
+
+clean:
+
+cleanall:
+
+###
+anal_ind.o: $H/db.h $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+db.o:  $H/db.h $H/defs.h \
+	$H/tag $H/bif.h $H/ll.h $H/symb.h $H/sets.h
+db_unp.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+db_unp_vpc.o:  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h $H/db.h $H/vparse.h
+dbutils.o:  $H/db.h \
+	$H/defs.h $H/tag $H/bif.h $H/ll.h $H/symb.h $H/sets.h
+garb-coll.o:  $H/db.h $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+glob_anal.o:  $H/db.h $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+ker_fun.o:  $H/defs.h $H/tag $H/bif.h $H/ll.h \
+	$H/symb.h $H/sets.h
+list.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h $H/list.h
+make_nodes.o: $H/db.h  $H/defs.h $H/tag \
+	$H/bif.h $H/ll.h $H/symb.h $H/sets.h
+mod_ref.o:  $H/defs.h $H/tag $H/bif.h $H/ll.h \
+	$H/symb.h $H/sets.h $H/vparse.h $H/db.h
+ndeps.o:  $H/db.h $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+readnodes.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h $H/dep_str.h \
+	 $H/dep.h
+sets.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+setutils.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+symb_alg.o: $H/db.h  $H/defs.h $H/tag $H/bif.h \
+	$H/ll.h $H/symb.h $H/sets.h
+writenodes.o: $H/db.h $H/defs.h $H/tag \
+	$H/bif.h $H/ll.h $H/symb.h $H/sets.h $H/dep_str.h \
+	$H/dep.h

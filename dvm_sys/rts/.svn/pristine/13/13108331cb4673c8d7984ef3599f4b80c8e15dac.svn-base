@@ -1,0 +1,20 @@
+#ifndef _DYNLIMIT_VAR_
+#define _DYNLIMIT_VAR_
+/******************/
+
+/* Maximum allowed memory usage */
+
+UDvmType DynDebugMemoryLimit = 0;
+
+/* Maximum allowed program execution time */
+
+UDvmType DynDebugExecutionTimeLimit = 0;
+
+/* Print usage statistics */
+
+byte DynDebugPrintStatistics = 0;
+
+UDvmType DynDebugAllocatedMemory = 0;
+UDvmType DynDebugMaxAllocatedMemory = 0;
+
+#endif  /* _DYNLIMIT_VAR_ */

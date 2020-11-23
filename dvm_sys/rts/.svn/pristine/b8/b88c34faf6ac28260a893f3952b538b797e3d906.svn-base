@@ -1,0 +1,13 @@
+#ifndef _CNTRLERR_EXT_
+#define _CNTRLERR_EXT_
+/********************/
+
+extern TABLE gContext;
+
+extern ERRORTABLE DynControlErrors;
+extern ERRORTABLE TraceCompareErrors;
+
+extern char *ErrString[];
+extern byte ErrFatality[];
+
+#endif  /* _CNTRLERR_EXT_ */

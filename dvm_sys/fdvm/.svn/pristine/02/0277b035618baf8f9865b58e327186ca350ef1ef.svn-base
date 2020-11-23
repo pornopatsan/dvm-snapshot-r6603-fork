@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Файлы исходного кода">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Заголовочные файлы">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Файлы ресурсов">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="Заголовочные файлы\Distribution">
+      <UniqueIdentifier>{2d86161f-1d01-42d0-8edc-8d7c33507098}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\CallGraph">
+      <UniqueIdentifier>{2a1a2293-90ea-46ef-89f6-bb3e3da55115}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\GraphLoop">
+      <UniqueIdentifier>{d981868e-2b06-467b-8e4a-130690dd5ee9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Заголовочные файлы\LoopAnalyzer">
+      <UniqueIdentifier>{58140a93-0290-4edd-807b-3a6badcb520c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы исходного кода\LoopAnalyzer">
+      <UniqueIdentifier>{56f7a0b6-0915-4337-bbde-0764b98318fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы исходного кода\CallGraph">
+      <UniqueIdentifier>{5c543491-7f34-4c22-9989-0a73826f5141}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Файлы исходного кода\GraphLoop">
+      <UniqueIdentifier>{876827c2-fa2c-4d8b-9579-a4cafd81309c}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\codeTransformer\transforms.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\errors.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\IndexesChanger\array_indexes_changer.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\GraphCall\graph_calls.cpp">
+      <Filter>Файлы исходного кода\CallGraph</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\GraphLoop\graph_loops.cpp">
+      <Filter>Файлы исходного кода\GraphLoop</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\directive_parser.cpp">
+      <Filter>Файлы исходного кода</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\codeTransformer\LoopAnalyzer\loop_analyzer.cpp">
+      <Filter>Файлы исходного кода\LoopAnalyzer</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\codeTransformer\array_indexes_changer.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\errors.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Cycle.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\DvmhDirective.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\GraphCSR.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Array.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Arrays.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\Distribution\Distribution.h">
+      <Filter>Заголовочные файлы\Distribution</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\GraphCall\graph_calls.h">
+      <Filter>Заголовочные файлы\CallGraph</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\GraphLoop\graph_loops.h">
+      <Filter>Заголовочные файлы\GraphLoop</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\LoopAnalyzer\loop_analyzer.h">
+      <Filter>Заголовочные файлы\LoopAnalyzer</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\codeTransformer\directive_parser.h">
+      <Filter>Заголовочные файлы</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="..\$(Configuration)\NEWsrc.lib" />
+    <Library Include="..\$(Configuration)\OLDsrc.lib" />
+    <Library Include="..\$(Configuration)\SageLib++.lib" />
+  </ItemGroup>
+</Project>

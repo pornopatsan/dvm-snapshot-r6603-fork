@@ -1,0 +1,108 @@
+### makefile for cdvmh converter (based on llvm+clang)
+# requires variables: LLVMCONFIG CLANG_VER CXX LINKER
+# optional variables: WITH_ANALYZER
+
+BINDIR = ../../bin
+
+ifndef WITH_ANALYZER
+WITH_ANALYZER = 0
+endif
+
+ifeq ($(WITH_ANALYZER), 1)
+ANALYZER_LIBS = ../analyzer/analyzer.a
+ANALYZER_FLAGS = -I../analyzer/src -I../analyzer/idb/src/base
+else
+ANALYZER_LIBS =
+ANALYZER_FLAGS =
+endif
+
+#override CXX = g++ -g -Wall
+
+LLVMCOMPONENTS = core option bitreader mcparser transformutils
+
+CXXFLAGS = $(shell $(LLVMCONFIG) --cxxflags) -UNDEBUG -DWITH_ANALYZER=$(WITH_ANALYZER) $(ANALYZER_FLAGS)
+LLVMLDFLAGS = $(shell $(LLVMCONFIG) --libs $(LLVMCOMPONENTS)) $(shell $(LLVMCONFIG) --ldflags)
+
+OBJECTS = across.o aux_visitors.o c_dvmh.o cdvmh_log.o converter_aux.o converter_debug.o converter_main.o file_ctx.o handler_gen.o pass_ctx.o pragma_parser.o pragmas.o project_ctx.o utils.o
+
+EXES = $(BINDIR)/c_dvmh
+
+ifeq ($(word 2, $(CLANG_VER) ), 4)
+REWRITE_LIB = -lclangRewriteCore
+SYS_LIBS =
+else
+REWRITE_LIB = -lclangRewrite
+SYS_LIBS = $(shell $(LLVMCONFIG) --system-libs)
+endif
+
+CLANGLIBS = \
+	-lclangTooling \
+	-lclangCodeGen \
+	-lclangFrontend\
+	-lclangDriver\
+	-lclangSerialization\
+	-lclangParse\
+	-lclangSema\
+	-lclangAnalysis\
+	$(REWRITE_LIB)\
+	-lclangEdit\
+	-lclangAST\
+	-lclangLex\
+	-lclangBasic
+
+all: $(EXES)
+	@echo "*** COMPILING cdvmh/src DIRECTORY DONE"
+
+across.o: across.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o across.o across.cpp
+aux_visitors.o: aux_visitors.cpp aux_visitors.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o aux_visitors.o aux_visitors.cpp
+c_dvmh.o: c_dvmh.cpp converter.h pragmas.h cdvmh_log.h messages.h \
+ file_ctx.h project_ctx.h utils.h settings.h pass_ctx.h pragma_parser.h \
+ handler_gen.h aux_visitors.h
+	$(CXX) $(CXXFLAGS) -c -o c_dvmh.o c_dvmh.cpp
+cdvmh_log.o: cdvmh_log.cpp cdvmh_log.h
+	$(CXX) $(CXXFLAGS) -c -o cdvmh_log.o cdvmh_log.cpp
+converter_aux.o: converter_aux.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o converter_aux.o converter_aux.cpp
+converter_debug.o: converter_debug.cpp converter_debug.h converter.h pragmas.h \
+ cdvmh_log.h messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o converter_debug.o converter_debug.cpp
+converter_main.o: converter_main.cpp converter.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h aux_visitors.h
+	$(CXX) $(CXXFLAGS) -c -o converter_main.o converter_main.cpp
+file_ctx.o: file_ctx.cpp file_ctx.h project_ctx.h utils.h settings.h \
+ pragmas.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) -c -o file_ctx.o file_ctx.cpp
+handler_gen.o: handler_gen.cpp handler_gen.h aux_visitors.h pragmas.h \
+ cdvmh_log.h messages.h file_ctx.h project_ctx.h utils.h settings.h \
+ pass_ctx.h
+	$(CXX) $(CXXFLAGS) -c -o handler_gen.o handler_gen.cpp
+pass_ctx.o: pass_ctx.cpp pass_ctx.h file_ctx.h project_ctx.h utils.h \
+ settings.h pragmas.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) -c -o pass_ctx.o pass_ctx.cpp
+pragma_parser.o: pragma_parser.cpp pragma_parser.h pragmas.h cdvmh_log.h \
+ messages.h file_ctx.h project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o pragma_parser.o pragma_parser.cpp
+pragmas.o: pragmas.cpp pragmas.h cdvmh_log.h messages.h file_ctx.h \
+ project_ctx.h utils.h settings.h
+	$(CXX) $(CXXFLAGS) -c -o pragmas.o pragmas.cpp
+project_ctx.o: project_ctx.cpp project_ctx.h utils.h cdvmh_log.h \
+ messages.h
+	$(CXX) $(CXXFLAGS) -c -o project_ctx.o project_ctx.cpp
+utils.o: utils.cpp utils.h settings.h cdvmh_log.h messages.h
+	$(CXX) $(CXXFLAGS) -c -o utils.o utils.cpp
+
+$(BINDIR)/c_dvmh: $(OBJECTS) $(ANALYZER_LIBS)
+	$(LINKER) -o $@ $(OBJECTS) $(ANALYZER_LIBS) $(CLANGLIBS) $(LLVMLDFLAGS) $(SYS_LIBS)
+
+clean:
+	rm -f $(OBJECTS)
+
+cleanall: clean
+	rm -f $(EXES)
+
+.PHONY: all clean cleanall
