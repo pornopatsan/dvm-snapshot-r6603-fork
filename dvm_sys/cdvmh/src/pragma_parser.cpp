@@ -10,10 +10,10 @@ namespace cdvmh {
 
 #define COLUMN (int)comp.getSourceManager().getColumnNumber(fileID, comp.getSourceManager().getFileOffset(Tok.getLocation()))
 
-void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer Introducer, Token &FirstToken) {
+void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introducer, Token &FirstToken) {
     SourceLocation loc = FirstToken.getLocation();
     loc = rewr.getSourceMgr().getFileLoc(loc);
-    std::string srcFileName = comp.getSourceManager().getFilename(loc);
+    std::string srcFileName = comp.getSourceManager().getFilename(loc).str();
     fileID = rewr.getSourceMgr().getFileID(loc);
     int srcLine = comp.getSourceManager().getLineNumber(fileID, comp.getSourceManager().getFileOffset(loc));
     int column = comp.getSourceManager().getColumnNumber(fileID, comp.getSourceManager().getFileOffset(loc));
@@ -66,16 +66,16 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
     Token Tok;
     PP.LexNonComment(Tok);
     checkDirErrN(Tok.isAnyIdentifier() || Tok.is(tok::kw_template), 302);
-    std::string tokStr = Tok.getIdentifierInfo()->getName();
+    std::string tokStr = Tok.getIdentifierInfo()->getName().str();
     if (tokStr == "array") {
         // Distributed array
         PragmaDistribArray *curPragma = new PragmaDistribArray();
         curPragma->copyCommonInfo(this->curPragma);
-        curPragma->dynamicFlag = 0;
+        curPragma->dynaTokmicFlag = 0;
         PP.LexNonComment(Tok);
         if (!Tok.is(tok::eod)) {
             while (Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 if (tokStr == "distribute") {
                     checkDirErrN(curPragma->alignFlag == -1, 312);
                     curPragma->alignFlag = 0;
@@ -148,7 +148,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
             checkDirErrN(rank > 0, 307, COLUMN);
             curPragma->rank = rank;
             while(Tok.isAnyIdentifier()) {
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 if (tokStr == "distribute") {
                     checkDirErrN(curPragma->alignFlag == -1, 312);
                     curPragma->alignFlag = 0;
@@ -197,7 +197,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 324, COLUMN);
-        curPragma->name = Tok.getIdentifierInfo()->getName();
+        curPragma->name = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         curPragma->distribRule = parseDistribRule(PP, Tok);
         curPragma->rank = curPragma->distribRule.rank;
@@ -241,14 +241,14 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 324, COLUMN);
-        curPragma->name = Tok.getIdentifierInfo()->getName();
+        curPragma->name = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         curPragma->alignRule = parseAlignRule(PP, Tok);
         curPragma->rank = curPragma->alignRule.rank;
         checkDirErrN(Tok.is(tok::r_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         if (Tok.isAnyIdentifier()) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             checkDirErrN(tokStr == "new_value", 326, tokStr.c_str(), COLUMN);
             curPragma->newValueFlag = true;
             PP.LexNonComment(Tok);
@@ -264,7 +264,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         curPragma->targets = 0;
         PP.LexNonComment(Tok);
         while (Tok.isAnyIdentifier()) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             if (tokStr == "async") {
                 curPragma->flags = curPragma->flags | PragmaRegion::REGION_ASYNC;
                 PP.LexNonComment(Tok);
@@ -273,7 +273,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 checkDirErrN(Tok.is(tok::l_paren), 333, COLUMN);
                 PP.LexNonComment(Tok);
                 while (Tok.isAnyIdentifier()) {
-                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
                     if (tokStr == "HOST")
                         curPragma->targets |= PragmaRegion::DEVICE_TYPE_HOST;
                     else if (tokStr == "CUDA")
@@ -347,9 +347,9 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
             checkDirErrN(ok, 3410, COLUMN);
             PP.LexNonComment(Tok);
         } else {
-            curPragma->mappedFlag = true;
             checkDirErrN(Tok.is(tok::l_square), 307, COLUMN);
             curPragma->mapRule = parseAlignRule(PP, Tok, true);
+            curPragma->mappedFlag = curPragma->mapRule.isMapped();
             rank = curPragma->mapRule.rank;
         }
         checkDirErrN(Tok.is(tok::r_paren), 308, COLUMN);
@@ -357,13 +357,13 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(rank > 0, 3411);
         curPragma->rank = rank;
         while (Tok.isAnyIdentifier() || Tok.is(tok::kw_private)) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             if (tokStr == "private") {
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::l_paren), 3412, "private", COLUMN);
                 PP.LexNonComment(Tok);
                 while (Tok.isAnyIdentifier()) {
-                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
                     curPragma->privates.push_back(tokStr);
                     PP.LexNonComment(Tok);
                     checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3413, "private", COLUMN);
@@ -379,20 +379,20 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 while (Tok.isAnyIdentifier()) {
                     curPragma->reductions.push_back(ClauseReduction());
                     ClauseReduction *red = &curPragma->reductions.back();
-                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
                     red->redType = ClauseReduction::guessRedType(tokStr);
                     checkDirErrN(!red->redType.empty(), 3414, tokStr.c_str(), COLUMN);
                     PP.LexNonComment(Tok);
                     checkDirErrN(Tok.is(tok::l_paren), 3412, "reduction", COLUMN);
                     PP.LexNonComment(Tok);
                     checkDirErrN(Tok.isAnyIdentifier(), 3415, COLUMN);
-                    red->arrayName = Tok.getIdentifierInfo()->getName();
+                    red->arrayName = Tok.getIdentifierInfo()->getName().str();
                     PP.LexNonComment(Tok);
                     if (red->isLoc()) {
                         checkDirErrN(Tok.is(tok::comma), 3416, COLUMN);
                         PP.LexNonComment(Tok);
                         checkDirErrN(Tok.isAnyIdentifier(), 3417, COLUMN);
-                        red->locName = Tok.getIdentifierInfo()->getName();
+                        red->locName = Tok.getIdentifierInfo()->getName().str();
                         PP.LexNonComment(Tok);
                         if (Tok.is(tok::comma)) {
                             red->locSize = readExpr(PP, Tok);
@@ -417,7 +417,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 while (Tok.isAnyIdentifier()) {
                     curPragma->shadowRenews.push_back(ClauseShadowRenew());
                     ClauseShadowRenew *shad = &curPragma->shadowRenews.back();
-                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
                     shad->cornerFlag = 0;
                     shad->arrayName = tokStr;
                     PP.LexNonComment(Tok);
@@ -488,7 +488,20 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 while (Tok.isAnyIdentifier()) {
                     curPragma->acrosses.push_back(ClauseAcross());
                     ClauseAcross *acr = &curPragma->acrosses.back();
-                    tokStr = Tok.getIdentifierInfo()->getName();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
+                    if (tokStr == "out") {
+                        PP.EnableBacktrackAtThisPos();
+                        PP.LexNonComment(Tok);
+                        if (Tok.is(tok::colon)) {
+                            acr->isOut = true;
+                            PP.CommitBacktrackedTokens();
+                            PP.LexNonComment(Tok);
+                            checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName().str();
+                        } else {
+                            PP.Backtrack();
+                        }
+                    }
                     acr->arrayName = tokStr;
                     PP.LexNonComment(Tok);
                     if (Tok.is(tok::l_square)) {
@@ -509,10 +522,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                     checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3413, "across", COLUMN);
                     if (Tok.is(tok::comma)) {
                         PP.LexNonComment(Tok);
-                        if (curPragma->mappedFlag)
-                            checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
-                        else
-                            checkDirErrN(Tok.isAnyIdentifier(), 3424, COLUMN);
+                        checkDirErrN(Tok.isAnyIdentifier(), 3423, "across", COLUMN);
                     }
                 }
                 checkDirErrN(Tok.is(tok::r_paren), 3412, "across", COLUMN);
@@ -553,6 +563,46 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
                 checkDirErrN(!curPragma->stage.empty(), 3428);
                 checkDirErrN(Tok.is(tok::r_paren), 3412, "stage", COLUMN);
                 PP.LexNonComment(Tok);
+            } else if (tokStr == "tie") {
+                checkDirErrN(curPragma->mapRule.isInitialized(), 3441);
+                PP.LexNonComment(Tok);
+                checkDirErrN(Tok.is(tok::l_paren), 3412, "tie", COLUMN);
+                PP.LexNonComment(Tok);
+                while (Tok.isAnyIdentifier()) {
+                    curPragma->ties.push_back(ClauseTie());
+                    ClauseTie *tie = &curPragma->ties.back();
+                    tokStr = Tok.getIdentifierInfo()->getName().str();
+                    tie->arrayName = tokStr;
+                    PP.LexNonComment(Tok);
+                    while (Tok.is(tok::l_square)) {
+                        PP.LexNonComment(Tok);
+                        if (Tok.is(tok::r_square)) {
+                            tie->loopAxes.push_back(0);
+                        } else if (Tok.is(tok::minus)) {
+                            PP.LexNonComment(Tok);
+                            checkDirErrN(Tok.isAnyIdentifier(), 3442, "tie", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName().str();
+                            checkDirErrN(curPragma->mapRule.nameToAxis.find(tokStr) != curPragma->mapRule.nameToAxis.end(), 3442, "tie", COLUMN);
+                            tie->loopAxes.push_back(-curPragma->mapRule.nameToAxis[tokStr]);
+                            PP.LexNonComment(Tok);
+                        } else {
+                            checkDirErrN(Tok.isAnyIdentifier(), 3442, "tie", COLUMN);
+                            tokStr = Tok.getIdentifierInfo()->getName().str();
+                            checkDirErrN(curPragma->mapRule.nameToAxis.find(tokStr) != curPragma->mapRule.nameToAxis.end(), 3442, "tie", COLUMN);
+                            tie->loopAxes.push_back(curPragma->mapRule.nameToAxis[tokStr]);
+                            PP.LexNonComment(Tok);
+                        }
+                        checkDirErrN(Tok.is(tok::r_square), 3421, "tie", COLUMN);
+                        PP.LexNonComment(Tok);
+                    }
+                    checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3413, "tie", COLUMN);
+                    if (Tok.is(tok::comma)) {
+                        PP.LexNonComment(Tok);
+                        checkDirErrN(Tok.isAnyIdentifier(), 3423, "tie", COLUMN);
+                    }
+                }
+                checkDirErrN(Tok.is(tok::r_paren), 3412, "tie", COLUMN);
+                PP.LexNonComment(Tok);
             } else {
                 checkDirErrN(false, 3429, tokStr.c_str(), COLUMN);
             }
@@ -584,7 +634,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         while (Tok.isAnyIdentifier()) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             curPragma->names.push_back(tokStr);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 363, COLUMN);
@@ -625,14 +675,14 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         curPragma->copyCommonInfo(this->curPragma);
         PP.LexNonComment(Tok);
         while (Tok.isAnyIdentifier()) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             checkDirErrN(tokStr == "set", 364, tokStr.c_str(), COLUMN);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
             std::map<std::string, std::string> newSet;
             PP.LexNonComment(Tok);
             while (Tok.isAnyIdentifier()) {
-                std::string paramName = Tok.getIdentifierInfo()->getName();
+                std::string paramName = Tok.getIdentifierInfo()->getName().str();
                 checkDirErrN(newSet.find(paramName) == newSet.end(), 366, paramName.c_str(), COLUMN);
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::equal), 365, COLUMN);
@@ -668,7 +718,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-        curPragma->targetName = Tok.getIdentifierInfo()->getName();
+        curPragma->targetName = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         int rank = 0;
         curPragma->ruleAxis = 0; // 1-based
@@ -699,14 +749,14 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         PP.LexNonComment(Tok);
         while (Tok.isAnyIdentifier()) {
             // clauses
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             if (tokStr == "include_to") {
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
                 // Variable name list
                 PP.LexNonComment(Tok);
                 while (Tok.isAnyIdentifier()) {
-                    curPragma->includeList.push_back(Tok.getIdentifierInfo()->getName());
+                    curPragma->includeList.push_back(Tok.getIdentifierInfo()->getName().str());
                     PP.LexNonComment(Tok);
                     checkDirErr(Tok.is(tok::comma) || Tok.is(tok::r_paren), "Comma-separated list of variables expected at column %d", COLUMN);
                     if (Tok.is(tok::comma)) {
@@ -735,14 +785,14 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-        curPragma->refName = Tok.getIdentifierInfo()->getName();
+        curPragma->refName = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::equal), 3012, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::greater), 3012, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-        curPragma->targetName = Tok.getIdentifierInfo()->getName();
+        curPragma->targetName = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         int rank = 0;
         while (Tok.is(tok::l_square)) {
@@ -771,7 +821,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         while (Tok.isAnyIdentifier()) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             curPragma->nameList.push_back(tokStr);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.is(tok::comma) || Tok.is(tok::r_paren), 3015, COLUMN);
@@ -794,13 +844,13 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         checkDirErrN(Tok.is(tok::l_paren), 308, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-        tokStr = Tok.getIdentifierInfo()->getName();
+        tokStr = Tok.getIdentifierInfo()->getName().str();
         curPragma->dstName = tokStr;
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::equal), 3016, COLUMN);
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-        tokStr = Tok.getIdentifierInfo()->getName();
+        tokStr = Tok.getIdentifierInfo()->getName().str();
         curPragma->srcName = tokStr;
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::r_paren), 3015, COLUMN);
@@ -812,13 +862,13 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
         // XXX: Experimental directive for working with checkpoints
         // Syntax: dvm checkpoint [save|load] cpName [...]
         PP.LexNonComment(Tok);
-        std::string tokStr = Tok.getIdentifierInfo()->getName();
+        std::string tokStr = Tok.getIdentifierInfo()->getName().str();
         if (tokStr == "save") {
             PragmaCheckpointSave *curPragma = new PragmaCheckpointSave();
             curPragma->copyCommonInfo(this->curPragma);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             curPragma->cpName = tokStr;
             fileCtx.addPragma(fileID.getHashValue(), curPragma);
             PP.LexNonComment(Tok);
@@ -827,7 +877,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
             curPragma->copyCommonInfo(this->curPragma);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             curPragma->cpName = tokStr;
             fileCtx.addPragma(fileID.getHashValue(), curPragma);
             PP.LexNonComment(Tok);
@@ -836,22 +886,22 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, clang::PragmaIntroducer In
             curPragma->copyCommonInfo(this->curPragma);
             curPragma->cpName = tokStr;
             fileCtx.addPragma(fileID.getHashValue(), curPragma);
-
             PP.LexNonComment(Tok);
-            tokStr = Tok.getIdentifierInfo()->getName();
+
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             checkDirErrN(PragmaCheckpointDeclare::isTokenMode(tokStr), 482, COLUMN);
             curPragma->mode = tokStr;
-
             PP.LexNonComment(Tok);
-            tokStr = Tok.getIdentifierInfo()->getName();
-//            checkDirErrN(Tok.isNumber(), 3224, COLUMN);
-            curPragma->nFiles = tokStr;
 
+            tokStr = .getIdentifierInfo()->getName().str();
+            cdvmhLog(TRACE, fileName, line, "Next Token: %s", tokStr.c_str());
+//            curPragma->nFiles = std::stoi(tokStr);
             PP.LexNonComment(Tok);
         } else {
             checkDirErrN(false, 309, tokStr.c_str());
 //            checkDirErrN(false, 481, COLUMN);
-        } else {
+        }
+    } else {
         checkDirErrN(false, 309, tokStr.c_str());
     }
     delete curPragma;
@@ -926,7 +976,7 @@ DistribRule DvmPragmaHandler::parseDistribRule(Preprocessor &PP, Token &Tok) {
             if (Tok.is(tok::star))
                 PP.LexNonComment(Tok);
         } else {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             if (tokStr == "block")
                 axisRule.distrType = DistribAxisRule::dtBlock;
             else if (tokStr == "wgtblock") {
@@ -935,7 +985,7 @@ DistribRule DvmPragmaHandler::parseDistribRule(Preprocessor &PP, Token &Tok) {
                 checkDirErrN(Tok.is(tok::l_paren), 328, "wgtblock", COLUMN);
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.isAnyIdentifier(), 329, "wgtblock", COLUMN);
-                std::string wgtArrName = Tok.getIdentifierInfo()->getName();
+                std::string wgtArrName = Tok.getIdentifierInfo()->getName().str();
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::comma), 3210, COLUMN);
                 MyExpr wgtArrSize = readExpr(PP, Tok);
@@ -948,7 +998,7 @@ DistribRule DvmPragmaHandler::parseDistribRule(Preprocessor &PP, Token &Tok) {
                 checkDirErrN(Tok.is(tok::l_paren), 328, "genblock", COLUMN);
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.isAnyIdentifier(), 329, "genblock", COLUMN);
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 axisRule.genBlockArray = tokStr;
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::r_paren), 328, "genblock", COLUMN);
@@ -965,7 +1015,7 @@ DistribRule DvmPragmaHandler::parseDistribRule(Preprocessor &PP, Token &Tok) {
                 checkDirErrN(Tok.is(tok::l_paren), 328, "indirect", COLUMN);
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.isAnyIdentifier(), 329, "indirect", COLUMN);
-                tokStr = Tok.getIdentifierInfo()->getName();
+                tokStr = Tok.getIdentifierInfo()->getName().str();
                 axisRule.indirectArray = tokStr;
                 PP.LexNonComment(Tok);
                 checkDirErrN(Tok.is(tok::r_paren), 328, "indirect", COLUMN);
@@ -1105,7 +1155,7 @@ AlignRule DvmPragmaHandler::parseAlignRule(Preprocessor &PP, Token &Tok, bool pa
         else
             checkDirErrN(Tok.isAnyIdentifier() || Tok.is(tok::r_square), 3221, COLUMN);
         if (!Tok.is(tok::r_square)) {
-            tokStr = Tok.getIdentifierInfo()->getName();
+            tokStr = Tok.getIdentifierInfo()->getName().str();
             bool ok = res.nameToAxis.find(tokStr) == res.nameToAxis.end();
             if (parLoopFlag)
                 checkDirErrN(ok, 3437, tokStr.c_str(), COLUMN);
@@ -1121,11 +1171,15 @@ AlignRule DvmPragmaHandler::parseAlignRule(Preprocessor &PP, Token &Tok, bool pa
         PP.LexNonComment(Tok);
     }
     res.rank = rank;
-    if (parLoopFlag)
+    if (parLoopFlag) {
+        if (Tok.is(tok::r_paren)) {
+            return res;
+        }
         checkDirErrN(Tok.isAnyIdentifier(), 3439, COLUMN);
-    else
+    } else {
         checkDirErrN(Tok.isAnyIdentifier(), 3224, COLUMN);
-    tokStr = Tok.getIdentifierInfo()->getName();
+    }
+    tokStr = Tok.getIdentifierInfo()->getName().str();
     if (parLoopFlag)
         checkDirErrN(tokStr == "on", 3439, COLUMN);
     else
@@ -1135,7 +1189,7 @@ AlignRule DvmPragmaHandler::parseAlignRule(Preprocessor &PP, Token &Tok, bool pa
         checkDirErrN(Tok.isAnyIdentifier(), 3440, COLUMN);
     else
         checkDirErrN(Tok.isAnyIdentifier(), 3225, COLUMN);
-    res.templ = Tok.getIdentifierInfo()->getName();
+    res.templ = Tok.getIdentifierInfo()->getName().str();
     int templRank = 0;
     PP.LexNonComment(Tok);
     while (Tok.is(tok::l_square)) {
@@ -1156,7 +1210,7 @@ std::vector<SlicedArray> DvmPragmaHandler::parseSubarrays(Preprocessor &PP, Toke
     while (Tok.isAnyIdentifier()) {
         res.push_back(SlicedArray());
         SlicedArray *curVar = &res.back();
-        curVar->name = Tok.getIdentifierInfo()->getName();
+        curVar->name = Tok.getIdentifierInfo()->getName().str();
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::l_square) || Tok.is(tok::comma) || Tok.is(tok::r_paren), 3012, COLUMN);
         if (Tok.is(tok::l_square)) {
@@ -1255,7 +1309,7 @@ MyExpr DvmPragmaHandler::readExpr(Preprocessor &PP, Token &Tok, std::string stop
                 activeArrayRefs.pop_back();
         }
         if (Tok.isAnyIdentifier() && !hasDot) {
-            std::string tokStr = Tok.getIdentifierInfo()->getName();
+            std::string tokStr = Tok.getIdentifierInfo()->getName().str();
             res.usedNames.insert(tokStr);
             if (activeArrayRefs.empty())
                 res.topLevelNames.insert(tokStr);
