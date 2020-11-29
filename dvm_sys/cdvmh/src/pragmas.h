@@ -525,6 +525,20 @@ public:
     static bool isTokenMode(std::string tokStr) {
         return (tokStr == "LOCAL") | (tokStr == "LOCAL_ASYNC") | (tokStr == "PARALLEL") | (tokStr == "PARALLEL_ASYNC");
     }
+public:
+    int mode2int() {
+        if (this->mode == "LOCAL") {
+            return 0;
+        } else if (this->mode == "PARALLEL") {
+            return 0;
+        } else if (this->mode == "LOCAL_ASYNC") {
+            return 0;
+        } else if (this->mode == "PARALLEL_ASYNC") {
+            return 0;
+        } else {
+            throw this->mode;
+        }
+    }
 };
 
 class PragmaCheckpointSave: public PragmaCheckpoint {

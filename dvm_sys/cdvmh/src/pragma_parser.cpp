@@ -899,9 +899,26 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
 
             checkDirErrN(Tok.is(tok::l_square), 484, COLUMN);
             PP.LexNonComment(Tok);
-
+            while (!Tok.is(tok::r_square)) {
+                checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+                tokStr = Tok.getIdentifierInfo()->getName().str();
+                curPragma->distribIndents.push_back(tokStr);
+                PP.LexNonComment(Tok);
+            }
             checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
             PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.is(tok::l_square), 484, COLUMN);
+            PP.LexNonComment(Tok);
+            while (!Tok.is(tok::r_square)) {
+                checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+                tokStr = Tok.getIdentifierInfo()->getName().str();
+                curPragma->scalarIndents.push_back(tokStr);
+                PP.LexNonComment(Tok);
+            }
+            checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
+            PP.LexNonComment(Tok);
+
         } else {
             checkDirErrN(false, 309, tokStr.c_str());
 //            checkDirErrN(false, 481, COLUMN);

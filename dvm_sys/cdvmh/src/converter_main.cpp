@@ -296,8 +296,32 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             toInsert += "\n";
         } else {
             PragmaCheckpointDeclare *curPragmaDecl = (PragmaCheckpointDeclare *)curPragma;
+            std::string namePrefix = "_" + curPragmaDecl->cpName;
+            std::string dArraysName = namePrefix + "DistributedArrays";
+            std::string scalarsName = namePrefix + "ScalarPointers";
+            std::string sizesName = namePrefix + "ScalarSizes";
+            size_t nDistributedVars = curPragmaDecl->distribIndents.size();
+            size_t nScalarVars = curPragmaDecl->scalarIndents.size();
+
+//            DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
+            toInsert += indent + "DvmType **" + dArraysName + " = (DvmType **) malloc(" + std::to_string(nDistributedVars) + "*sizeof(DvmType *));\n";
+            for (int i = 0; i < nDistributedVars; ++i) {
+                toInsert += indent + dArraysName + "[" + std::to_string(i) + "] = " +  curPragmaDecl->distribIndents[i] + ";\n";
+            }
+
+//            void **scalarPointers = (void **) malloc(2 * sizeof(void *));
+            toInsert += indent + "void **" + scalarsName + " = (void **) malloc(" + std::to_string(nScalarVars) +  "*sizeof(void *));\n";
+//            size_t *scalarsSizes = (size_t *) malloc(2 * sizeof(size_t *));
+            toInsert += indent + "size_t *" + sizesName + " = (size_t *) malloc(" + std::to_string(nScalarVars) + "*sizeof(size_t *));\n";
+            for (int i = 0; i < nScalarVars; ++i) {
+                toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *) &" +  curPragmaDecl->scalarIndents[i] + "; ";
+                toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" +  curPragmaDecl->scalarIndents[i] + ");\n";
+            }
+
             toInsert += indent + "dvmh_" + curPragmaDecl->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\", ";
-            toInsert += curPragmaDecl->mode + ", " + std::to_string(curPragmaDecl->nFiles) + ", ";
+            toInsert += std::to_string(curPragmaDecl->nFiles) + ", " + std::to_string(curPragmaDecl->mode2int()) + ", ";
+            toInsert = toInsert + dArraysName + ", " + std::to_string(nDistributedVars) + ", ";
+            toInsert = toInsert + scalarsName + ", " + sizesName + ", " + std::to_string(nScalarVars);
             toInsert += ");\n\n";
         }
         rewr.InsertText(loc, toInsert, false, false);
