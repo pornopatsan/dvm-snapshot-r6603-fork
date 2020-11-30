@@ -48,7 +48,7 @@ predictor: Zlib
 pppa: Zlib
 	cd tools/pppa; $(MAKE) "MAKE=$(MAKE)" "CXX=$(CXX)" "LINKER=$(HOST_LINKER)" all
 
-all: rts-dvm rts-tasks rts-dvmh cdvm cdvmh fdvm driver Zlib predictor pppa
+all: rts-dvm rts-tasks rts-dvmh cdvm cdvmh driver Zlib predictor pppa
 	@echo "****** DONE MAKING dvm/: $(SUBDIR) ******"
 
 clean:

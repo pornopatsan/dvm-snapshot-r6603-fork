@@ -211,7 +211,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
         PragmaInterval *curPragma = new PragmaInterval();
         curPragma->copyCommonInfo(this->curPragma);
         curPragma->userID = readExpr(PP, Tok);
-        if (curPragma->userID.empty()) 
+        if (curPragma->userID.empty())
             curPragma->userID.append("0");
         checkDirErrN(Tok.is(tok::eod), 306, COLUMN);
         fileCtx.addPragma(fileID.getHashValue(), curPragma);
@@ -857,6 +857,72 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
         PP.LexNonComment(Tok);
         checkDirErrN(Tok.is(tok::eod), 306, COLUMN);
         fileCtx.addPragma(fileID.getHashValue(), curPragma);
+    } else if (tokStr == "checkpoint") {
+        // CHECKPOINT
+        // XXX: Experimental directive for working with checkpoints
+        // Syntax: dvm checkpoint [save|load] cpName [...]
+        PP.LexNonComment(Tok);
+        std::string tokStr = Tok.getIdentifierInfo()->getName().str();
+        if (tokStr == "save") {
+            PragmaCheckpointSave *curPragma = new PragmaCheckpointSave();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName().str();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+        } else if (tokStr == "load") {
+            PragmaCheckpointLoad *curPragma = new PragmaCheckpointLoad();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName().str();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+        } else if (Tok.isAnyIdentifier()) {
+            PragmaCheckpointDeclare *curPragma = new PragmaCheckpointDeclare();
+            curPragma->copyCommonInfo(this->curPragma);
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+
+            tokStr = Tok.getIdentifierInfo()->getName().str();
+            checkDirErrN(PragmaCheckpointDeclare::isTokenMode(tokStr), 482, COLUMN);
+            curPragma->mode = tokStr;
+            PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.isLiteral(), 483, COLUMN);
+            curPragma->nFiles = std::atoi(Tok.getLiteralData());
+            PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.is(tok::l_square), 484, COLUMN);
+            PP.LexNonComment(Tok);
+            while (!Tok.is(tok::r_square)) {
+                checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+                tokStr = Tok.getIdentifierInfo()->getName().str();
+                curPragma->distribIndents.push_back(tokStr);
+                PP.LexNonComment(Tok);
+            }
+            checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
+            PP.LexNonComment(Tok);
+
+            checkDirErrN(Tok.is(tok::l_square), 484, COLUMN);
+            PP.LexNonComment(Tok);
+            while (!Tok.is(tok::r_square)) {
+                checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+                tokStr = Tok.getIdentifierInfo()->getName().str();
+                curPragma->scalarIndents.push_back(tokStr);
+                PP.LexNonComment(Tok);
+            }
+            checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
+            PP.LexNonComment(Tok);
+
+        } else {
+            checkDirErrN(false, 309, tokStr.c_str());
+//            checkDirErrN(false, 481, COLUMN);
+        }
     } else {
         checkDirErrN(false, 309, tokStr.c_str());
     }

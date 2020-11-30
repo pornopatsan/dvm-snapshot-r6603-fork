@@ -279,6 +279,7 @@ void ConverterASTVisitor::genUnbinded(FileID fileID, int line) {
         genLocalizes(fileID, line);
         genUnlocalizes(fileID, line);
         genArrayCopies(fileID, line);
+        genCheckpoints(fileID, line);
     } while (fileCtx.getLatestPragmaLine(fileID.getHashValue()) > prevPragmaLine);
 }
 

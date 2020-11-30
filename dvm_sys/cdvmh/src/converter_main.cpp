@@ -281,6 +281,53 @@ void ConverterASTVisitor::genArrayCopies(FileID fileID, int line) {
     }
 }
 
+void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
+    while (DvmPragma *gotPragma = fileCtx.getNextPragma(fileID.getHashValue(), line, DvmPragma::pkCheckpoint)) {
+        PragmaCheckpoint *curPragma = (PragmaCheckpoint *)gotPragma;
+        SourceLocation loc(srcMgr.translateLineCol(fileID, curPragma->srcLine + curPragma->srcLineSpan, 1));
+        std::string indent = extractIndent(srcMgr.getCharacterData(srcMgr.translateLineCol(fileID, curPragma->srcLine, 1)));
+        std::string toInsert;
+        if (!opts.lessDvmLines)
+            toInsert += indent + genDvmLine(curPragma) + "\n";
+
+        auto pragmaType = curPragma->getTypeStr();
+        if ((pragmaType == "save") || (pragmaType == "load")) {
+            toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
+            toInsert += "\n";
+        } else {
+            PragmaCheckpointDeclare *curPragmaDecl = (PragmaCheckpointDeclare *)curPragma;
+            std::string namePrefix = "_" + curPragmaDecl->cpName;
+            std::string dArraysName = namePrefix + "DistributedArrays";
+            std::string scalarsName = namePrefix + "ScalarPointers";
+            std::string sizesName = namePrefix + "ScalarSizes";
+            size_t nDistributedVars = curPragmaDecl->distribIndents.size();
+            size_t nScalarVars = curPragmaDecl->scalarIndents.size();
+
+//            DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
+            toInsert += indent + "DvmType **" + dArraysName + " = (DvmType **) malloc(" + std::to_string(nDistributedVars) + "*sizeof(DvmType *));\n";
+            for (int i = 0; i < nDistributedVars; ++i) {
+                toInsert += indent + dArraysName + "[" + std::to_string(i) + "] = " +  curPragmaDecl->distribIndents[i] + ";\n";
+            }
+
+//            void **scalarPointers = (void **) malloc(2 * sizeof(void *));
+            toInsert += indent + "void **" + scalarsName + " = (void **) malloc(" + std::to_string(nScalarVars) +  "*sizeof(void *));\n";
+//            size_t *scalarsSizes = (size_t *) malloc(2 * sizeof(size_t *));
+            toInsert += indent + "size_t *" + sizesName + " = (size_t *) malloc(" + std::to_string(nScalarVars) + "*sizeof(size_t *));\n";
+            for (int i = 0; i < nScalarVars; ++i) {
+                toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *) &" +  curPragmaDecl->scalarIndents[i] + "; ";
+                toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" +  curPragmaDecl->scalarIndents[i] + ");\n";
+            }
+
+            toInsert += indent + "dvmh_" + curPragmaDecl->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\", ";
+            toInsert += std::to_string(curPragmaDecl->nFiles) + ", " + std::to_string(curPragmaDecl->mode2int()) + ", ";
+            toInsert = toInsert + dArraysName + ", " + std::to_string(nDistributedVars) + ", ";
+            toInsert = toInsert + scalarsName + ", " + sizesName + ", " + std::to_string(nScalarVars);
+            toInsert += ");\n\n";
+        }
+        rewr.InsertText(loc, toInsert, false, false);
+    }
+}
+
 void ConverterASTVisitor::genDerivedFuncPair(const DerivedAxisRule &rule, std::string &countingFormalParamsFwd, std::string &countingFormalParams,
         std::string &countingFuncBody, std::string &fillingFormalParamsFwd, std::string &fillingFormalParams, std::string &fillingFuncBody,
         int &passParamsCount, std::string &passParams)
