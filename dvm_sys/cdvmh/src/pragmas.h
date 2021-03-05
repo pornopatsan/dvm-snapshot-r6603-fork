@@ -521,6 +521,8 @@ public:
     int nFiles;
     std::vector<std::string> distribIndents;
     std::vector<std::string> scalarIndents;
+    std::vector<int> scalarOffsets;
+    std::vector<int> scalarSizes;
 public:
     static bool isTokenMode(std::string tokStr) {
         return (tokStr == "LOCAL") | (tokStr == "LOCAL_ASYNC") | (tokStr == "PARALLEL") | (tokStr == "PARALLEL_ASYNC");

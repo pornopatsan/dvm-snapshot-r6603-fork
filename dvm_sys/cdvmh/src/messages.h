@@ -250,6 +250,7 @@
 #define MSG_483 "Value error in checkpoint specification. Integer expected at column %d."
 #define MSG_484 "Value error in checkpoint specification. '[' expected at column %d."
 #define MSG_485 "Value error in checkpoint specification. ']' expected at column %d."
+#define MSG_486 "Value error in checkpoint specification. ')' expected at column %d."
 
 // Section 5 - directives-unrelated restrictions violations
 #define MSG_51 "Can not be in an included file"

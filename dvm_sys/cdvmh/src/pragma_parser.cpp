@@ -914,7 +914,24 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
                 checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
                 tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->scalarIndents.push_back(tokStr);
+                curPragma->scalarOffsets.push_back(0);
+                curPragma->scalarSizes.push_back(1);
                 PP.LexNonComment(Tok);
+                if (Tok.is(tok::l_paren)) {
+                    PP.LexNonComment(Tok);
+                    checkDirErrN(Tok.isLiteral(), 483, COLUMN);
+                    curPragma->scalarSizes.back() = std::atoi(Tok.getLiteralData());
+                    PP.LexNonComment(Tok);
+                    if (Tok.is(tok::colon)) {
+                        PP.LexNonComment(Tok);
+                        checkDirErrN(Tok.isLiteral(), 483, COLUMN);
+                        curPragma->scalarOffsets.back() = curPragma->scalarSizes.back();
+                        curPragma->scalarSizes.back() = std::atoi(Tok.getLiteralData());
+                        PP.LexNonComment(Tok);
+                    }
+                    checkDirErrN(Tok.is(tok::r_paren), 486, COLUMN);
+                    PP.LexNonComment(Tok);
+                }
             }
             checkDirErrN(Tok.is(tok::r_square), 485, COLUMN);
             PP.LexNonComment(Tok);
