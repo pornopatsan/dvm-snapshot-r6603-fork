@@ -316,6 +316,7 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             for (int i = 0; i < nScalarVars; ++i) {
                 toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *) &" + curPragmaDecl->scalarIndents[i] +
                         "+" + std::to_string(curPragmaDecl->scalarOffsets[i]) + "; ";
+                // TODO: fix problem with sizeof(*) for scalar arrays if they are static
                 toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" + curPragmaDecl->scalarIndents[i] +
                         ")*" + std::to_string(curPragmaDecl->scalarSizes[i]) + ";\n";
             }
