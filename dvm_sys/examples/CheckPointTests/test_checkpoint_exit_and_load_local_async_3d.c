@@ -27,15 +27,7 @@ void run(int val) {
     char B[5] = "12345"; B[val % 5] = '1';
     double C = 3.14 + val;
 
-    void **scalarPointers = (void **) malloc(2 * sizeof(void *));
-    size_t *scalarsSizes = (size_t *) malloc(2 * sizeof(size_t *));
-    scalarPointers[0] = (void *) B;
-    scalarPointers[1] = (void *) &C;
-    scalarsSizes[0] = (size_t) 5 * sizeof(B[0]);
-    scalarsSizes[1] = (size_t) sizeof(C);
-
-    dvmh_create_or_bind_control_point(name, nfiles, mode, dvmDesc, 1, scalarPointers, scalarsSizes, 2);
-    dvmh_load_control_point(name);
+    #pragma dvm checkpoint test_checkpoint_exit_and_load_local_async LOCAL_ASYNC 3 [A] [B C]
 
     #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
     for(int i = 0; i < N; ++i) {

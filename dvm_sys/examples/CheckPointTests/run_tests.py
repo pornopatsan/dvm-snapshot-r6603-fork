@@ -35,10 +35,10 @@ def get_grid_list(filename, size_=3, min_=1, max_=2, max_slots=6):
                 cur_grid.append(cur_axis)
             if cur_grid not in result:
                 result.append(cur_grid)
-            if len(result) == size_:
+            if len(result) >= size_:
                 return result
         raise RuntimeError('Could not get grids for test!')
-    return [[]]
+    return [[1, 1, 1]]
 
 
 def run_test(task, grid_list):
@@ -47,7 +47,8 @@ def run_test(task, grid_list):
         command = f'{USER_DIR}/dvm run {grid_str} {TESTS_WORKDIR}/{task}'
         logging.info(f'Running command:\t{command}')
         status = os.system(command)
-        is_correct = bool(status) == bool('_fail' in task)
+        is_correct = (bool(status) == bool('_fail' in task))
+        # TODO: check number of saved files to ensure correct checkpoint type
         yield is_correct
         if not is_correct:
             return

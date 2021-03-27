@@ -533,11 +533,11 @@ public:
         if (this->mode == "LOCAL") {
             return 0;
         } else if (this->mode == "PARALLEL") {
-            return 0;
+            return 1;
         } else if (this->mode == "LOCAL_ASYNC") {
-            return 0;
+            return 2;
         } else if (this->mode == "PARALLEL_ASYNC") {
-            return 0;
+            return 3;
         } else {
             throw this->mode;
         }
