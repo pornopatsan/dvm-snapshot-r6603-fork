@@ -324,8 +324,8 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             toInsert += indent + "dvmh_" + curPragmaDecl->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\", ";
             toInsert += std::to_string(curPragmaDecl->nFiles) + ", " + std::to_string(curPragmaDecl->mode2int()) + ", ";
             toInsert = toInsert + dArraysName + ", " + std::to_string(nDistributedVars) + ", ";
-            toInsert = toInsert + scalarsName + ", " + sizesName + ", " + std::to_string(nScalarVars);
-            toInsert += ");\n\n";
+            toInsert = toInsert + scalarsName + ", " + sizesName + ", " + std::to_string(nScalarVars) + ");\n";;
+            toInsert += indent + "dvmh_load_control_point(\"" + curPragma->cpName + "\");";
         }
         rewr.InsertText(loc, toInsert, false, false);
     }
