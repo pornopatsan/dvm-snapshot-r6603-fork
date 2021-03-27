@@ -881,6 +881,15 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
             curPragma->cpName = tokStr;
             fileCtx.addPragma(fileID.getHashValue(), curPragma);
             PP.LexNonComment(Tok);
+        } else if (tokStr == "wait") {
+            PragmaCheckpointWait *curPragma = new PragmaCheckpointWait();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName().str();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
         } else if (Tok.isAnyIdentifier()) {
             PragmaCheckpointDeclare *curPragma = new PragmaCheckpointDeclare();
             curPragma->copyCommonInfo(this->curPragma);

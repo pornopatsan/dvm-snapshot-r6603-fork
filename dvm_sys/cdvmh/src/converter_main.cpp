@@ -291,7 +291,7 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             toInsert += indent + genDvmLine(curPragma) + "\n";
 
         auto pragmaType = curPragma->getTypeStr();
-        if ((pragmaType == "save") || (pragmaType == "load")) {
+        if ((pragmaType == "save") || (pragmaType == "load") || (pragmaType == "wait")) {
             toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
             toInsert += "\n";
         } else {

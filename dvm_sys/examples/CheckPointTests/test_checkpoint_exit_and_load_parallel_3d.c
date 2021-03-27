@@ -51,7 +51,7 @@ void run(int val) {
     }
     assert(C == 3.14);
 
-    dvmh_save_control_point(name);
+    # pragma dvm checkpoint save test_checkpoint_exit_and_load_parallel
     dvmh_deactivate_control_point(name);
 }
 

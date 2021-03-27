@@ -5,14 +5,14 @@
 #include <assert.h>
 #include "all_header.h"
 
-const char *name = "test_checkpoint_exit_and_load_local_async";
-enum Mode mode = LOCAL_ASYNC;
+const char *name = "test_checkpoint_exit_and_load_local";
+enum Mode mode = LOCAL;
 
 void run(int val) {
-#pragma dvm array distribute[block][block][block]
+    #pragma dvm array distribute[block][block][block]
     unsigned int A[N][N][N];
 
-#pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
+    #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
     for(int i = 0; i < N; ++i) {
         for(int j = 0; j < N; ++j) {
             for(int k = 0; k < N; ++k) {
@@ -37,7 +37,7 @@ void run(int val) {
     dvmh_create_or_bind_control_point(name, nfiles, mode, dvmDesc, 1, scalarPointers, scalarsSizes, 2);
     dvmh_load_control_point(name);
 
-#pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
+    #pragma dvm parallel([i][j][k] on A[i][j][k]) cuda_block(256)
     for(int i = 0; i < N; ++i) {
         for(int j = 0; j < N; ++j) {
             for(int k = 0; k < N; ++k) {
@@ -51,8 +51,7 @@ void run(int val) {
     }
     assert(C == 3.14);
 
-    dvmh_save_control_point(name);
-    dvmh_wait_control_point(name);
+    # pragma dvm checkpoint save test_checkpoint_exit_and_load_local
     dvmh_deactivate_control_point(name);
 }
 
