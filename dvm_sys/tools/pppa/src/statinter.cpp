@@ -220,6 +220,7 @@ void CStatInter::to_json(json & result){
                 },
                 {"times",
                     {
+                        {"prod", prod},
                         {"prod_cpu", prod_cpu},
                         {"prod_sys", prod_sys},
                         {"prod_io", prod_io},
