@@ -270,6 +270,7 @@ CStatInter::CStatInter(json source){
 
     // -----  times  -----
     json j_times = source["times"];
+    prod = j_times["prod"];
     prod_cpu = j_times["prod_cpu"];
     prod_sys = j_times["prod_sys"];
     prod_io = j_times["prod_io"];
