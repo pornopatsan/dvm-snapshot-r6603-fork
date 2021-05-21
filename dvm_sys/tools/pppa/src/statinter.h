@@ -86,7 +86,7 @@ struct ProcTimes {
 	struct ThreadTime * th_times;
 	unsigned long num_gpu;
 	struct GpuTime *gpu_times;
-	struct ColOp col_op[4];//4~RED
+	struct ColOp col_op[RED + 1];//4~RED
 };
 
 typedef struct OpGrp OpGrp;

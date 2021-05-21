@@ -37,7 +37,7 @@ void CStatInter::to_string(std::string &result) {
 	result += patch::to_string(nproc)+' ';
 	result += patch::to_string(threadsOfAllProcs)+' ';
     result += "@end_times@\n";
-    for (unsigned int i = 0; i < RED; i++) {
+    for (unsigned int i = 0; i <= RED; i++) {
         result+= patch::to_string(col_op[i].ncall)+' ';
         result += patch::to_string(col_op[i].comm) + ' ';
         result += patch::to_string(col_op[i].synch) + ' ';
@@ -128,16 +128,16 @@ void CStatInter::to_string(std::string &result) {
 
 void CStatInter::to_json(json & result){
     json col_op_json, proc_times_json;
-    for (int i = 0; i < RED; i++) {
+    for (int i = 0; i <= RED; i++) {
         col_op_json.push_back(
-                {
-                        {"ncall", col_op[i].ncall},
-                        {"comm", col_op[i].comm},
-                        {"real_comm", col_op[i].real_comm},
-                        {"synch", col_op[i].synch},
-                        {"time_var", col_op[i].time_var},
-                        {"overlap", col_op[i].overlap}
-                });
+            {
+                {"ncall", col_op[i].ncall},
+                {"comm", col_op[i].comm},
+                {"real_comm", col_op[i].real_comm},
+                {"synch", col_op[i].synch},
+                {"time_var", col_op[i].time_var},
+                {"overlap", col_op[i].overlap}
+            });
     }
     for (unsigned int i = 0; i < nproc; i++) {
         json th_times_json, gpu_times_json;
@@ -145,10 +145,10 @@ void CStatInter::to_json(json & result){
 //        std::cout << ">> th_times_json\n";
         for (unsigned int j = 0; j < proc_times[i].num_threads; ++j){
             th_times_json.push_back(
-                    {
-                        {"sys_time", proc_times[i].th_times[j].sys_time},
-                        {"user_time", proc_times[i].th_times[j].user_time}
-                    });
+                {
+                    {"sys_time", proc_times[i].th_times[j].sys_time},
+                    {"user_time", proc_times[i].th_times[j].user_time}
+                });
         }
         //  ---  GPU  ---
         for (unsigned int j = 0; j < proc_times[i].num_gpu; j++) {
@@ -299,7 +299,7 @@ CStatInter::CStatInter(json source){
     // -----  col_op  -----
     if (source.contains("col_op")) {
         json j_col_op = source["col_op"];
-        for (int i = 0; i < RED; ++i) {
+        for (int i = 0; i <= RED; ++i) {
             col_op[i].ncall = j_col_op[i]["ncall"];
             col_op[i].comm = j_col_op[i]["comm"];
             col_op[i].real_comm = j_col_op[i]["real_comm"];
@@ -419,7 +419,7 @@ CStatInter::CStatInter(const CStatInter & si) {
 	gpu_time_lost=si.gpu_time_lost;
 	nproc=si.nproc;
 	threadsOfAllProcs=si.threadsOfAllProcs;
-    for (int i = 0; i < RED; i++) {
+    for (int i = 0; i <= RED; i++) {
         col_op[i] = si.col_op[i];
     }
 //    std::cout << ">> Prev OK\n";
@@ -604,7 +604,7 @@ CStatInter::CStatInter(CStatRead * stat, int n)
 	thr_sys_time = sum[DVMH_THREADS_SYSTEM_TIME];
 	gpu_time_prod = sum[DVMH_GPU_TIME_PRODUCTIVE];
 	gpu_time_lost = sum[DVMH_GPU_TIME_LOST];
-	for (int i = 0; i < RED; i++) {
+	for (int i = 0; i <= RED; i++) {
 		col_op[i].ncall = stat->ReadCall(typecom(i));
 		col_op[i].comm = sumc[i];
 		col_op[i].real_comm = sumrc[i];

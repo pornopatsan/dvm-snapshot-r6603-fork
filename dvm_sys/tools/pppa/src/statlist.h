@@ -62,7 +62,7 @@ public:
 	double gpu_time_lost;
 	unsigned long nproc;
 	unsigned long threadsOfAllProcs;
-	struct ColOp col_op[RED];
+	struct ColOp col_op[RED + 1];
     OpGrp (* op_group)[StatGrpCount];
     unsigned long qproc;
     bool isjson;
