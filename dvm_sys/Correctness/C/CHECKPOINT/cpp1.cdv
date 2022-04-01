@@ -37,8 +37,7 @@ int main(int an, char **as)
     cpp13(); cpp13();
 
     /* DISTRIBUTE arrA2[BLOCK][*] REDISTRIBUTE arrA2[*][BLOCK]*/
-    cpp14(); // cpp14(); Does not work propperly 
-    // load to original after redistribute & save 
+    cpp14(); cpp14();
 
     /* SHADOW RENEW */
     cpp15(); cpp15();
