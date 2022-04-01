@@ -494,7 +494,7 @@ public:
 
 class PragmaCheckpoint: public DvmPragma {
 public:
-    enum CPAction {cpDeclare, cpSave, cpLoad, cpWait};
+    enum CPAction {cpDeclare, cpSave, cpLoad, cpWait, cpFinalize};
 public:
     PragmaCheckpoint(CPAction aAction): DvmPragma(pkCheckpoint), action(aAction) {}
 public:
@@ -507,6 +507,7 @@ public:
             case cpSave: return "save";
             case cpLoad: return "load";
             case cpWait: return "wait";
+            case cpFinalize: return "deactivate";
         }
     }
 };
@@ -557,6 +558,11 @@ public:
 class PragmaCheckpointWait: public PragmaCheckpoint {
 public:
     PragmaCheckpointWait(): PragmaCheckpoint(cpWait) {}
+};
+
+class PragmaCheckpointFinalize: public PragmaCheckpoint {
+public:
+    PragmaCheckpointFinalize(): PragmaCheckpoint(cpFinalize) {}
 };
 
 }

@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
         usage(stderr);
         return 1;
     }
-    logLevel = TRACE;
+    logLevel = ERROR;
     const char *sett = getenv("DVMH_LOGLEVEL");
     if (sett) {
         logLevel = (LogLevel)atoi(sett);

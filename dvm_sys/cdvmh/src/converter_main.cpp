@@ -291,7 +291,7 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             toInsert += indent + genDvmLine(curPragma) + "\n";
 
         auto pragmaType = curPragma->getTypeStr();
-        if ((pragmaType == "save") || (pragmaType == "load") || (pragmaType == "wait")) {
+        if ((pragmaType == "save") || (pragmaType == "load") || (pragmaType == "wait") || (pragmaType == "deactivate")) {
             toInsert += indent + "dvmh_" + curPragma->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\");\n";
             toInsert += "\n";
         } else {
@@ -303,22 +303,27 @@ void ConverterASTVisitor::genCheckpoints(FileID fileID, int line) {
             size_t nDistributedVars = curPragmaDecl->distribIndents.size();
             size_t nScalarVars = curPragmaDecl->scalarIndents.size();
 
-            // DvmType **dvmDesc = (DvmType **) malloc(1 * sizeof(DvmType *));
+            // `DvmType **dvmDesc = (DvmType **) malloc(N * sizeof(DvmType *))`;
             toInsert += indent + "DvmType **" + dArraysName + " = (DvmType **) malloc(" + std::to_string(nDistributedVars) + "*sizeof(DvmType *));\n";
             for (int i = 0; i < nDistributedVars; ++i) {
                 toInsert += indent + dArraysName + "[" + std::to_string(i) + "] = " +  curPragmaDecl->distribIndents[i] + ";\n";
             }
 
-            // void **scalarPointers = (void **) malloc(2 * sizeof(void *));
+            // `void **scalarPointers = (void **) malloc(M * sizeof(void *))`;
             toInsert += indent + "void **" + scalarsName + " = (void **) malloc(" + std::to_string(nScalarVars) +  "*sizeof(void *));\n";
-            // size_t *scalarsSizes = (size_t *) malloc(2 * sizeof(size_t *));
+            // `size_t *scalarsSizes = (size_t *) malloc(M * sizeof(size_t *))`;
             toInsert += indent + "size_t *" + sizesName + " = (size_t *) malloc(" + std::to_string(nScalarVars) + "*sizeof(size_t *));\n";
             for (int i = 0; i < nScalarVars; ++i) {
-                toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *) &" + curPragmaDecl->scalarIndents[i] +
-                        "+" + std::to_string(curPragmaDecl->scalarOffsets[i]) + "; ";
-                // TODO: fix problem with sizeof(*) for scalar arrays if they are static
-                toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" + curPragmaDecl->scalarIndents[i] +
-                        ")*" + std::to_string(curPragmaDecl->scalarSizes[i]) + ";\n";
+                if (curPragmaDecl->scalarSizes[i] < 0) { // Implicit default size, signle variable is passed
+                    toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *) &" + curPragmaDecl->scalarIndents[i] + "; ";
+                    toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" + curPragmaDecl->scalarIndents[i] + ");\n";
+                } else { // Explicit size, scalar array is passed
+                    toInsert += indent + scalarsName + "[" + std::to_string(i) + "] = (void *)" + curPragmaDecl->scalarIndents[i] +
+                        "+ sizeof(" + curPragmaDecl->scalarIndents[i] + "[0])*" + std::to_string(curPragmaDecl->scalarOffsets[i]) + "; ";
+                    toInsert += sizesName + "[" + std::to_string(i) + "] = (size_t) sizeof(" + curPragmaDecl->scalarIndents[i] +
+                        "[0])*" + std::to_string(curPragmaDecl->scalarSizes[i]) + ";\n";
+                }
+                
             }
 
             toInsert += indent + "dvmh_" + curPragmaDecl->getTypeStr() + "_control_point(\"" + curPragma->cpName + "\", ";

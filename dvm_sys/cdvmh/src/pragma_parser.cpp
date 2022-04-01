@@ -860,7 +860,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
     } else if (tokStr == "checkpoint") {
         // CHECKPOINT
         // XXX: Experimental directive for working with checkpoints
-        // Syntax: dvm checkpoint [save|load] cpName [...]
+        // Syntax: dvm checkpoint [save|load] cpName [...] [...]
         PP.LexNonComment(Tok);
         std::string tokStr = Tok.getIdentifierInfo()->getName().str();
         if (tokStr == "save") {
@@ -883,6 +883,15 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
             PP.LexNonComment(Tok);
         } else if (tokStr == "wait") {
             PragmaCheckpointWait *curPragma = new PragmaCheckpointWait();
+            curPragma->copyCommonInfo(this->curPragma);
+            PP.LexNonComment(Tok);
+            checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
+            tokStr = Tok.getIdentifierInfo()->getName().str();
+            curPragma->cpName = tokStr;
+            fileCtx.addPragma(fileID.getHashValue(), curPragma);
+            PP.LexNonComment(Tok);
+        } else if (tokStr == "finalize") {
+            PragmaCheckpointFinalize *curPragma = new PragmaCheckpointFinalize();
             curPragma->copyCommonInfo(this->curPragma);
             PP.LexNonComment(Tok);
             checkDirErrN(Tok.isAnyIdentifier(), 3014, COLUMN);
@@ -924,7 +933,7 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
                 tokStr = Tok.getIdentifierInfo()->getName().str();
                 curPragma->scalarIndents.push_back(tokStr);
                 curPragma->scalarOffsets.push_back(0);
-                curPragma->scalarSizes.push_back(1);
+                curPragma->scalarSizes.push_back(-1); // 
                 PP.LexNonComment(Tok);
                 if (Tok.is(tok::l_paren)) {
                     PP.LexNonComment(Tok);
@@ -947,7 +956,6 @@ void DvmPragmaHandler::HandlePragma(Preprocessor &PP, PragmaIntroducer Introduce
 
         } else {
             checkDirErrN(false, 309, tokStr.c_str());
-//            checkDirErrN(false, 481, COLUMN);
         }
     } else {
         checkDirErrN(false, 309, tokStr.c_str());
