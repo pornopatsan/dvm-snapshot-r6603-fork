@@ -246,12 +246,15 @@ void loadControlPoint(ControlPoint *cp) {
         FILE *astream = dvmh_fopen((cp->getLastFilename()).c_str(), cp->getOpenMode("r").c_str());
         for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
             dvmh_smart_void_read(cp->dataPair.first[i], astream);
-            dvmh_shadow_renew_C(cp->dataPair.first[i], 0, 0);
         }
         for (size_t i = 0; i < cp->dataPair.second.size(); ++i) {
             dvmh_void_fread(cp->dataPair.second[i].first, 1, cp->dataPair.second[i].second, astream);
         }
         dvmh_fclose(astream);
+        dvmh_barrier();
+        for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
+            dvmh_shadow_renew_C(cp->dataPair.first[i], 0, 0);
+        }
     }
     cp->isLoaded = true;
     dvmh_barrier();
