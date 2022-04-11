@@ -64,36 +64,44 @@ void cpl11()
     char tname[] = "cpl11";
     #pragma dvm actual(firstrun)
     #pragma dvm actual(erri)
-    
+    #pragma dvm checkpoint cpl11 LOCAL 2 [A1] [firstrun B1(BN1OF:BN1SZ)]
+
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i])
     for (i = 0; i < AN1; i++) {
         A1[i] = i;
     }
+    } // End of region
     for (i = 0; i < BN1; i++) {
         B1[i] = 1;
     }
 
-    #pragma dvm checkpoint cpl11 LOCAL 2 [A1] [firstrun B1(BN1OF:BN1SZ)]
-    
     if (firstrun) {
         firstrun = 0;
         #pragma dvm actual(firstrun)
         #pragma dvm checkpoint save cpl11
     }
 
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i])
     for (i = 0; i < AN1; i++) {
         A1[i] = 0;
     }
+    } // End of region
     for (i = 0; i < BN1; i++) {
         B1[i] = 0;
     }
 
     #pragma dvm checkpoint load cpl11
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i]) reduction(sum(erri))
     for (i = 0; i < AN1; i++) {
         erri += abs(A1[i] - i);
     }
+    } // End of region
     for (i = 0; i < BN1; i++) { // test that subset af scalar array was restored 
         if ((i >= BN1OF) && (i < BN1OF + BN1SZ)) {
             erri += abs(B1[i] - 1);
@@ -135,16 +143,18 @@ void cpl12()
     char tname[] = "cpl12";
     #pragma dvm actual(firstrun)
     #pragma dvm actual(erri)
-    
+    #pragma dvm checkpoint cpl12 LOCAL 3 [A1] [firstrun B1(BN1OF:BN1SZ)]
+
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i])
     for (i = 0; i < AN1; i++) {
         A1[i] = i;
     }
+    }
     for (i = 0; i < BN1; i++) {
         B1[i] = 1;
     }
-
-    #pragma dvm checkpoint cpl12 LOCAL 3 [A1] [firstrun B1(BN1OF:BN1SZ)]
     
     if (firstrun) {
         firstrun = 0;
@@ -152,18 +162,24 @@ void cpl12()
         #pragma dvm checkpoint save cpl12
     }
 
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i])
     for (i = 0; i < AN1; i++) {
         A1[i] = 0;
+    }
     }
     for (i = 0; i < BN1; i++) {
         B1[i] = 0;
     }
 
     #pragma dvm checkpoint load cpl12
+    #pragma dvm region
+    {
     #pragma dvm parallel([i] on A1[i]) reduction(sum(erri))
     for (i = 0; i < AN1; i++) {
         erri += abs(A1[i] - i);
+    }
     }
     for (i = 0; i < BN1; i++) { // test that subset af scalar array was restored 
         if ((i >= BN1OF) && (i < BN1OF + BN1SZ)) {
@@ -336,6 +352,7 @@ void cpl14()
     #undef AN2
 }
 
+/* SHADOW RENEW */
 void cpl15()
 {
     #define N 12
