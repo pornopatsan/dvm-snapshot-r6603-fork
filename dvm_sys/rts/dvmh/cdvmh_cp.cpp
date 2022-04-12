@@ -253,7 +253,8 @@ void loadControlPoint(ControlPoint *cp) {
         dvmh_fclose(astream);
         dvmh_barrier();
         for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
-            dvmh_shadow_renew_C(cp->dataPair.first[i], 0, 0);
+            // For now just rener corner every time
+            dvmh_shadow_renew_C(cp->dataPair.first[i], 1, 0);
         }
     }
     cp->isLoaded = true;
