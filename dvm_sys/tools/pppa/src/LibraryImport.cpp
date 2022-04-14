@@ -29,7 +29,7 @@ void _stat_to_char(CStat &stat, char * &res){
     res[str.size()] = '\0';
 }
 
-JNIEXPORT jstring JNICALL Java_LibraryImport_readStat(JNIEnv * env, jobject obj, jstring s)
+JNIEXPORT jstring JNICALL Java_analyzer_LibraryImport_readStat(JNIEnv * env, jobject obj, jstring s)
 {
 //    printf("Hello, Java! I am C++!!! Hm\n");
     jboolean isCopy;

@@ -12,7 +12,7 @@ extern "C" {
  * Method:    readStat
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jstring JNICALL Java_LibraryImport_readStat
+JNIEXPORT jstring JNICALL Java_analyzer_LibraryImport_readStat
         (JNIEnv *, jobject, jstring);
 
 #ifdef __cplusplus
