@@ -494,7 +494,7 @@ public:
 
 class PragmaCheckpoint: public DvmPragma {
 public:
-    enum CPAction {cpDeclare, cpSave, cpLoad};
+    enum CPAction {cpDeclare, cpSave, cpLoad, cpWait, cpFinalize};
 public:
     PragmaCheckpoint(CPAction aAction): DvmPragma(pkCheckpoint), action(aAction) {}
 public:
@@ -506,6 +506,8 @@ public:
             case cpDeclare: return "create_or_bind";
             case cpSave: return "save";
             case cpLoad: return "load";
+            case cpWait: return "wait";
+            case cpFinalize: return "deactivate";
         }
     }
 };
@@ -521,6 +523,8 @@ public:
     int nFiles;
     std::vector<std::string> distribIndents;
     std::vector<std::string> scalarIndents;
+    std::vector<int> scalarOffsets;
+    std::vector<int> scalarSizes;
 public:
     static bool isTokenMode(std::string tokStr) {
         return (tokStr == "LOCAL") | (tokStr == "LOCAL_ASYNC") | (tokStr == "PARALLEL") | (tokStr == "PARALLEL_ASYNC");
@@ -530,11 +534,11 @@ public:
         if (this->mode == "LOCAL") {
             return 0;
         } else if (this->mode == "PARALLEL") {
-            return 0;
+            return 1;
         } else if (this->mode == "LOCAL_ASYNC") {
-            return 0;
+            return 2;
         } else if (this->mode == "PARALLEL_ASYNC") {
-            return 0;
+            return 3;
         } else {
             throw this->mode;
         }
@@ -549,6 +553,16 @@ public:
 class PragmaCheckpointLoad: public PragmaCheckpoint {
 public:
     PragmaCheckpointLoad(): PragmaCheckpoint(cpLoad) {}
+};
+
+class PragmaCheckpointWait: public PragmaCheckpoint {
+public:
+    PragmaCheckpointWait(): PragmaCheckpoint(cpWait) {}
+};
+
+class PragmaCheckpointFinalize: public PragmaCheckpoint {
+public:
+    PragmaCheckpointFinalize(): PragmaCheckpoint(cpFinalize) {}
 };
 
 }

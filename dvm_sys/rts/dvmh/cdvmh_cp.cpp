@@ -1,5 +1,6 @@
 #include "cdvmh_cp.h"
 #include "dvmh_stdio.h"
+#include "dvmh2.h"
 #include "include/dvmh_runtime_api.h"
 #include "include/dvmhlib_stdio.h"
 
@@ -250,6 +251,11 @@ void loadControlPoint(ControlPoint *cp) {
             dvmh_void_fread(cp->dataPair.second[i].first, 1, cp->dataPair.second[i].second, astream);
         }
         dvmh_fclose(astream);
+        dvmh_barrier();
+        for (size_t i = 0; i < cp->dataPair.first.size(); ++i) {
+            // For now just rener corner every time
+            dvmh_shadow_renew_C(cp->dataPair.first[i], 1, 0);
+        }
     }
     cp->isLoaded = true;
     dvmh_barrier();
@@ -334,6 +340,9 @@ extern "C" void dvmh_wait_control_point(const char *cpName) {
 extern "C" void dvmh_deactivate_control_point(const char *cpName) {
     std::map<std::string, ControlPoint *, std::less<std::string> >::iterator iter = ActiveControlPoints.find(BuildName(cpName));
     if (iter != ActiveControlPoints.end()) {
+        if (iter->second->isCpAsync() && iter->second->isSaveLocked()) {
+            waitControlPoint(iter->second);
+        }
         ActiveControlPoints.erase(iter);
     } else {
         printf("%s\n", "ControlPoint is not Active, use <dvmh_bind_control_point()> first");

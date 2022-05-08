@@ -1,0 +1,372 @@
+/*    cppa2
+TESTING CHECKPOINT IN PARALLEL_ASYNC MODE */
+
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+#define Min(a, b) ((a) < (b) ? (a) : (b))
+
+static void cppa21();
+static void cppa23();
+static void cppa24();
+static void cppa25();
+
+static void ansyes(const char tname[]);
+static void ansno(const char tname[]);
+
+static int NL = 256;
+static int erri, i, j, n, m, ia, ja, ib, jb, firstrun;
+
+int main(int an, char **as)
+{
+    /* Each function runs twice to test loading from checkpoint propperly */
+    printf("=== START OF cppa2 ======================\n");
+    
+    /* Basic save and load*/
+    cppa21(); cppa21();
+
+    /* ALIGN arrB[i][j] WITH arrA[j+1][i] rotation and shift */
+    cppa23(); cppa23();
+
+    /* DISTRIBUTE arrA2[BLOCK][*] REDISTRIBUTE arrA2[*][BLOCK]*/
+    cppa24(); cppa24();
+
+    /* SHADOW RENEW */
+    cppa25(); cppa25();
+
+    printf("=== END OF cppa2 ========================\n");
+    return 0;
+}
+
+/* ---------------------------------------------cppa21 */
+void cppa21()
+{
+    /* Basic save and load distributed and scalar dynamyc array*/
+    #define AN 24
+    
+    #pragma dvm array distribute[block][block]
+    int A[AN][AN];
+    firstrun = 1;
+    erri = 0;
+    char tname[] = "cppa21";
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa21 PARALLEL_ASYNC 2 [A] [firstrun]
+
+    #pragma dvm region local(A)
+    {
+    #pragma dvm parallel([i][j] on A[i][j])
+    for (i = 0; i < AN; i++) {
+        for (j = 0; j < AN; j++) {
+            A[i][j] = NL * i + j;
+        }
+    }
+    } // End of region
+    
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa21
+    }
+
+    #pragma dvm region local(A)
+    {
+    #pragma dvm parallel([i][j] on A[i][j])
+    for (i = 0; i < AN; i++) {
+        for (j = 0; j < AN; j++) {
+            A[i][j] = 0;
+        }
+    }
+    } // End of region
+
+    #pragma dvm checkpoint load cppa21
+    #pragma dvm region local(A)
+    {
+    #pragma dvm parallel([i][j] on A[i][j]) reduction(sum(erri))
+    for (i = 0; i < AN; i++) {
+        for (j = 0; j < AN; j++) {
+            erri += (A[i][j] - (NL * i + j));
+        }
+    }
+    } // End of region
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa21
+    #pragma dvm get_actual(erri)
+
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN
+}
+
+/* ---------------------------------------------cppa23*/
+/* ALIGN arrB[i][j] WITH arrA[j+1][i] rotation and shift*/
+void cppa23()
+{
+/*    parameters for ALIGN arrB[i][j] WITH arrA[k2i*j+li][k1j*i+lj]*/
+    #define AN1 8
+    #define AN2 8
+    #define BN1 4
+    #define BN2 4
+    int k1i = 0, k2i = 1, li = 1;
+    int k1j = 1, k2j = 0, lj = 0;
+
+    #pragma dvm array distribute[block][block]
+    int A2[AN1][AN2];
+    #pragma dvm array align([i][j] with A2[k2i * j + li][k1j * i + lj])
+    int B2[BN1][BN2];
+    char tname[] = "cppa23";
+    firstrun = 1;
+    erri = 0;
+    
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa23 PARALLEL_ASYNC 5 [A2 B2] [firstrun]
+
+    #pragma dvm region local(A2, B2)
+    {
+    #pragma dvm parallel([i][j] on B2[i][j])
+    for (i = 0; i < BN1; i++)
+        for (j = 0; j < BN2; j++)
+            B2[i][j] = 0;
+    #pragma dvm parallel([i][j] on A2[i][j]) private(ib, jb)
+    for (i = 0; i < AN1; i++)
+        for (j = 0; j < AN2; j++) {
+            A2[i][j] = i * NL + j;
+            if (((i - li) == (((i - li) / k2i) * k2i)) &&
+                ((j - lj) == (((j - lj) / k1j) * k1j)) &&
+                (((i - li) / k2i) >= 0) &&
+                (((j - lj) / k1j) >= 0) &&
+                (((i - li) / k2i) < BN2) &&
+                (((j - lj) / k1j) < BN1))
+            {
+                jb = (i - li) / k2i;
+                ib = (j - lj) / k1j;
+                B2[ib][jb] = ib * NL + jb;
+            }
+        }
+    } // End of region
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa23
+    }
+
+    #pragma dvm region local(A2, B2)
+    {
+    #pragma dvm parallel([i][j] on B2[i][j])
+    for (i = 0; i < BN1; i++)
+        for (j = 0; j < BN2; j++)
+            B2[i][j] = 0;
+    #pragma dvm parallel([i][j] on A2[i][j]) private(ib, jb)
+    for (i = 0; i < AN1; i++) 
+        for (j = 0; j < AN2; j++)
+            A2[i][j] = 0;
+    } // End of region
+
+    #pragma dvm checkpoint load cppa23
+    #pragma dvm region local(A2, B2)
+    {
+    #pragma dvm parallel([i][j] on B2[i][j]) reduction(min(erri)), private(ia, ja)
+    for (i = 0; i < BN1; i++)
+        for (j = 0; j < BN2; j++) {
+            erri += (B2[i][j] - (i * NL + j));
+            ia = k2i * j + li;
+            ja = k1j * i + lj;
+            erri += (A2[ia][ja] - (ia * NL + ja));
+    }
+    } // End of region
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa23
+    #pragma dvm get_actual(erri)
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN1
+    #undef AN2
+    #undef BN1
+    #undef BN2
+}
+
+/* ---------------------------------------------cppa24*/
+/* DISTRIBUTE arrA4[BLOCK][*][BLOCK][*] REDISTRIBUTE arrA4[*][BLOCK][BLOCK][*]*/
+
+void cppa24()
+{
+    #define AN1 5
+    #define AN2 10
+    #define AN3 8
+    #define AN4 18
+
+    #pragma dvm array distribute[block][*][block][*]
+    float A4[AN1][AN2][AN3][AN4];
+    char tname[] = "cppa24";
+    firstrun = 1;
+    erri = 0;
+    
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa24 PARALLEL_ASYNC 5 [A4] [firstrun]
+
+    #pragma dvm region
+    {
+        #pragma dvm parallel([i][j][n][m] on A4[i][j][n][m]) cuda_block(256)
+        for (i = 0; i < AN1; i++)
+            for (j = 0; j < AN2; j++)
+                for (n = 0; n < AN3; n++)
+                    for (m = 0; m < AN4; m++)
+                        A4[i][j][n][m] = i * NL / 10 + j * NL / 100 + n * NL / 1000 + m;
+    }
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa24
+    }
+
+    #pragma dvm region
+    {
+        #pragma dvm parallel([i][j][n][m] on A4[i][j][n][m]) cuda_block(256)
+        for (i = 0; i < AN1; i++)
+            for (j = 0; j < AN2; j++)
+                for (n = 0; n < AN3; n++)
+                    for (m = 0; m < AN4; m++)
+                        A4[i][j][n][m] = 0;
+    }
+
+    #pragma dvm checkpoint load cppa24
+    #pragma dvm redistribute(A4[*][block][block][*])
+    #pragma dvm checkpoint save cppa24
+
+    #pragma dvm region
+    {
+        #pragma dvm parallel([i][j][n][m] on A4[i][j][n][m]) cuda_block(256)
+        for (i = 0; i < AN1; i++)
+            for (j = 0; j < AN2; j++)
+                for (n = 0; n < AN3; n++)
+                    for (m = 0; m < AN4; m++)
+                        A4[i][j][n][m] = 0;
+    }
+    
+    #pragma dvm checkpoint load cppa24
+    #pragma dvm region
+    {
+        #pragma dvm parallel([i][j][n][m] on A4[i][j][n][m]) reduction(min(erri)), cuda_block(256)
+        for (i = 0; i < AN1; i++)
+            for (j = 0; j < AN2; j++)
+                for (n = 0; n < AN3; n++)
+                    for (m = 0; m < AN4; m++)
+                        erri += abs(
+                            (A4[i][j][n][m] != i * NL / 10 + j * NL / 100 + n * NL / 1000 + m)
+                            - Min(erri, i * NL / 10 + j * NL / 100 + n * NL / 1000 + m)
+                        );
+    }
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa24
+    #pragma dvm get_actual(erri)
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN1
+    #undef AN2
+    #undef AN3
+    #undef AN4
+}
+
+/* SHADOW RENEW */
+void cppa25()
+{
+    #define N 12
+    #define M 16
+
+    #pragma dvm array distribute[block][block]
+    int B[N][M];
+    #pragma dvm array align([i][j] with B[i][j]), shadow[0:2][2:2]
+    int A[N][M];
+
+    char tname[] = "cppa25";
+    erri = 0;
+    firstrun = 1;
+
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa25 PARALLEL_ASYNC 5 [A B] [firstrun]
+
+    #pragma dvm region local(A), out(B)
+    {
+    #pragma dvm parallel([i][j] on A[i][j])
+    for (i = 0; i < N; i++)
+        for (j = 0; j < M; j++)
+            A[i][j] = NL + i + j;
+    #pragma dvm parallel([i][j] on B[i][j]) shadow_renew(A[0:2][2:2](corner))
+    for (i = 2; i < N - 2; i++)
+        for (j = 2; j < M - 2; j++)
+            B[i][j] = A[i+2][j+2] + A[i+1][j+1] + A[i][j+2] + A[i][j-2] + A[i+2][j-2];
+    } // End of region
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa25
+    }
+
+    #pragma dvm region local(A), out(B)
+    {
+    #pragma dvm parallel([i][j] on A[i][j])
+    for (i = 0; i < N; i++)
+        for (j = 0; j < M; j++)
+            A[i][j] = 0;
+    #pragma dvm parallel([i][j] on B[i][j]) shadow_renew(A[0:2][2:2](corner))
+    for (i = 2; i < N - 2; i++)
+        for (j = 2; j < M - 2; j++)
+            B[i][j] = 0;
+    } // End of region
+
+    #pragma dvm checkpoint load cppa25
+
+    #pragma dvm region local(A), out(B)
+    {
+    #pragma dvm parallel([i][j] on A[i][j]) reduction(sum(erri))
+    for (i = 0; i < N; i++)
+        for (j = 0; j < M; j++)
+            erri += abs(A[i][j] - (NL + i + j));
+    #pragma dvm parallel([i][j] on B[i][j]) reduction(sum(erri))
+    for (i = 2; i < N - 2; i++)
+        for (j = 2; j < M - 2; j++)
+            erri += abs(B[i][j] - (A[i+2][j+2]+A[i+1][j+1]+A[i][j+2]+A[i][j-2]+A[i+2][j-2]));
+    } // End of region
+  
+    #pragma dvm checkpoint finalize cppa25
+    #pragma dvm get_actual(erri)
+
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+
+    #undef M
+    #undef N
+}
+
+void ansyes(const char name[])
+{
+    printf("%s  -  complete\n", name);
+}
+
+void ansno(const char name[])
+{
+    printf("%s  -  ***error\n", name);
+}

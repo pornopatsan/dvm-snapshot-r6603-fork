@@ -1,0 +1,426 @@
+/*    cppa1
+TESTING CHECKPOINT IN PARALLEL_ASYNC SYNC MODE */
+
+#include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+static void cppa11();
+static void cppa12();
+static void cppa13();
+static void cppa14();
+static void cppa15();
+
+static void ansyes(const char tname[]);
+static void ansno(const char tname[]);
+
+void ansno_debug(const char name[], int erri)
+{
+    printf("%s  -  ***error : %d\n", name, erri);
+}
+
+static int NL = 256;
+static int erri, i, j, ia, ib, firstrun;
+
+int main(int an, char **as)
+{
+    /* Each function runs twice to test loading from checkpoint propperly */
+    printf("=== START OF cppa1 ======================\n");
+    
+    /* Basic save and load distributed and scalar dynamyc array*/
+    cppa11(); cppa11();
+
+    /* Basic save and load distributed and scalar static array*/
+    cppa12(); cppa12();
+
+    /* ALIGN arrB[i] WITH arrA[2 * i + 8] stretching along i */
+    cppa13(); cppa13();
+
+    /* DISTRIBUTE arrA2[BLOCK][*] REDISTRIBUTE arrA2[*][BLOCK]*/
+    cppa14(); // cppa14(); Does not work propperly 
+    // load to original after redistribute & save 
+
+    /* SHADOW RENEW */
+    cppa15(); cppa15();
+
+    printf("=== END OF cppa1 ========================\n");
+    return 0;
+}
+
+/* ---------------------------------------------cppa11*/
+void cppa11()
+{
+    /* Basic save and load distributed and scalar dynamyc array*/
+    #define AN1 24
+    #define BN1 8
+    #define BN1OF 2
+    #define BN1SZ 4
+    
+    #pragma dvm array distribute[block]
+    int A1[AN1];
+    int *B1 = (int *) malloc(BN1 * sizeof(int)); // not dustributed
+    firstrun = 1;
+    erri = 0;
+    char tname[] = "cppa11";
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa11 PARALLEL_ASYNC 2 [A1] [firstrun B1(BN1OF:BN1SZ)]
+    
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i])
+    for (i = 0; i < AN1; i++) {
+        A1[i] = i;
+    }
+    }
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 1;
+    }
+    
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa11
+    }
+
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i])
+    for (i = 0; i < AN1; i++) {
+        A1[i] = 0;
+    }
+    }
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 0;
+    }
+
+    #pragma dvm checkpoint load cppa11
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i]) reduction(sum(erri))
+    for (i = 0; i < AN1; i++) {
+        erri += abs(A1[i] - i);
+    }
+    }
+    for (i = 0; i < BN1; i++) { // test that subset af scalar array was restored 
+        if ((i >= BN1OF) && (i < BN1OF + BN1SZ)) {
+            erri += abs(B1[i] - 1);
+        } else {
+            erri += abs(B1[i] - 0);
+        }
+    }
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa11
+    #pragma dvm get_actual(erri)
+    free (B1);
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN1
+    #undef BN1
+    #undef BN1OF
+    #undef BN1SZ
+}
+
+/* ---------------------------------------------cppa12*/
+void cppa12()
+{
+    /* Basic save and load distributed and scalar static array*/
+    #define AN1 24
+    #define BN1 8
+    #define BN1OF 2
+    #define BN1SZ 4
+    
+    #pragma dvm array distribute[block]
+    int A1[AN1];
+    int B1[BN1]; // not dustributed
+    firstrun = 1;
+    erri = 0;
+    char tname[] = "cppa12";
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa12 PARALLEL_ASYNC 3 [A1] [firstrun B1(BN1OF:BN1SZ)]
+
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i])
+    for (i = 0; i < AN1; i++) {
+        A1[i] = i;
+    }
+    }
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 1;
+    }
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa12
+    }
+
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i])
+    for (i = 0; i < AN1; i++) {
+        A1[i] = 0;
+    }
+    }
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 0;
+    }
+
+    #pragma dvm checkpoint load cppa12
+    #pragma dvm region
+    {
+    #pragma dvm parallel([i] on A1[i]) reduction(sum(erri))
+    for (i = 0; i < AN1; i++) {
+        erri += abs(A1[i] - i);
+    }
+    }
+    for (i = 0; i < BN1; i++) { // test that subset af scalar array was restored 
+        if ((i >= BN1OF) && (i < BN1OF + BN1SZ)) {
+            erri += abs(B1[i] - 1);
+        } else {
+            erri += abs(B1[i] - 0);
+        }
+    }
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa12
+    #pragma dvm get_actual(erri)
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN1
+    #undef BN1
+    #undef BN1OF
+    #undef BN1SZ
+}
+
+/* ---------------------------------------------cppa13*/
+/* ALIGN arrB[i] WITH arrA[2 * i + 8] stretching along i*/
+void cppa13()
+{
+/*    parameters for ALIGN arrB[i] WITH arrA[k1i * i + li]*/
+    #define AN1 24
+    #define BN1 8
+    int k1i = 2;
+    int li  = 8;
+
+    #pragma dvm array distribute[block]
+    int A1[AN1];
+    #pragma dvm array align([i] with A1[k1i * i + li])
+    int B1[BN1];
+    char tname[] = "cppa13";
+    firstrun = 1;
+    erri = 0;
+    
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa13 PARALLEL_ASYNC 5 [A1 B1] [firstrun]
+
+    #pragma dvm parallel([i] on B1[i])
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 0;
+    }
+    #pragma dvm parallel([i] on A1[i]) private(ib)
+    for (i = 0; i < AN1; i++)
+    {
+        A1[i] = i;
+        if (((i - li) == (((i - li) / k1i) * k1i)) &&
+            (((i - li) / k1i) >= 0) &&
+            (((i - li) / k1i) < BN1))
+        {
+            ib = (i - li) / k1i;
+            B1[ib] = ib;
+        }
+    }
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa13
+    }
+
+    #pragma dvm parallel([i] on B1[i])
+    for (i = 0; i < BN1; i++) {
+        B1[i] = 0;
+    }
+    #pragma dvm parallel([i] on A1[i])
+    for (i = 0; i < AN1; i++) {
+        A1[i] = 0;
+    }
+
+    #pragma dvm checkpoint load cppa13
+    
+    #pragma dvm parallel([i] on B1[i]) reduction(sum(erri)), private(ia)
+    for (i = 0; i < BN1; i++)
+    {
+        erri += abs(B1[i] - i);
+        ia = k1i * i + li;
+        erri += abs(A1[ia] - ia);
+    }
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa13
+    #pragma dvm get_actual(erri)
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+    
+    #undef AN1
+    #undef BN1
+}
+
+/* ---------------------------------------------cppa14*/
+/* DISTRIBUTE arrA2[BLOCK][*] REDISTRIBUTE arrA2[*][BLOCK]*/
+void cppa14()
+{
+    #define AN1 16
+    #define AN2 8
+
+    #pragma dvm array distribute[block][*]
+    int A2[AN1][AN2];
+    char tname[] = "cppa14";
+    firstrun = 1;
+    erri = 0;
+    
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa14 PARALLEL_ASYNC 5 [A2] [firstrun]
+
+    #pragma dvm parallel([i][j] on A2[i][j]) cuda_block(256)
+    for (i = 0; i < AN1; i++) {
+        for (j = 0; j < AN2; j++) {
+            A2[i][j] = i * NL + j;
+        }
+    }
+    
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm get_actual(firstrun)
+        #pragma dvm checkpoint save cppa14
+    }
+
+    #pragma dvm parallel([i][j] on A2[i][j]) cuda_block(256)
+    for (i = 0; i < AN1; i++) {
+        for (j = 0; j < AN2; j++) {
+            A2[i][j] = 0;
+        }
+    }
+    #pragma dvm checkpoint load cppa14
+    
+    #pragma dvm redistribute(A2[*][block])
+    #pragma dvm checkpoint save cppa14
+
+    #pragma dvm parallel([i][j] on A2[i][j]) cuda_block(256)
+    for (i = 0; i < AN1; i++) {
+        for (j = 0; j < AN2; j++) {
+            A2[i][j] = 0;
+        }
+    }
+    #pragma dvm checkpoint load cppa14
+    
+    #pragma dvm parallel([i][j] on A2[i][j]) reduction(sum(erri)), cuda_block(256)
+    for (i = 0; i < AN1; i++) {
+        for (j = 0; j < AN2; j++) {
+            erri += abs(A2[i][j] - (i * NL + j));
+        }
+    }
+    erri += abs(firstrun - 0);
+
+    #pragma dvm checkpoint finalize cppa14
+    #pragma dvm get_actual(erri)
+    
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+        // ansno_debug(tname, erri);
+    
+    #undef AN1
+    #undef AN2
+}
+
+void cppa15()
+{
+    #define N 12
+    
+    #pragma dvm array distribute[block]
+    int B[N];
+    #pragma dvm array align([i] with B[i]), shadow[1:1]
+    int A[N];
+    char tname[] = "cppa15";
+    erri = 0;
+    firstrun = 1;
+
+    #pragma dvm actual(firstrun)
+    #pragma dvm actual(erri)
+    #pragma dvm checkpoint cppa15 PARALLEL_ASYNC 5 [A B] [firstrun]
+
+    #pragma dvm parallel([i] on A[i])
+    for (i = 0; i < N; i++) {
+        A[i] = i;
+    }
+    #pragma dvm parallel([i] on B[i]) shadow_renew(A)
+    for (i = 1; i < N - 1; i++) {
+        B[i] = A[i+1] + A[i-1];
+    }
+    #pragma dvm get_actual(B)
+
+    if (firstrun) {
+        firstrun = 0;
+        #pragma dvm actual(firstrun)
+        #pragma dvm checkpoint save cppa15
+    }
+
+    #pragma dvm parallel([i] on A[i])
+    for (i = 0; i < N; i++) {
+        A[i] = 0;
+    }
+    #pragma dvm parallel([i] on B[i]) shadow_renew(A) // we also want to corrupt shadows 
+    for (i = 1; i < N - 1; i++) {
+        B[i] = 0;
+    }
+    #pragma dvm checkpoint load cppa15
+
+    #pragma dvm parallel([i] on A[i]) reduction(sum(erri))
+    for (i = 0; i < N; i++) {
+        erri += abs(A[i] - i);
+    }
+    #pragma dvm parallel([i] on B[i]) reduction(sum(erri))
+    for (i = 1; i < N - 1; i++) {
+        erri += abs(B[i] - (A[i+1] + A[i-1]));
+    }
+
+    #pragma dvm checkpoint finalize cppa15
+    #pragma dvm get_actual(erri)
+
+    if (erri == 0)
+        ansyes(tname);
+    else
+        ansno(tname);
+
+    #undef AN1
+}
+
+
+void ansyes(const char name[])
+{
+    printf("%s  -  complete\n", name);
+}
+
+void ansno(const char name[])
+{
+    printf("%s  -  ***error\n", name);
+}

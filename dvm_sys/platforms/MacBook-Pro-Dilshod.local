@@ -2,13 +2,13 @@
 # for DVM tools
  CC='cc -g -O2'
  CXX='c++ -std=c++14 -g -O2'
- LINKER='c++ -g'
+ LINKER='c++ -g -L/usr/local/opt/llvm@11/lib'
  LLVMCONFIG='llvm-config'
 # for parallel programs
  PCC='mpicc -g -O2 -fopenmp'
  PCXX='mpic++ -g -O2 -fopenmp'
  PFORT='mpif77 -g -O2 -fopenmp'
- PLINKER='mpic++ -g -L/usr/local/opt/llvm/lib -fopenmp'
+ PLINKER='mpic++ -g -L/usr/local/opt/llvm@11/lib -fopenmp'
  PFLINKER='mpif77 -g -fopenmp'
  ADD_LIBS=''
  CUDA_PATH=''

@@ -11,8 +11,8 @@ namespace libdvmh {
     enum DvmhCpMode {LOCAL, PARALLEL, LOCAL_ASYNC, PARALLEL_ASYNC};
 
     struct ControlPointHeader {
-        static const size_t MaxVars = 64;
-        static const size_t MaxProcAxes = 64;
+        static const size_t MaxVars = 1024;
+        static const size_t MaxProcAxes = 1024;
 
         DvmhCpMode mode;
         size_t nfiles;
